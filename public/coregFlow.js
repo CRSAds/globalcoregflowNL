@@ -55,7 +55,7 @@ const sponsorCampaigns = {
         { value: "budget", label: "Budget Energie" }
       ]
     },
-    image: "https://globalcoregflow-nl.vercel.app/images/trefzeker.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/Trefzeker Prijzen Coreg.png",
     cid: 5017,
     sid: 496,
     coregAnswerKey: "coreg_answer_campaign-trefzeker",
