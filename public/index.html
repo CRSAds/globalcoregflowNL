@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Dynamische Coreg Test</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <h1 style="text-align:center;">Coreg Generator Demo</h1>
+  <div id="coreg-container"></div>
+
+  <script type="module">
+    import campaigns from '../src/coregCampaigns.js';
+    import { renderCoregCampaign } from '../src/coregRenderer.js';
+
+    const container = document.getElementById("coreg-container");
+
+    // Voorbeeld: drie campagnes renderen
+    ["campaign-nationale-kranten", "campaign-regionale-kranten", "campaign-trefzeker"]
+      .forEach(id => {
+        container.innerHTML += renderCoregCampaign(id, campaigns[id]);
+      });
+  </script>
+</body>
+</html>
