@@ -86,7 +86,7 @@ function renderCoregCampaign(campaignId, data) {
         <h3>${data.step1.title}</h3>
         <p>${data.step1.description}</p>
         <button class="flow-next sponsor-next next-step-${campaignId}-step2">${data.step1.positiveText}</button>
-        <button class="flow-next">${data.step1.negativeText}</button>
+        <button class="flow-next skip-next">${data.step1.negativeText}</button>
       </div>
       <!-- Stap 2 -->
       <div class="coreg-section" id="${campaignId}-step2" style="display:none;">
@@ -108,22 +108,64 @@ function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
 
-  ["campaign-nationale-kranten", "campaign-regionale-kranten", "campaign-trefzeker"]
-    .forEach(id => {
-      container.innerHTML += renderCoregCampaign(id, campaigns[id]);
-    });
+  // Templates renderen
+  const ids = ["campaign-nationale-kranten", "campaign-regionale-kranten", "campaign-trefzeker"];
+  ids.forEach(id => {
+    container.innerHTML += renderCoregCampaign(id, campaigns[id]);
+  });
 
-  // Logica voor multistep (Trefzeker)
-  document.querySelectorAll(".sponsor-next").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const classes = Array.from(btn.classList);
-      const nextStepClass = classes.find(c => c.startsWith("next-step-"));
-      if (nextStepClass) {
-        const nextId = nextStepClass.replace("next-step-", "");
-        document.getElementById(`${btn.closest(".coreg-section").id}`).style.display = "none";
-        const nextSection = document.getElementById(nextId);
-        if (nextSection) nextSection.style.display = "block";
-      }
+  // Alle secties ophalen
+  const sections = Array.from(container.querySelectorAll(".coreg-section"));
+  // Alleen de eerste tonen
+  sections.forEach((s, i) => s.style.display = i === 0 ? "block" : "none");
+
+  // Handler voor doorstappen
+  function showNextSection(current) {
+    const idx = sections.indexOf(current);
+    if (idx > -1 && idx < sections.length - 1) {
+      current.style.display = "none";
+      sections[idx + 1].style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  // Event handlers
+  sections.forEach(section => {
+    section.querySelectorAll(".flow-next").forEach(btn => {
+      btn.addEventListener("click", () => {
+        // Multistep: sponsor-next → ga naar step2
+        if (btn.classList.contains("sponsor-next")) {
+          const classes = Array.from(btn.classList);
+          const nextStepClass = classes.find(c => c.startsWith("next-step-"));
+          if (nextStepClass) {
+            const nextId = nextStepClass.replace("next-step-", "");
+            section.style.display = "none";
+            const nextSection = document.getElementById(nextId);
+            if (nextSection) {
+              nextSection.style.display = "block";
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+            return;
+          }
+        }
+
+        // Multistep: skip-next → sla stap 2 over
+        if (btn.classList.contains("skip-next")) {
+          const idx = sections.indexOf(section);
+          if (idx > -1) {
+            section.style.display = "none";
+            // Skip step2 → ga 2 stappen verder
+            if (sections[idx + 2]) {
+              sections[idx + 2].style.display = "block";
+            }
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+          return;
+        }
+
+        // Normaal → naar volgende sectie
+        showNextSection(section);
+      });
     });
   });
 }
