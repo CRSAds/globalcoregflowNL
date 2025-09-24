@@ -13,7 +13,7 @@ const sponsorCampaigns = {
       "Ja, Trouw",
       "Ja, Het Parool"
     ],
-    image: "https://globalcoregflow-nl.vercel.app/images/nationale-kranten.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/Nationale Kranten Coreg 1.png",
     cid: 3534,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-nationale-kranten"
