@@ -1,5 +1,5 @@
 // coregFlow.js
-// Alles self-contained: campagnes + rendering + flowlogica
+// Alle coreg campagnes + rendering + flow logica in één bestand
 
 const sponsorCampaigns = {
   "campaign-nationale-kranten": {
@@ -7,13 +7,13 @@ const sponsorCampaigns = {
     title: "Welke is jouw favoriet?",
     description:
       "Geef hieronder aan van welke krant jij graag dagelijks per e-mail de nieuwsbrief zou willen ontvangen.",
+    image: "/images/nationale-kranten.png",
     positiveAnswers: [
       "Ja, De Volkskrant",
       "Ja, Algemeen Dagblad",
       "Ja, Trouw",
       "Ja, Het Parool"
     ],
-    image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png",
     cid: 3534,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-nationale-kranten"
@@ -24,13 +24,13 @@ const sponsorCampaigns = {
     title: "Welke regionale krant wil je ontvangen?",
     description:
       "Kies jouw favoriete regionale krant en ontvang dagelijks de nieuwsbrief per e-mail.",
+    image: "/images/regionale-kranten.png",
     options: [
       { value: "brabants", label: "Brabants Dagblad" },
       { value: "tubantia", label: "Tubantia" },
       { value: "pzc", label: "PZC" },
       { value: "gelderlander", label: "De Gelderlander" }
     ],
-    image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png",
     cid: 4196,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-regionale-kranten",
@@ -55,14 +55,67 @@ const sponsorCampaigns = {
         { value: "budget", label: "Budget Energie" }
       ]
     },
-    image: "https://globalcoregflow-nl.vercel.app/images/Trefzeker Prijzen Coreg.png",
+    image: "/images/trefzeker.png",
     cid: 5017,
     sid: 496,
     coregAnswerKey: "coreg_answer_campaign-trefzeker",
     answerFieldKey: "f_2575_coreg_answer_dropdown",
     hasCoregFlow: true
+  },
+
+  "campaign-kiosk": {
+    type: "single",
+    title: "Ontvang jij graag acties van Kiosk?",
+    description: "Kiosk biedt kortingen op tijdschriften en kranten.",
+    image: "/images/kiosk.png",
+    positiveAnswers: ["Ja, ik wil acties ontvangen"],
+    cid: 6001,
+    sid: 34,
+    coregAnswerKey: "coreg_answer_campaign-kiosk"
+  },
+
+  "campaign-generationzero": {
+    type: "single",
+    title: "Wil je meer weten over Generation Zero?",
+    description: "Ontvang updates en exclusieve content.",
+    image: "/images/generationzero.png",
+    positiveAnswers: ["Ja, ik wil informatie ontvangen"],
+    cid: 6002,
+    sid: 34,
+    coregAnswerKey: "coreg_answer_campaign-generationzero"
+  },
+
+  "campaign-mycollections": {
+    type: "single",
+    title: "Spaar jij graag mee met Mycollections?",
+    description: "Ontvang exclusieve acties en aanbiedingen.",
+    image: "/images/mycollections.png",
+    positiveAnswers: ["Ja, ik doe graag mee"],
+    cid: 6003,
+    sid: 34,
+    coregAnswerKey: "coreg_answer_campaign-mycollections",
+    requiresLongForm: true
+  },
+
+  "campaign-raadselgids": {
+    type: "dropdown",
+    title: "Welke Raadselgids wil je ontvangen?",
+    description: "Kies jouw favoriete uitgave en ontvang aanbiedingen.",
+    image: "/images/raadselgids.png",
+    options: [
+      { value: "puzzelmix", label: "Puzzelmix" },
+      { value: "sudoku", label: "Sudoku" },
+      { value: "kruiswoord", label: "Kruiswoord" }
+    ],
+    cid: 6004,
+    sid: 34,
+    coregAnswerKey: "coreg_answer_campaign-raadselgids",
+    answerFieldKey: "f_2575_coreg_answer_dropdown",
+    requiresLongForm: true
   }
 };
+
+// ============== Renderer ==============
 
 function renderCoregCampaign(campaignId, data, isFinal = false) {
   const finalClass = isFinal ? " final-coreg" : "";
@@ -93,14 +146,14 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
         <h3>${data.title}</h3>
         <p>${data.description}</p>
         <div class="form-group">
-          <select data-dropdown-campaign="${campaignId}" required>
+          <select data-dropdown-campaign="${campaignId}" class="coreg-dropdown" required>
             <option value="">Maak een keuze</option>
             ${data.options
               .map(o => `<option value="${o.value}">${o.label}</option>`)
               .join("")}
           </select>
         </div>
-        <button class="flow-next sponsor-optin" id="${campaignId}">Ga verder</button>
+        <a href="#" class="skip-link">Geen interesse, sla over</a>
       </div>
     `;
   }
@@ -136,6 +189,8 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
   return "";
 }
 
+// ============== Flow logica ==============
+
 function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
@@ -156,15 +211,35 @@ function initCoregFlow() {
       sections[idx + 1].style.display = "block";
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (current.classList.contains("final-coreg")) {
-      // Trigger verborgen button met final-coreg class
+      // Laatste coreg → trigger verborgen button
       const finishBtn = document.getElementById("coreg-finish-btn");
       if (finishBtn) finishBtn.click();
     }
   }
 
   sections.forEach(section => {
+    // Dropdown onchange = direct door
+    const dropdown = section.querySelector(".coreg-dropdown");
+    if (dropdown) {
+      dropdown.addEventListener("change", () => {
+        if (dropdown.value !== "") {
+          showNextSection(section);
+        }
+      });
+    }
+
+    // Skip link bij dropdown
+    const skipLink = section.querySelector(".skip-link");
+    if (skipLink) {
+      skipLink.addEventListener("click", e => {
+        e.preventDefault();
+        showNextSection(section);
+      });
+    }
+
     section.querySelectorAll(".flow-next").forEach(btn => {
       btn.addEventListener("click", () => {
+        // Multistep JA
         if (btn.classList.contains("sponsor-next")) {
           const classes = Array.from(btn.classList);
           const nextStepClass = classes.find(c => c.startsWith("next-step-"));
@@ -180,16 +255,26 @@ function initCoregFlow() {
           }
         }
 
+        // Multistep NEE
         if (btn.classList.contains("skip-next")) {
           const idx = sections.indexOf(section);
           section.style.display = "none";
-          if (sections[idx + 2]) {
-            sections[idx + 2].style.display = "block";
+
+          // Als dit de laatste campagne is → finish-btn triggeren
+          if (idx >= sections.length - 2 && section.classList.contains("final-coreg") === false) {
+            const finishBtn = document.getElementById("coreg-finish-btn");
+            if (finishBtn) finishBtn.click();
+          } else {
+            if (sections[idx + 2]) {
+              sections[idx + 2].style.display = "block";
+            }
           }
+
           window.scrollTo({ top: 0, behavior: "smooth" });
           return;
         }
 
+        // Normaal gedrag
         showNextSection(section);
       });
     });
