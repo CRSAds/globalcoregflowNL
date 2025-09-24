@@ -1,5 +1,5 @@
 // coregFlow.js
-// Alles in 1 bestand zodat het direct in Swipe Pages werkt
+// Self-contained: campagnes + rendering + flow logica
 
 const sponsorCampaigns = {
   "campaign-nationale-kranten": {
@@ -12,12 +12,8 @@ const sponsorCampaigns = {
       "Ja, Algemeen Dagblad",
       "Ja, Trouw",
       "Ja, Het Parool"
-    ],
-    coregAnswerKey: "coreg_answer_campaign-nationale-kranten",
-    cid: 3534,
-    sid: 34
+    ]
   },
-
   "campaign-regionale-kranten": {
     type: "dropdown",
     title: "Welke regionale krant wil je ontvangen?",
@@ -28,13 +24,8 @@ const sponsorCampaigns = {
       { value: "tubantia", label: "Tubantia" },
       { value: "pzc", label: "PZC" },
       { value: "gelderlander", label: "De Gelderlander" }
-    ],
-    answerFieldKey: "f_2575_coreg_answer_dropdown",
-    coregAnswerKey: "coreg_answer_campaign-regionale-kranten",
-    cid: 4196,
-    sid: 34
+    ]
   },
-
   "campaign-trefzeker": {
     type: "multistep",
     step1: {
@@ -52,12 +43,7 @@ const sponsorCampaigns = {
         { value: "vandebron", label: "Van de Bron" },
         { value: "budget", label: "Budget Energie" }
       ]
-    },
-    coregAnswerKey: "coreg_answer_campaign-trefzeker",
-    answerFieldKey: "f_2575_coreg_answer_dropdown",
-    cid: 5017,
-    sid: 496,
-    hasCoregFlow: true
+    }
   }
 };
 
@@ -71,10 +57,7 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
         <p>${data.description}</p>
         <div class="button-group">
           ${data.positiveAnswers
-            .map(
-              a =>
-                `<button class="flow-next sponsor-optin" id="${campaignId}">${a}</button>`
-            )
+            .map(a => `<button class="flow-next sponsor-optin" id="${campaignId}">${a}</button>`)
             .join("")}
           <button class="flow-next">Sla over, geen interesse</button>
         </div>
@@ -90,9 +73,7 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
         <div class="form-group">
           <select data-dropdown-campaign="${campaignId}" required>
             <option value="">Maak een keuze</option>
-            ${data.options
-              .map(o => `<option value="${o.value}">${o.label}</option>`)
-              .join("")}
+            ${data.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
           </select>
         </div>
         <button class="flow-next sponsor-optin" id="${campaignId}">Ga verder</button>
@@ -117,9 +98,7 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
         <p>${data.step2.description}</p>
         <select data-dropdown-campaign="${campaignId}" required>
           <option value="">Maak een keuze</option>
-          ${data.step2.options
-            .map(o => `<option value="${o.value}">${o.label}</option>`)
-            .join("")}
+          ${data.step2.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
         </select>
         <button class="flow-next sponsor-optin" id="${campaignId}">Bevestigen</button>
       </div>
@@ -129,7 +108,7 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
   return "";
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
 
@@ -138,4 +117,61 @@ window.addEventListener("DOMContentLoaded", () => {
     const isFinal = i === ids.length - 1;
     container.innerHTML += renderCoregCampaign(id, sponsorCampaigns[id], isFinal);
   });
-});
+
+  const sections = Array.from(container.querySelectorAll(".coreg-section"));
+  sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
+
+  function showNextSection(current) {
+    const idx = sections.indexOf(current);
+    if (idx > -1 && idx < sections.length - 1) {
+      current.style.display = "none";
+      sections[idx + 1].style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (current.classList.contains("final-coreg")) {
+      // Laatste coreg → trigger door naar volgende Swipe Pages sectie
+      const allSteps = Array.from(document.querySelectorAll(".flow-section, .coreg-section"));
+      const currentIndex = allSteps.indexOf(current);
+      if (currentIndex > -1 && currentIndex < allSteps.length - 1) {
+        const next = allSteps[currentIndex + 1];
+        current.style.display = "none";
+        next.style.display = "block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+  }
+
+  sections.forEach(section => {
+    section.querySelectorAll(".flow-next").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (btn.classList.contains("sponsor-next")) {
+          const classes = Array.from(btn.classList);
+          const nextStepClass = classes.find(c => c.startsWith("next-step-"));
+          if (nextStepClass) {
+            const nextId = nextStepClass.replace("next-step-", "");
+            section.style.display = "none";
+            const nextSection = document.getElementById(nextId);
+            if (nextSection) {
+              nextSection.style.display = "block";
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+            return;
+          }
+        }
+
+        if (btn.classList.contains("skip-next")) {
+          const idx = sections.indexOf(section);
+          section.style.display = "none";
+          if (sections[idx + 2]) {
+            sections[idx + 2].style.display = "block";
+          }
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+
+        showNextSection(section);
+      });
+    });
+  });
+}
+
+window.addEventListener("DOMContentLoaded", initCoregFlow);
