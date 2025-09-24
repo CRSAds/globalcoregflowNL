@@ -1,5 +1,5 @@
 // coregFlow.js
-// Self-contained: campagnes + rendering + flow logica
+// Alles self-contained: campagnes + rendering + flowlogica
 
 const sponsorCampaigns = {
   "campaign-nationale-kranten": {
@@ -12,8 +12,13 @@ const sponsorCampaigns = {
       "Ja, Algemeen Dagblad",
       "Ja, Trouw",
       "Ja, Het Parool"
-    ]
+    ],
+    image: "https://globalcoregflow-nl.vercel.app/images/nationale-kranten.png",
+    cid: 3534,
+    sid: 34,
+    coregAnswerKey: "coreg_answer_campaign-nationale-kranten"
   },
+
   "campaign-regionale-kranten": {
     type: "dropdown",
     title: "Welke regionale krant wil je ontvangen?",
@@ -24,8 +29,14 @@ const sponsorCampaigns = {
       { value: "tubantia", label: "Tubantia" },
       { value: "pzc", label: "PZC" },
       { value: "gelderlander", label: "De Gelderlander" }
-    ]
+    ],
+    image: "https://globalcoregflow-nl.vercel.app/images/regionale-kranten.png",
+    cid: 4196,
+    sid: 34,
+    coregAnswerKey: "coreg_answer_campaign-regionale-kranten",
+    answerFieldKey: "f_2575_coreg_answer_dropdown"
   },
+
   "campaign-trefzeker": {
     type: "multistep",
     step1: {
@@ -43,7 +54,13 @@ const sponsorCampaigns = {
         { value: "vandebron", label: "Van de Bron" },
         { value: "budget", label: "Budget Energie" }
       ]
-    }
+    },
+    image: "https://globalcoregflow-nl.vercel.app/images/trefzeker.png",
+    cid: 5017,
+    sid: 496,
+    coregAnswerKey: "coreg_answer_campaign-trefzeker",
+    answerFieldKey: "f_2575_coreg_answer_dropdown",
+    hasCoregFlow: true
   }
 };
 
@@ -53,11 +70,15 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
   if (data.type === "single") {
     return `
       <div class="coreg-section${finalClass}" id="${campaignId}">
+        <img src="${data.image}" alt="${data.title}" class="coreg-image" />
         <h3>${data.title}</h3>
         <p>${data.description}</p>
         <div class="button-group">
           ${data.positiveAnswers
-            .map(a => `<button class="flow-next sponsor-optin" id="${campaignId}">${a}</button>`)
+            .map(
+              a =>
+                `<button class="flow-next sponsor-optin" id="${campaignId}">${a}</button>`
+            )
             .join("")}
           <button class="flow-next">Sla over, geen interesse</button>
         </div>
@@ -68,12 +89,15 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
   if (data.type === "dropdown") {
     return `
       <div class="coreg-section${finalClass}" id="${campaignId}">
+        <img src="${data.image}" alt="${data.title}" class="coreg-image" />
         <h3>${data.title}</h3>
         <p>${data.description}</p>
         <div class="form-group">
           <select data-dropdown-campaign="${campaignId}" required>
             <option value="">Maak een keuze</option>
-            ${data.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
+            ${data.options
+              .map(o => `<option value="${o.value}">${o.label}</option>`)
+              .join("")}
           </select>
         </div>
         <button class="flow-next sponsor-optin" id="${campaignId}">Ga verder</button>
@@ -85,6 +109,7 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
     return `
       <!-- Stap 1 -->
       <div class="coreg-section" id="${campaignId}-step1">
+        <img src="${data.image}" alt="${data.step1.title}" class="coreg-image" />
         <h3>${data.step1.title}</h3>
         <p>${data.step1.description}</p>
         <button class="flow-next sponsor-next next-step-${campaignId}-step2" id="${campaignId}">
@@ -94,11 +119,14 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
       </div>
       <!-- Stap 2 -->
       <div class="coreg-section${finalClass}" id="${campaignId}-step2">
+        <img src="${data.image}" alt="${data.step2.title}" class="coreg-image" />
         <h3>${data.step2.title}</h3>
         <p>${data.step2.description}</p>
         <select data-dropdown-campaign="${campaignId}" required>
           <option value="">Maak een keuze</option>
-          ${data.step2.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
+          ${data.step2.options
+            .map(o => `<option value="${o.value}">${o.label}</option>`)
+            .join("")}
         </select>
         <button class="flow-next sponsor-optin" id="${campaignId}">Bevestigen</button>
       </div>
@@ -128,15 +156,9 @@ function initCoregFlow() {
       sections[idx + 1].style.display = "block";
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (current.classList.contains("final-coreg")) {
-      // Laatste coreg → trigger door naar volgende Swipe Pages sectie
-      const allSteps = Array.from(document.querySelectorAll(".flow-section, .coreg-section"));
-      const currentIndex = allSteps.indexOf(current);
-      if (currentIndex > -1 && currentIndex < allSteps.length - 1) {
-        const next = allSteps[currentIndex + 1];
-        current.style.display = "none";
-        next.style.display = "block";
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+      // Trigger verborgen button met final-coreg class
+      const finishBtn = document.getElementById("coreg-finish-btn");
+      if (finishBtn) finishBtn.click();
     }
   }
 
