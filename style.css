@@ -1,0 +1,45 @@
+.coreg-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 480px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.coreg-section h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.coreg-section p {
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.button-group button,
+.flow-next {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  background: #222;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.button-group button:hover {
+  background: #444;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
