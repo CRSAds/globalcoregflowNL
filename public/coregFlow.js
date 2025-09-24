@@ -30,7 +30,7 @@ const sponsorCampaigns = {
       { value: "pzc", label: "PZC" },
       { value: "gelderlander", label: "De Gelderlander" }
     ],
-    image: "https://globalcoregflow-nl.vercel.app/images/regionale-kranten.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png.png",
     cid: 4196,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-regionale-kranten",
