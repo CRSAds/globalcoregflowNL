@@ -4,34 +4,37 @@ const campaigns = {
   "campaign-nationale-kranten": {
     type: "single",
     title: "Welke is jouw favoriet?",
-    description: "Geef hieronder aan van welke krant jij graag dagelijks per e-mail de nieuwsbrief zou willen ontvangen.",
+    description:
+      "Geef hieronder aan van welke krant jij graag dagelijks per e-mail de nieuwsbrief zou willen ontvangen.",
     positiveAnswers: [
       "Ja, De Volkskrant",
       "Ja, Algemeen Dagblad",
       "Ja, Trouw",
-      "Ja, Het Parool"
-    ]
+      "Ja, Het Parool",
+    ],
   },
 
   "campaign-regionale-kranten": {
     type: "dropdown",
     title: "Welke regionale krant wil je ontvangen?",
-    description: "Kies jouw favoriete regionale krant en ontvang dagelijks de nieuwsbrief per e-mail.",
+    description:
+      "Kies jouw favoriete regionale krant en ontvang dagelijks de nieuwsbrief per e-mail.",
     options: [
       { value: "brabants", label: "Brabants Dagblad" },
       { value: "tubantia", label: "Tubantia" },
       { value: "pzc", label: "PZC" },
-      { value: "gelderlander", label: "De Gelderlander" }
-    ]
+      { value: "gelderlander", label: "De Gelderlander" },
+    ],
   },
 
   "campaign-trefzeker": {
     type: "multistep",
     step1: {
       title: "Wil je een energieaanbod ontvangen?",
-      description: "Onze partner Trefzeker helpt je graag met het vergelijken van energietarieven.",
+      description:
+        "Onze partner Trefzeker helpt je graag met het vergelijken van energietarieven.",
       positiveText: "Ja, ik wil een aanbod",
-      negativeText: "Nee, geen interesse"
+      negativeText: "Nee, geen interesse",
     },
     step2: {
       title: "Wie is je huidige energieleverancier?",
@@ -39,24 +42,33 @@ const campaigns = {
       options: [
         { value: "essent", label: "Essent" },
         { value: "vandebron", label: "Van de Bron" },
-        { value: "budget", label: "Budget Energie" }
-      ]
-    }
-  }
+        { value: "budget", label: "Budget Energie" },
+      ],
+    },
+  },
 };
 
-function renderCoregCampaign(campaignId, data) {
+function renderCoregCampaign(campaignId, data, isFinal = false) {
   if (!data) return "";
+
+  // Extra class toevoegen als dit de laatste coreg is
+  const finalClass = isFinal ? " final-coreg" : "";
 
   if (data.type === "single") {
     return `
-      <div class="coreg-section" id="${campaignId}">
+      <div class="coreg-section${finalClass}" id="${campaignId}">
         <h3>${data.title}</h3>
         <p>${data.description}</p>
         <div class="button-group">
-          ${data.positiveAnswers.map(a => `
-            <button class="flow-next sponsor-optin">${a}</button>
-          `).join("")}
+          ${data.positiveAnswers
+            .map(
+              (a) => `
+            <button class="flow-next sponsor-optin" id="${campaignId}">
+              ${a}
+            </button>
+          `
+            )
+            .join("")}
           <button class="flow-next">Sla over, geen interesse</button>
         </div>
       </div>
@@ -65,16 +77,18 @@ function renderCoregCampaign(campaignId, data) {
 
   if (data.type === "dropdown") {
     return `
-      <div class="coreg-section" id="${campaignId}">
+      <div class="coreg-section${finalClass}" id="${campaignId}">
         <h3>${data.title}</h3>
         <p>${data.description}</p>
         <div class="form-group">
           <select data-dropdown-campaign="${campaignId}" required>
             <option value="">Maak een keuze</option>
-            ${data.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
+            ${data.options
+              .map((o) => `<option value="${o.value}">${o.label}</option>`)
+              .join("")}
           </select>
         </div>
-        <button class="flow-next">Ga verder</button>
+        <button class="flow-next sponsor-optin" id="${campaignId}">Ga verder</button>
       </div>
     `;
   }
@@ -85,18 +99,22 @@ function renderCoregCampaign(campaignId, data) {
       <div class="coreg-section" id="${campaignId}-step1">
         <h3>${data.step1.title}</h3>
         <p>${data.step1.description}</p>
-        <button class="flow-next sponsor-next next-step-${campaignId}-step2">${data.step1.positiveText}</button>
+        <button class="flow-next sponsor-next next-step-${campaignId}-step2" id="${campaignId}">
+          ${data.step1.positiveText}
+        </button>
         <button class="flow-next skip-next">${data.step1.negativeText}</button>
       </div>
       <!-- Stap 2 -->
-      <div class="coreg-section" id="${campaignId}-step2" style="display:none;">
+      <div class="coreg-section${finalClass}" id="${campaignId}-step2" style="display:none;">
         <h3>${data.step2.title}</h3>
         <p>${data.step2.description}</p>
         <select data-dropdown-campaign="${campaignId}" required>
           <option value="">Maak een keuze</option>
-          ${data.step2.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
+          ${data.step2.options
+            .map((o) => `<option value="${o.value}">${o.label}</option>`)
+            .join("")}
         </select>
-        <button class="flow-next">Bevestigen</button>
+        <button class="flow-next sponsor-optin" id="${campaignId}">Bevestigen</button>
       </div>
     `;
   }
@@ -108,18 +126,22 @@ function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
 
-  // Templates renderen
-  const ids = ["campaign-nationale-kranten", "campaign-regionale-kranten", "campaign-trefzeker"];
-  ids.forEach(id => {
-    container.innerHTML += renderCoregCampaign(id, campaigns[id]);
+  // Campaign volgorde bepalen
+  const ids = [
+    "campaign-nationale-kranten",
+    "campaign-regionale-kranten",
+    "campaign-trefzeker",
+  ];
+
+  ids.forEach((id, i) => {
+    const isFinal = i === ids.length - 1; // laatste sectie markeren
+    container.innerHTML += renderCoregCampaign(id, campaigns[id], isFinal);
   });
 
-  // Alle secties ophalen
+  // Alle secties
   const sections = Array.from(container.querySelectorAll(".coreg-section"));
-  // Alleen de eerste tonen
-  sections.forEach((s, i) => s.style.display = i === 0 ? "block" : "none");
+  sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
-  // Handler voor doorstappen
   function showNextSection(current) {
     const idx = sections.indexOf(current);
     if (idx > -1 && idx < sections.length - 1) {
@@ -130,13 +152,13 @@ function initCoregFlow() {
   }
 
   // Event handlers
-  sections.forEach(section => {
-    section.querySelectorAll(".flow-next").forEach(btn => {
+  sections.forEach((section) => {
+    section.querySelectorAll(".flow-next").forEach((btn) => {
       btn.addEventListener("click", () => {
-        // Multistep: sponsor-next → ga naar step2
+        // Multistep JA → stap2 tonen
         if (btn.classList.contains("sponsor-next")) {
           const classes = Array.from(btn.classList);
-          const nextStepClass = classes.find(c => c.startsWith("next-step-"));
+          const nextStepClass = classes.find((c) => c.startsWith("next-step-"));
           if (nextStepClass) {
             const nextId = nextStepClass.replace("next-step-", "");
             section.style.display = "none";
@@ -149,21 +171,18 @@ function initCoregFlow() {
           }
         }
 
-        // Multistep: skip-next → sla stap 2 over
+        // Multistep NEE → skip naar sectie na stap2
         if (btn.classList.contains("skip-next")) {
           const idx = sections.indexOf(section);
-          if (idx > -1) {
-            section.style.display = "none";
-            // Skip step2 → ga 2 stappen verder
-            if (sections[idx + 2]) {
-              sections[idx + 2].style.display = "block";
-            }
-            window.scrollTo({ top: 0, behavior: "smooth" });
+          section.style.display = "none";
+          if (sections[idx + 2]) {
+            sections[idx + 2].style.display = "block";
           }
+          window.scrollTo({ top: 0, behavior: "smooth" });
           return;
         }
 
-        // Normaal → naar volgende sectie
+        // Normaal → naar volgende
         showNextSection(section);
       });
     });
