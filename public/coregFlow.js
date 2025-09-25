@@ -25,7 +25,7 @@ const sponsorCampaigns = {
     description:
       "Ontvang dagelijks de belangrijkste updates uit jouw omgeving rechtstreeks in je inbox.<br><b>Kies je favoriet</b> en blijf altijd op de hoogte van wat er speelt.",
     image: "/images/Nationale-Kranten.png",
-    options: [EindhovensDagbad, DeStentor, BNDeStem], // opties vul jij zelf in
+    options: [], // opties vul jij zelf in
     cid: 4196,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-regionale-kranten",
