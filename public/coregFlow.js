@@ -46,7 +46,7 @@ const sponsorCampaigns = {
       description: "Selecteer hieronder je huidige leverancier.",
       options: [] // dropdown opties vul jij zelf in
     },
-    image: "https://globalcoregflow-nl.vercel.app/images/images/trefzeker.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/images/Trefzeker Prijzen Coreg.png",
     cid: 5017,
     sid: 496,
     coregAnswerKey: "coreg_answer_campaign-trefzeker",
