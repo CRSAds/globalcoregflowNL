@@ -7,7 +7,7 @@ const sponsorCampaigns = {
     title: "Welke is jouw favoriet?",
     description:
       "Geef hieronder aan van welke krant jij graag dagelijks per e-mail de nieuwsbrief zou willen ontvangen.",
-    image: "/images/Nationale-Kranten.png",
+    image: "Nationale-Kranten.png",
     positiveAnswers: [
       "De Volkskrant",
       "Algemeen Dagblad",
