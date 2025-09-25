@@ -83,7 +83,7 @@ const sponsorCampaigns = {
     title: "Wat spreekt u het meest aan?",
     description:
       "Ontdek My Collections: exclusieve verzamelingen met een gratis cadeau. Interesse in een telefonisch aanbod? Zo ja, wat is uw favoriete categorie?",
-    image: "https://globalcoregflow-nl.vercel.app/images/Mycollections Banner.webp",
+    image: "https://globalcoregflow-nl.vercel.app/images/MyCollections Banner.webp",
     positiveAnswers: [
       "Ja, topboeken",
       "Ja, kookboeken",
