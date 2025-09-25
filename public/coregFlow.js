@@ -46,7 +46,7 @@ const sponsorCampaigns = {
       description: "Selecteer hieronder je huidige leverancier.",
       options: [] // dropdown opties vul jij zelf in
     },
-    image: "https://globalcoregflow-nl.vercel.app/images/images/Trefzeker Prijzen Coreg.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/Trefzeker Prijzen Coreg.png",
     cid: 5017,
     sid: 496,
     coregAnswerKey: "coreg_answer_campaign-trefzeker",
@@ -59,7 +59,7 @@ const sponsorCampaigns = {
     title: "Lees alle bladen voordeliger",
     description:
       "Ontvang 2x per maand per email gratis de Kiosk.nl nieuwsbrief met daarin de leukste artikelen, aanbiedingen en prijsvragen. Wil je onze nieuwsbrief ontvangen?",
-    image: "https://globalcoregflow-nl.vercel.app/images/images/Kiosk Banner.webp",
+    image: "https://globalcoregflow-nl.vercel.app/images/Kiosk Banner.webp",
     positiveAnswers: ["Ja, leuk"],
     cid: 6001,
     sid: 34,
@@ -71,7 +71,7 @@ const sponsorCampaigns = {
     title: "Wil je meer weten over Generation Zero?",
     description:
       "Ontvang updates en exclusieve content over Generation Zero.",
-    image: "https://globalcoregflow-nl.vercel.app/images/images/GenZero Coreg.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/GenZero Coreg.png",
     positiveAnswers: ["Ja, ik wil informatie ontvangen"],
     cid: 6002,
     sid: 34,
@@ -83,7 +83,7 @@ const sponsorCampaigns = {
     title: "Wat spreekt u het meest aan?",
     description:
       "Ontdek My Collections: exclusieve verzamelingen met een gratis cadeau. Interesse in een telefonisch aanbod? Zo ja, wat is uw favoriete categorie?",
-    image: "https://globalcoregflow-nl.vercel.app/images/images/Mycollections Banner.webp",
+    image: "https://globalcoregflow-nl.vercel.app/images/Mycollections Banner.webp",
     positiveAnswers: [
       "Ja, topboeken",
       "Ja, kookboeken",
@@ -101,7 +101,7 @@ const sponsorCampaigns = {
     title: "Wil jij een Gratis Puzzelboek?",
     description:
       "Mag Raadselgids jou eenmalig bellen met een leuk puzzelaanbod? Los puzzels op, verdien punten en ruil in voor mooie prijzen!",
-    image: "https://globalcoregflow-nl.vercel.app/images/images/raadselgids.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/raadselgids.png",
     positiveAnswers: ["Ja, graag"],
     cid: 4621,
     sid: 34,
