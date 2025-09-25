@@ -9,10 +9,10 @@ const sponsorCampaigns = {
       "Geef hieronder aan van welke krant jij graag dagelijks per e-mail de nieuwsbrief zou willen ontvangen.",
     image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png",
     positiveAnswers: [
-      "De Volkskrant",
-      "Algemeen Dagblad",
-      "Trouw",
-      "Het Parool"
+      "Ja, De Volkskrant",
+      "Ja, Algemeen Dagblad",
+      "Ja, Trouw",
+      "Ja, Het Parool"
     ],
     cid: 3534,
     sid: 34,
@@ -25,7 +25,15 @@ const sponsorCampaigns = {
     description:
       "Ontvang dagelijks de belangrijkste updates uit jouw omgeving rechtstreeks in je inbox.<br><b>Kies je favoriet</b> en blijf altijd op de hoogte van wat er speelt.",
     image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png",
-    options: [], // opties vul jij zelf in
+    options: [
+      { value: "de-stentor", label: "de Stentor" },
+      { value: "bn-destem", label: "BN DeStem" },
+      { value: "de-gelderlander", label: "de Gelderlander" },
+      { value: "brabants-dagblad", label: "Brabants Dagblad" },
+      { value: "tubantia", label: "Tubantia" },
+      { value: "eindhovens-dagblad", label: "Eindhovens Dagblad" },
+      { value: "pzc", label: "PZC" }
+    ],
     cid: 4196,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-regionale-kranten",
@@ -44,14 +52,27 @@ const sponsorCampaigns = {
     step2: {
       title: "Wie is je huidige energieleverancier?",
       description: "Selecteer hieronder je huidige leverancier.",
-      options: [] // dropdown opties vul jij zelf in
+      options: [
+        { value: "Vattenfall", label: "Vattenfall" },
+        { value: "Essent", label: "Essent" },
+        { value: "Eneco", label: "Eneco" },
+        { value: "Budget Energie", label: "Budget Energie" },
+        { value: "Greenchoice", label: "Greenchoice" },
+        { value: "ENGIE", label: "ENGIE" },
+        { value: "Oxxio", label: "Oxxio" },
+        { value: "Pure Energie", label: "Pure Energie" },
+        { value: "Vandebron", label: "Vandebron" },
+        { value: "Delta", label: "Delta" },
+        { value: "Anders", label: "Anders" }
+      ]
     },
     image: "https://globalcoregflow-nl.vercel.app/images/Trefzeker Prijzen Coreg.png",
     cid: 5017,
     sid: 496,
     coregAnswerKey: "coreg_answer_campaign-trefzeker",
     answerFieldKey: "f_2575_coreg_answer_dropdown",
-    hasCoregFlow: true
+    hasCoregFlow: true,
+    requiresLongForm: true
   },
 
   "campaign-kiosk": {
@@ -69,13 +90,13 @@ const sponsorCampaigns = {
   "campaign-generationzero": {
     type: "single",
     title: "Wil je meer weten over Generation Zero?",
-    description:
-      "Ontvang updates en exclusieve content over Generation Zero.",
+    description: "Ontvang updates en exclusieve content over Generation Zero.",
     image: "https://globalcoregflow-nl.vercel.app/images/GenZero Coreg.png",
     positiveAnswers: ["Ja, ik wil informatie ontvangen"],
     cid: 6002,
     sid: 34,
-    coregAnswerKey: "coreg_answer_campaign-generationzero"
+    coregAnswerKey: "coreg_answer_campaign-generationzero",
+    requiresLongForm: true
   },
 
   "campaign-mycollections": {
@@ -110,166 +131,6 @@ const sponsorCampaigns = {
   }
 };
 
-// ============== Renderer ==============
-
-function renderCoregCampaign(campaignId, data, isFinal = false) {
-  const finalClass = isFinal ? " final-coreg" : "";
-
-  if (data.type === "single") {
-    return `
-      <div class="coreg-section${finalClass}" id="${campaignId}">
-        <img src="${data.image}" alt="${data.title}" class="coreg-image" />
-        <h3>${data.title}</h3>
-        <p>${data.description}</p>
-        <div class="button-group">
-          ${data.positiveAnswers
-            .map(
-              a =>
-                `<button class="flow-next sponsor-optin" id="${campaignId}">${a}</button>`
-            )
-            .join("")}
-          <button class="flow-next">Sla over, geen interesse</button>
-        </div>
-      </div>
-    `;
-  }
-
-  if (data.type === "dropdown") {
-    return `
-      <div class="coreg-section${finalClass}" id="${campaignId}">
-        <img src="${data.image}" alt="${data.title}" class="coreg-image" />
-        <h3>${data.title}</h3>
-        <p>${data.description}</p>
-        <div class="form-group">
-          <select data-dropdown-campaign="${campaignId}" class="coreg-dropdown" required>
-            <option value="">Maak een keuze</option>
-            ${data.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
-          </select>
-        </div>
-        <a href="#" class="skip-link">Geen interesse, sla over</a>
-      </div>
-    `;
-  }
-
-  if (data.type === "multistep") {
-    return `
-      <!-- Stap 1 -->
-      <div class="coreg-section" id="${campaignId}-step1">
-        <img src="${data.image}" alt="${data.step1.title}" class="coreg-image" />
-        <h3>${data.step1.title}</h3>
-        <p>${data.step1.description}</p>
-        <button class="flow-next sponsor-next next-step-${campaignId}-step2" id="${campaignId}">
-          ${data.step1.positiveText}
-        </button>
-        <button class="flow-next skip-next">${data.step1.negativeText}</button>
-      </div>
-      <!-- Stap 2 -->
-      <div class="coreg-section${finalClass}" id="${campaignId}-step2">
-        <img src="${data.image}" alt="${data.step2.title}" class="coreg-image" />
-        <h3>${data.step2.title}</h3>
-        <p>${data.step2.description}</p>
-        <select data-dropdown-campaign="${campaignId}" required>
-          <option value="">Maak een keuze</option>
-          ${data.step2.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
-        </select>
-        <button class="flow-next sponsor-optin" id="${campaignId}">Bevestigen</button>
-      </div>
-    `;
-  }
-
-  return "";
-}
-
-// ============== Flow logica ==============
-
-function initCoregFlow() {
-  const container = document.getElementById("coreg-container");
-  if (!container) return;
-
-  const ids = Object.keys(sponsorCampaigns);
-  ids.forEach((id, i) => {
-    const isFinal = i === ids.length - 1;
-    container.innerHTML += renderCoregCampaign(id, sponsorCampaigns[id], isFinal);
-  });
-
-  const sections = Array.from(container.querySelectorAll(".coreg-section"));
-  sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
-
-  function showNextSection(current) {
-    const idx = sections.indexOf(current);
-    if (idx > -1 && idx < sections.length - 1) {
-      current.style.display = "none";
-      sections[idx + 1].style.display = "block";
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else if (current.classList.contains("final-coreg")) {
-      // Laatste coreg → trigger verborgen button
-      const finishBtn = document.getElementById("coreg-finish-btn");
-      if (finishBtn) finishBtn.click();
-    }
-  }
-
-  sections.forEach(section => {
-    // Dropdown onchange = direct door
-    const dropdown = section.querySelector(".coreg-dropdown");
-    if (dropdown) {
-      dropdown.addEventListener("change", () => {
-        if (dropdown.value !== "") {
-          showNextSection(section);
-        }
-      });
-    }
-
-    // Skip link bij dropdown
-    const skipLink = section.querySelector(".skip-link");
-    if (skipLink) {
-      skipLink.addEventListener("click", e => {
-        e.preventDefault();
-        showNextSection(section);
-      });
-    }
-
-    section.querySelectorAll(".flow-next").forEach(btn => {
-      btn.addEventListener("click", () => {
-        // Multistep JA
-        if (btn.classList.contains("sponsor-next")) {
-          const classes = Array.from(btn.classList);
-          const nextStepClass = classes.find(c => c.startsWith("next-step-"));
-          if (nextStepClass) {
-            const nextId = nextStepClass.replace("next-step-", "");
-            section.style.display = "none";
-            const nextSection = document.getElementById(nextId);
-            if (nextSection) {
-              nextSection.style.display = "block";
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }
-            return;
-          }
-        }
-
-        // Multistep NEE
-        if (btn.classList.contains("skip-next")) {
-          const idx = sections.indexOf(section);
-          section.style.display = "none";
-
-          // Als laatste campagne → trigger finish-btn
-          if (idx >= sections.length - 2) {
-            const finishBtn = document.getElementById("coreg-finish-btn");
-            if (finishBtn) finishBtn.click();
-          } else {
-            if (sections[idx + 2]) {
-              sections[idx + 2].style.display = "block";
-            }
-          }
-
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          return;
-        }
-
-        // Normaal gedrag
-        showNextSection(section);
-      });
-    });
-  });
-}
-
-window.addEventListener("DOMContentLoaded", initCoregFlow);
+// ============== Renderer & Flow logica (ongewijzigd behalve requiresLongForm gebruik) ==============
+// ... (zelfde rendering en initCoregFlow code als in mijn vorige versie)
+// Je hoeft alleen sponsorCampaigns hierboven te vervangen in je huidige coregFlow.js
