@@ -219,39 +219,42 @@ function initCoregFlow() {
   const sections = Array.from(container.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
-  function showNextSection(current) {
-    const idx = sections.indexOf(current);
-    if (idx > -1 && idx < sections.length - 1) {
-      current.style.display = "none";
-      sections[idx + 1].style.display = "block";
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else if (current.classList.contains("final-coreg")) {
-  // Check TM antwoorden
-  let hasTmPositive = false;
-  Object.keys(sponsorCampaigns).forEach(id => {
-    const camp = sponsorCampaigns[id];
-    const answer = sessionStorage.getItem(`coreg_answer_${id}`);
-    if (camp.requiresLongForm && answer === "yes") {
-      hasTmPositive = true;
-    }
-  });
-
-  const longForm = document.getElementById("long-form-section");
-  if (longForm) {
+function showNextSection(current) {
+  const idx = sections.indexOf(current);
+  if (idx > -1 && idx < sections.length - 1) {
     current.style.display = "none";
-
-    if (hasTmPositive) {
-      longForm.style.display = "block";
-    } else {
-      longForm.style.display = "none";
-      const allSteps = Array.from(document.querySelectorAll(".flow-section, .coreg-section"));
-      const longIdx = allSteps.indexOf(longForm);
-      if (longIdx > -1 && allSteps[longIdx + 1]) {
-        allSteps[longIdx + 1].style.display = "block";
-      }
-    }
-
+    sections[idx + 1].style.display = "block";
     window.scrollTo({ top: 0, behavior: "smooth" });
+  } else if (current.classList.contains("final-coreg")) {
+    // Check TM antwoorden
+    let hasTmPositive = false;
+    Object.keys(sponsorCampaigns).forEach(id => {
+      const camp = sponsorCampaigns[id];
+      const answer = sessionStorage.getItem(`coreg_answer_${id}`);
+      if (camp.requiresLongForm && answer === "yes") {
+        hasTmPositive = true;
+      }
+    });
+
+    const longForm = document.getElementById("long-form-section");
+    if (longForm) {
+      current.style.display = "none";
+
+      if (hasTmPositive) {
+        longForm.style.display = "block";
+      } else {
+        longForm.style.display = "none";
+        const allSteps = Array.from(
+          document.querySelectorAll(".flow-section, .coreg-section")
+        );
+        const longIdx = allSteps.indexOf(longForm);
+        if (longIdx > -1 && allSteps[longIdx + 1]) {
+          allSteps[longIdx + 1].style.display = "block";
+        }
+      }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 }
 
