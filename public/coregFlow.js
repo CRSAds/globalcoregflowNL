@@ -59,7 +59,7 @@ const sponsorCampaigns = {
     title: "Lees alle bladen voordeliger",
     description:
       "Ontvang 2x per maand per email gratis de Kiosk.nl nieuwsbrief met daarin de leukste artikelen, aanbiedingen en prijsvragen. Wil je onze nieuwsbrief ontvangen?",
-    image: "/images/kiosk.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/images/kiosk.png",
     positiveAnswers: ["Ja, leuk"],
     cid: 6001,
     sid: 34,
@@ -71,7 +71,7 @@ const sponsorCampaigns = {
     title: "Wil je meer weten over Generation Zero?",
     description:
       "Ontvang updates en exclusieve content over Generation Zero.",
-    image: "/images/generationzero.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/images/generationzero.png",
     positiveAnswers: ["Ja, ik wil informatie ontvangen"],
     cid: 6002,
     sid: 34,
@@ -83,7 +83,7 @@ const sponsorCampaigns = {
     title: "Wat spreekt u het meest aan?",
     description:
       "Ontdek My Collections: exclusieve verzamelingen met een gratis cadeau. Interesse in een telefonisch aanbod? Zo ja, wat is uw favoriete categorie?",
-    image: "/images/mycollections.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/images/mycollections.png",
     positiveAnswers: [
       "Ja, topboeken",
       "Ja, kookboeken",
@@ -101,7 +101,7 @@ const sponsorCampaigns = {
     title: "Wil jij een Gratis Puzzelboek?",
     description:
       "Mag Raadselgids jou eenmalig bellen met een leuk puzzelaanbod? Los puzzels op, verdien punten en ruil in voor mooie prijzen!",
-    image: "/images/raadselgids.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/images/raadselgids.png",
     positiveAnswers: ["Ja, graag"],
     cid: 4621,
     sid: 34,
