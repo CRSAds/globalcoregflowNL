@@ -19,7 +19,7 @@ const sponsorCampaigns = {
     title: "Jouw regio, Jouw nieuws!",
     description:
       "Ontvang dagelijks de belangrijkste updates uit jouw omgeving rechtstreeks in je inbox.<br><b>Kies je favoriet</b> en blijf altijd op de hoogte van wat er speelt.",
-    image: "https://globalcoregflow-nl.vercel.app/images/Regionale-Kranten.png", // pas aan indien nodig
+    image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png", // pas aan indien nodig
     options: [
       { value: "de-stentor", label: "de Stentor" },
       { value: "bn-destem", label: "BN DeStem" },
