@@ -9,10 +9,10 @@ const sponsorCampaigns = {
       "Geef hieronder aan van welke krant jij graag dagelijks per e-mail de nieuwsbrief zou willen ontvangen.",
     image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png",
     positiveAnswers: [
-      "Ja, De Volkskrant",
-      "Ja, Algemeen Dagblad",
-      "Ja, Trouw",
-      "Ja, Het Parool"
+      "De Volkskrant",
+      "Algemeen Dagblad",
+      "Trouw",
+      "Het Parool"
     ],
     cid: 3534,
     sid: 34,
@@ -106,10 +106,10 @@ const sponsorCampaigns = {
       "Ontdek My Collections: exclusieve verzamelingen met een gratis cadeau. Interesse in een telefonisch aanbod? Zo ja, wat is uw favoriete categorie?",
     image: "https://globalcoregflow-nl.vercel.app/images/MyCollections Banner.webp",
     positiveAnswers: [
-      "Ja, topboeken",
-      "Ja, kookboeken",
-      "Ja, romans",
-      "Ja, kristallen beeldjes"
+      "Topboeken",
+      "Kookboeken",
+      "Romans",
+      "Kristallen beeldjes"
     ],
     cid: 1882,
     sid: 34,
