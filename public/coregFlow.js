@@ -226,10 +226,34 @@ function initCoregFlow() {
       sections[idx + 1].style.display = "block";
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (current.classList.contains("final-coreg")) {
-      const finishBtn = document.getElementById("coreg-finish-btn"); // <button class="flow-next final-coreg" ...>
-      if (finishBtn) finishBtn.click();
+  // Check TM antwoorden
+  let hasTmPositive = false;
+  Object.keys(sponsorCampaigns).forEach(id => {
+    const camp = sponsorCampaigns[id];
+    const answer = sessionStorage.getItem(`coreg_answer_${id}`);
+    if (camp.requiresLongForm && answer === "yes") {
+      hasTmPositive = true;
     }
+  });
+
+  const longForm = document.getElementById("long-form-section");
+  if (longForm) {
+    current.style.display = "none";
+
+    if (hasTmPositive) {
+      longForm.style.display = "block";
+    } else {
+      longForm.style.display = "none";
+      const allSteps = Array.from(document.querySelectorAll(".flow-section, .coreg-section"));
+      const longIdx = allSteps.indexOf(longForm);
+      if (longIdx > -1 && allSteps[longIdx + 1]) {
+        allSteps[longIdx + 1].style.display = "block";
+      }
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
+}
 
   sections.forEach(section => {
     // SINGLE: JA en SLA OVER knoppen
