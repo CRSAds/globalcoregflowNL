@@ -1,5 +1,5 @@
 // coregFlow.js
-// Alle coreg campagnes + rendering + flow logica (met fixes)
+// Coreg flow self-contained
 
 const sponsorCampaigns = {
   "campaign-nationale-kranten": {
@@ -19,7 +19,7 @@ const sponsorCampaigns = {
     title: "Jouw regio, Jouw nieuws!",
     description:
       "Ontvang dagelijks de belangrijkste updates uit jouw omgeving rechtstreeks in je inbox.<br><b>Kies je favoriet</b> en blijf altijd op de hoogte van wat er speelt.",
-    image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png", // pas aan indien nodig
+    image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png",
     options: [
       { value: "de-stentor", label: "de Stentor" },
       { value: "bn-destem", label: "BN DeStem" },
@@ -67,7 +67,7 @@ const sponsorCampaigns = {
     coregAnswerKey: "coreg_answer_campaign-trefzeker",
     answerFieldKey: "f_2575_coreg_answer_dropdown",
     hasCoregFlow: true,
-    requiresLongForm: true // TM
+    requiresLongForm: true
   },
 
   "campaign-kiosk": {
@@ -91,7 +91,7 @@ const sponsorCampaigns = {
     cid: 6002,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-generationzero",
-    requiresLongForm: true // TM
+    requiresLongForm: true
   },
 
   "campaign-mycollections": {
@@ -104,7 +104,7 @@ const sponsorCampaigns = {
     cid: 1882,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-mycollections",
-    requiresLongForm: true // TM
+    requiresLongForm: true
   },
 
   "campaign-raadselgids": {
@@ -117,21 +117,52 @@ const sponsorCampaigns = {
     cid: 4621,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-raadselgids",
-    requiresLongForm: true // TM
+    requiresLongForm: true
   }
 };
 
-/* ---------- helpers to persist answers (compatible with your existing checks) ---------- */
+/* ---------- helpers ---------- */
 function markAnswer(campaignId, isPositive, value) {
-  // JA / NEE voor deze campagne
   sessionStorage.setItem(`coreg_answer_${campaignId}`, isPositive ? "yes" : "no");
-  if (value !== undefined) {
-    sessionStorage.setItem(`coreg_value_${campaignId}`, value);
-  }
-  // flag voor TM-positief (gebruik je evt. in je eigen check)
-  const cfg = sponsorCampaigns[campaignId];
-  if (isPositive && cfg && cfg.requiresLongForm) {
-    sessionStorage.setItem("has_tm_positive", "1");
+  if (value !== undefined) sessionStorage.setItem(`coreg_value_${campaignId}`, value);
+}
+
+function getShortFormData() {
+  return {
+    firstname: sessionStorage.getItem("firstname") || "",
+    lastname: sessionStorage.getItem("lastname") || "",
+    email: sessionStorage.getItem("email") || "",
+    dob: sessionStorage.getItem("dob") || "",
+    postcode: sessionStorage.getItem("postcode") || "",
+    street: sessionStorage.getItem("street") || ""
+  };
+}
+
+async function fetchLeadIfNotSuspicious({ cid, sid, coregAnswerKey, answer }) {
+  try {
+    const shortForm = getShortFormData();
+    const payload = {
+      cid,
+      sid,
+      ...shortForm,
+      [coregAnswerKey]: answer,
+      f_1453_campagne_url:
+        window.location.origin + window.location.pathname + "?status=online"
+    };
+
+    const res = await fetch("https://crsadvertising.databowl.com/api/v1/lead", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      console.warn("Lead niet verstuurd:", res.status);
+    } else {
+      console.log("Lead verstuurd:", payload);
+    }
+  } catch (err) {
+    console.error("Fout bij lead verzending:", err);
   }
 }
 
@@ -174,7 +205,6 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
 
   if (data.type === "multistep") {
     return `
-      <!-- Stap 1 -->
       <div class="coreg-section" id="${campaignId}-step1">
         <img src="${data.image}" alt="${data.step1.title}" class="coreg-image" />
         <h3>${data.step1.title}</h3>
@@ -182,11 +212,8 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
         <button class="flow-next sponsor-next next-step-${campaignId}-step2" id="${campaignId}">
           ${data.step1.positiveText}
         </button>
-        <button class="flow-next skip-next" data-campaign="${campaignId}">
-          ${data.step1.negativeText}
-        </button>
+        <button class="flow-next skip-next" data-campaign="${campaignId}">${data.step1.negativeText}</button>
       </div>
-      <!-- Stap 2 (dropdown auto-advance + skip-link) -->
       <div class="coreg-section${finalClass}" id="${campaignId}-step2">
         <img src="${data.image}" alt="${data.step2.title}" class="coreg-image" />
         <h3>${data.step2.title}</h3>
@@ -219,54 +246,64 @@ function initCoregFlow() {
   const sections = Array.from(container.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
-function showNextSection(current) {
-  const idx = sections.indexOf(current);
-  if (idx > -1 && idx < sections.length - 1) {
-    current.style.display = "none";
-    sections[idx + 1].style.display = "block";
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  } else if (current.classList.contains("final-coreg")) {
-    // Check TM antwoorden
-    let hasTmPositive = false;
-    Object.keys(sponsorCampaigns).forEach(id => {
-      const camp = sponsorCampaigns[id];
-      const answer = sessionStorage.getItem(`coreg_answer_${id}`);
-      if (camp.requiresLongForm && answer === "yes") {
-        hasTmPositive = true;
-      }
-    });
-
-    const longForm = document.getElementById("long-form-section");
-    if (longForm) {
+  function showNextSection(current) {
+    const idx = sections.indexOf(current);
+    if (idx > -1 && idx < sections.length - 1) {
       current.style.display = "none";
-
-      if (hasTmPositive) {
-        longForm.style.display = "block";
-      } else {
-        longForm.style.display = "none";
-        const allSteps = Array.from(
-          document.querySelectorAll(".flow-section, .coreg-section")
-        );
-        const longIdx = allSteps.indexOf(longForm);
-        if (longIdx > -1 && allSteps[longIdx + 1]) {
-          allSteps[longIdx + 1].style.display = "block";
-        }
-      }
-
+      sections[idx + 1].style.display = "block";
       window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (current.classList.contains("final-coreg")) {
+      // Check TM antwoorden
+      let hasTmPositive = false;
+      Object.keys(sponsorCampaigns).forEach(id => {
+        const camp = sponsorCampaigns[id];
+        const answer = sessionStorage.getItem(`coreg_answer_${id}`);
+        if (camp.requiresLongForm && answer === "yes") {
+          hasTmPositive = true;
+        }
+      });
+
+      const longForm = document.getElementById("long-form-section");
+      if (longForm) {
+        current.style.display = "none";
+
+        if (hasTmPositive) {
+          longForm.style.display = "block";
+        } else {
+          longForm.style.display = "none";
+          const allSteps = Array.from(document.querySelectorAll(".flow-section, .coreg-section"));
+          const longIdx = allSteps.indexOf(longForm);
+          if (longIdx > -1 && allSteps[longIdx + 1]) {
+            allSteps[longIdx + 1].style.display = "block";
+          }
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
   }
-}
 
   sections.forEach(section => {
-    // SINGLE: JA en SLA OVER knoppen
+    // SINGLE JA
     section.querySelectorAll(".sponsor-optin").forEach(btn => {
       btn.addEventListener("click", () => {
         const campaignId = btn.id;
         markAnswer(campaignId, true);
+
+        const campaign = sponsorCampaigns[campaignId];
+        if (campaign && !campaign.requiresLongForm) {
+          fetchLeadIfNotSuspicious({
+            cid: campaign.cid,
+            sid: campaign.sid,
+            coregAnswerKey: campaign.coregAnswerKey,
+            answer: "yes"
+          });
+        }
+
         showNextSection(section);
       });
     });
+
+    // SINGLE NEE
     section.querySelectorAll(".skip-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const campaignId = btn.getAttribute("data-campaign");
@@ -275,17 +312,29 @@ function showNextSection(current) {
       });
     });
 
-    // DROPDOWN: keuze = direct door, plus skip-link
+    // DROPDOWN
     const dropdown = section.querySelector(".coreg-dropdown");
     if (dropdown) {
       const campaignId = dropdown.getAttribute("data-dropdown-campaign");
       dropdown.addEventListener("change", () => {
         if (dropdown.value !== "") {
           markAnswer(campaignId, true, dropdown.value);
+
+          const campaign = sponsorCampaigns[campaignId];
+          if (campaign && !campaign.requiresLongForm) {
+            fetchLeadIfNotSuspicious({
+              cid: campaign.cid,
+              sid: campaign.sid,
+              coregAnswerKey: campaign.coregAnswerKey,
+              answer: dropdown.value
+            });
+          }
+
           showNextSection(section);
         }
       });
     }
+
     const skipLink = section.querySelector(".skip-link");
     if (skipLink) {
       skipLink.addEventListener("click", e => {
@@ -296,11 +345,12 @@ function showNextSection(current) {
       });
     }
 
-    // MULTISTEP: stap 1 ja/nee
+    // MULTISTEP
     section.querySelectorAll(".sponsor-next").forEach(btn => {
       btn.addEventListener("click", () => {
         const campaignId = btn.id;
-        markAnswer(campaignId, true); // TM positief al bij stap 1
+        markAnswer(campaignId, true);
+        // TM positief → long form later
         const classes = Array.from(btn.classList);
         const nextStepClass = classes.find(c => c.startsWith("next-step-"));
         if (nextStepClass) {
@@ -319,16 +369,13 @@ function showNextSection(current) {
       btn.addEventListener("click", () => {
         const campaignId = btn.getAttribute("data-campaign");
         markAnswer(campaignId, false);
-
         const idx = sections.indexOf(section);
         section.style.display = "none";
 
-        // Als dit de voorlaatste sectie was (stap1 van laatste multistep), dan zouden we stap2 overslaan en klaar zijn
         if (idx >= sections.length - 2) {
-          const finishBtn = document.getElementById("coreg-finish-btn");
-          if (finishBtn) finishBtn.click();
+          showNextSection(section);
         } else if (sections[idx + 2]) {
-          sections[idx + 2].style.display = "block"; // skip stap 2
+          sections[idx + 2].style.display = "block";
         }
 
         window.scrollTo({ top: 0, behavior: "smooth" });
