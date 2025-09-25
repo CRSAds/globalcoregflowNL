@@ -7,7 +7,7 @@ const sponsorCampaigns = {
     title: "Welke is jouw favoriet?",
     description:
       "Geef hieronder aan van welke krant jij graag dagelijks per e-mail de nieuwsbrief zou willen ontvangen.",
-    image: "https://globalcoregflow-nl.vercel.app/Nationale-Kranten.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png",
     positiveAnswers: [
       "De Volkskrant",
       "Algemeen Dagblad",
@@ -24,7 +24,7 @@ const sponsorCampaigns = {
     title: "Jouw regio, Jouw nieuws!",
     description:
       "Ontvang dagelijks de belangrijkste updates uit jouw omgeving rechtstreeks in je inbox.<br><b>Kies je favoriet</b> en blijf altijd op de hoogte van wat er speelt.",
-    image: "/images/Nationale-Kranten.png",
+    image: "https://globalcoregflow-nl.vercel.app/images/Nationale-Kranten.png",
     options: [], // opties vul jij zelf in
     cid: 4196,
     sid: 34,
