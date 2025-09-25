@@ -1,5 +1,5 @@
 // coregFlow.js
-// Alle coreg campagnes + rendering + flow logica in één bestand
+// Alle coreg campagnes + rendering + flow logica
 
 const sponsorCampaigns = {
   "campaign-nationale-kranten": {
@@ -21,16 +21,11 @@ const sponsorCampaigns = {
 
   "campaign-regionale-kranten": {
     type: "dropdown",
-    title: "Welke regionale krant wil je ontvangen?",
+    title: "Jouw regio, Jouw nieuws!",
     description:
-      "Kies jouw favoriete regionale krant en ontvang dagelijks de nieuwsbrief per e-mail.",
+      "Ontvang dagelijks de belangrijkste updates uit jouw omgeving rechtstreeks in je inbox.<br><b>Kies je favoriet</b> en blijf altijd op de hoogte van wat er speelt.",
     image: "/images/regionale-kranten.png",
-    options: [
-      { value: "brabants", label: "Brabants Dagblad" },
-      { value: "tubantia", label: "Tubantia" },
-      { value: "pzc", label: "PZC" },
-      { value: "gelderlander", label: "De Gelderlander" }
-    ],
+    options: [], // opties vul jij zelf in
     cid: 4196,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-regionale-kranten",
@@ -40,20 +35,16 @@ const sponsorCampaigns = {
   "campaign-trefzeker": {
     type: "multistep",
     step1: {
-      title: "Wil je een energieaanbod ontvangen?",
+      title: "Betaal jij nog te veel voor je energie rekening?",
       description:
-        "Onze partner Trefzeker helpt je graag met het vergelijken van energietarieven.",
-      positiveText: "Ja, ik wil een aanbod",
-      negativeText: "Nee, geen interesse"
+        "Stop met te veel betalen! Met onze gratis check kun je direct beginnen met besparen op jouw energie rekening. Mogen wij jou vrijblijvend bellen voor de bespaar check?",
+      positiveText: "Ja, graag",
+      negativeText: "Sla over, geen interesse"
     },
     step2: {
       title: "Wie is je huidige energieleverancier?",
       description: "Selecteer hieronder je huidige leverancier.",
-      options: [
-        { value: "essent", label: "Essent" },
-        { value: "vandebron", label: "Van de Bron" },
-        { value: "budget", label: "Budget Energie" }
-      ]
+      options: [] // dropdown opties vul jij zelf in
     },
     image: "/images/trefzeker.png",
     cid: 5017,
@@ -65,10 +56,11 @@ const sponsorCampaigns = {
 
   "campaign-kiosk": {
     type: "single",
-    title: "Ontvang jij graag acties van Kiosk?",
-    description: "Kiosk biedt kortingen op tijdschriften en kranten.",
+    title: "Lees alle bladen voordeliger",
+    description:
+      "Ontvang 2x per maand per email gratis de Kiosk.nl nieuwsbrief met daarin de leukste artikelen, aanbiedingen en prijsvragen. Wil je onze nieuwsbrief ontvangen?",
     image: "/images/kiosk.png",
-    positiveAnswers: ["Ja, ik wil acties ontvangen"],
+    positiveAnswers: ["Ja, leuk"],
     cid: 6001,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-kiosk"
@@ -77,7 +69,8 @@ const sponsorCampaigns = {
   "campaign-generationzero": {
     type: "single",
     title: "Wil je meer weten over Generation Zero?",
-    description: "Ontvang updates en exclusieve content.",
+    description:
+      "Ontvang updates en exclusieve content over Generation Zero.",
     image: "/images/generationzero.png",
     positiveAnswers: ["Ja, ik wil informatie ontvangen"],
     cid: 6002,
@@ -87,30 +80,32 @@ const sponsorCampaigns = {
 
   "campaign-mycollections": {
     type: "single",
-    title: "Spaar jij graag mee met Mycollections?",
-    description: "Ontvang exclusieve acties en aanbiedingen.",
+    title: "Wat spreekt u het meest aan?",
+    description:
+      "Ontdek My Collections: exclusieve verzamelingen met een gratis cadeau. Interesse in een telefonisch aanbod? Zo ja, wat is uw favoriete categorie?",
     image: "/images/mycollections.png",
-    positiveAnswers: ["Ja, ik doe graag mee"],
-    cid: 6003,
+    positiveAnswers: [
+      "Ja, topboeken",
+      "Ja, kookboeken",
+      "Ja, romans",
+      "Ja, kristallen beeldjes"
+    ],
+    cid: 1882,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-mycollections",
     requiresLongForm: true
   },
 
   "campaign-raadselgids": {
-    type: "dropdown",
-    title: "Welke Raadselgids wil je ontvangen?",
-    description: "Kies jouw favoriete uitgave en ontvang aanbiedingen.",
+    type: "single",
+    title: "Wil jij een Gratis Puzzelboek?",
+    description:
+      "Mag Raadselgids jou eenmalig bellen met een leuk puzzelaanbod? Los puzzels op, verdien punten en ruil in voor mooie prijzen!",
     image: "/images/raadselgids.png",
-    options: [
-      { value: "puzzelmix", label: "Puzzelmix" },
-      { value: "sudoku", label: "Sudoku" },
-      { value: "kruiswoord", label: "Kruiswoord" }
-    ],
-    cid: 6004,
+    positiveAnswers: ["Ja, graag"],
+    cid: 4621,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-raadselgids",
-    answerFieldKey: "f_2575_coreg_answer_dropdown",
     requiresLongForm: true
   }
 };
@@ -148,9 +143,7 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
         <div class="form-group">
           <select data-dropdown-campaign="${campaignId}" class="coreg-dropdown" required>
             <option value="">Maak een keuze</option>
-            ${data.options
-              .map(o => `<option value="${o.value}">${o.label}</option>`)
-              .join("")}
+            ${data.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
           </select>
         </div>
         <a href="#" class="skip-link">Geen interesse, sla over</a>
@@ -177,9 +170,7 @@ function renderCoregCampaign(campaignId, data, isFinal = false) {
         <p>${data.step2.description}</p>
         <select data-dropdown-campaign="${campaignId}" required>
           <option value="">Maak een keuze</option>
-          ${data.step2.options
-            .map(o => `<option value="${o.value}">${o.label}</option>`)
-            .join("")}
+          ${data.step2.options.map(o => `<option value="${o.value}">${o.label}</option>`).join("")}
         </select>
         <button class="flow-next sponsor-optin" id="${campaignId}">Bevestigen</button>
       </div>
@@ -260,8 +251,8 @@ function initCoregFlow() {
           const idx = sections.indexOf(section);
           section.style.display = "none";
 
-          // Als dit de laatste campagne is → finish-btn triggeren
-          if (idx >= sections.length - 2 && section.classList.contains("final-coreg") === false) {
+          // Als laatste campagne → trigger finish-btn
+          if (idx >= sections.length - 2) {
             const finishBtn = document.getElementById("coreg-finish-btn");
             if (finishBtn) finishBtn.click();
           } else {
