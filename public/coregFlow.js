@@ -7,12 +7,12 @@ const sponsorCampaigns = {
     title: "Welke is jouw favoriet?",
     description:
       "Geef hieronder aan van welke krant jij graag dagelijks per e-mail de nieuwsbrief zou willen ontvangen.",
-    image: "/images/nationale-kranten.png",
+    image: "/images/Nationale-Kranten.png",
     positiveAnswers: [
-      "Ja, De Volkskrant",
-      "Ja, Algemeen Dagblad",
-      "Ja, Trouw",
-      "Ja, Het Parool"
+      "De Volkskrant",
+      "Algemeen Dagblad",
+      "Trouw",
+      "Het Parool"
     ],
     cid: 3534,
     sid: 34,
@@ -24,8 +24,8 @@ const sponsorCampaigns = {
     title: "Jouw regio, Jouw nieuws!",
     description:
       "Ontvang dagelijks de belangrijkste updates uit jouw omgeving rechtstreeks in je inbox.<br><b>Kies je favoriet</b> en blijf altijd op de hoogte van wat er speelt.",
-    image: "/images/regionale-kranten.png",
-    options: [], // opties vul jij zelf in
+    image: "/images/Nationale-Kranten.png",
+    options: [EindhovensDagbad, DeStentor, BNDeStem], // opties vul jij zelf in
     cid: 4196,
     sid: 34,
     coregAnswerKey: "coreg_answer_campaign-regionale-kranten",
