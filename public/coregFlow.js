@@ -134,3 +134,95 @@ const sponsorCampaigns = {
 // ============== Renderer & Flow logica (ongewijzigd behalve requiresLongForm gebruik) ==============
 // ... (zelfde rendering en initCoregFlow code als in mijn vorige versie)
 // Je hoeft alleen sponsorCampaigns hierboven te vervangen in je huidige coregFlow.js
+
+function initCoregFlow() {
+  const container = document.getElementById("coreg-container");
+  if (!container) return;
+
+  const ids = Object.keys(sponsorCampaigns);
+  ids.forEach((id, i) => {
+    const isFinal = i === ids.length - 1;
+    container.innerHTML += renderCoregCampaign(id, sponsorCampaigns[id], isFinal);
+  });
+
+  const sections = Array.from(container.querySelectorAll(".coreg-section"));
+  sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
+
+  function showNextSection(current) {
+    const idx = sections.indexOf(current);
+    if (idx > -1 && idx < sections.length - 1) {
+      current.style.display = "none";
+      sections[idx + 1].style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (current.classList.contains("final-coreg")) {
+      // Laatste coreg → trigger verborgen button
+      const finishBtn = document.getElementById("coreg-finish-btn");
+      if (finishBtn) finishBtn.click();
+    }
+  }
+
+  sections.forEach(section => {
+    // Dropdown onchange = direct door
+    const dropdown = section.querySelector(".coreg-dropdown");
+    if (dropdown) {
+      dropdown.addEventListener("change", () => {
+        if (dropdown.value !== "") {
+          showNextSection(section);
+        }
+      });
+    }
+
+    // Skip link bij dropdown
+    const skipLink = section.querySelector(".skip-link");
+    if (skipLink) {
+      skipLink.addEventListener("click", e => {
+        e.preventDefault();
+        showNextSection(section);
+      });
+    }
+
+    section.querySelectorAll(".flow-next").forEach(btn => {
+      btn.addEventListener("click", () => {
+        // Multistep JA
+        if (btn.classList.contains("sponsor-next")) {
+          const classes = Array.from(btn.classList);
+          const nextStepClass = classes.find(c => c.startsWith("next-step-"));
+          if (nextStepClass) {
+            const nextId = nextStepClass.replace("next-step-", "");
+            section.style.display = "none";
+            const nextSection = document.getElementById(nextId);
+            if (nextSection) {
+              nextSection.style.display = "block";
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+            return;
+          }
+        }
+
+        // Multistep NEE
+        if (btn.classList.contains("skip-next")) {
+          const idx = sections.indexOf(section);
+          section.style.display = "none";
+
+          // Als laatste campagne → trigger finish-btn
+          if (idx >= sections.length - 2) {
+            const finishBtn = document.getElementById("coreg-finish-btn");
+            if (finishBtn) finishBtn.click();
+          } else {
+            if (sections[idx + 2]) {
+              sections[idx + 2].style.display = "block";
+            }
+          }
+
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+
+        // Normaal gedrag
+        showNextSection(section);
+      });
+    });
+  });
+}
+
+window.addEventListener("DOMContentLoaded", initCoregFlow);
