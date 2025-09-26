@@ -1,4 +1,4 @@
-// coregRenderer.js
+ // coregRenderer.js
 // Renderer + flow logica met correcte afbeeldingen, Databowl payload en multistep fix
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
