@@ -1,34 +1,33 @@
 // coregRenderer.js
-// Renderer + flow logica met juiste afbeeldingen, Databowl payload en multistep fix
+// Renderer + flow logica met correcte afbeeldingen, Databowl payload en multistep fix
 
-const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
-const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
+const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg";
+const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead";
+
+// ✅ Directus afbeelding URL
+function getImageUrl(image) {
+  return image?.id
+    ? `https://cms.core.909play.com/assets/${image.id}`
+    : "https://via.placeholder.com/600x200?text=Geen+afbeelding";
+}
+
+// ✅ Short form data ophalen uit sessionStorage
+function getShortFormData() {
+  return {
+    firstname: sessionStorage.getItem("firstname") || "",
+    lastname: sessionStorage.getItem("lastname") || "",
+    email: sessionStorage.getItem("email") || "",
+    dob: sessionStorage.getItem("dob") || "", // moet yyyy-mm-dd zijn
+    postcode: sessionStorage.getItem("postcode") || "",
+    phone1: sessionStorage.getItem("phone1") || ""
+  };
+}
 
 async function fetchCampaigns() {
   const res = await fetch(API_COREG);
   if (!res.ok) throw new Error("Kon campagnes niet laden");
   const json = await res.json();
   return json.data;
-}
-
-// ✅ Hulpfunctie om Directus afbeelding URL te bouwen
-function getImageUrl(image) {
-  if (image && image.id) {
-    return `https://cms.core.909play.com/assets/${image.id}`;
-  }
-  return "https://via.placeholder.com/600x200?text=Geen+afbeelding";
-}
-
-// ✅ Short form data uit sessionStorage ophalen
-function getShortFormData() {
-  return {
-    firstname: sessionStorage.getItem("firstname") || "",
-    lastname: sessionStorage.getItem("lastname") || "",
-    email: sessionStorage.getItem("email") || "",
-    dob: sessionStorage.getItem("dob") || "",
-    postcode: sessionStorage.getItem("postcode") || "",
-    phone1: sessionStorage.getItem("phone1") || ""
-  };
 }
 
 function renderSingle(campaign, isFinal) {
@@ -94,7 +93,6 @@ function renderMultistep(campaign, isFinal) {
 }
 
 function renderCampaign(campaign, isFinal) {
-  // ✅ Multistep fix: alleen de eerste stap renderen als multistep
   if (campaign.hasCoregFlow) return renderMultistep(campaign, isFinal);
   if (campaign.type === "dropdown") return renderDropdown(campaign, isFinal);
   return renderSingle(campaign, isFinal);
@@ -125,8 +123,13 @@ async function initCoregFlow() {
 
   const campaigns = await fetchCampaigns();
 
-  // ✅ Multistep fix: filter losse step2 als onderdeel van multistep
-  const filteredCampaigns = campaigns.filter(c => !(c.type === "dropdown" && c.Sponsor?.includes("Stap 2") && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)));
+  // ✅ Multistep fix: filter losse stap 2 als onderdeel van multistep
+  const filteredCampaigns = campaigns.filter(c => {
+    if (c.type === "dropdown" && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)) {
+      return false;
+    }
+    return true;
+  });
 
   filteredCampaigns.forEach((camp, i) => {
     const isFinal = i === filteredCampaigns.length - 1;
