@@ -1,8 +1,8 @@
 // coregRenderer.js
-// Renderer + flow logica met hidden button integratie
+// Renderer + flow logica met juiste afbeeldingen, Databowl payload en multistep fix
 
-const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
-const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
+const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg";
+const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead";
 
 async function fetchCampaigns() {
   const res = await fetch(API_COREG);
@@ -11,10 +11,30 @@ async function fetchCampaigns() {
   return json.data;
 }
 
+// ✅ Hulpfunctie om Directus afbeelding URL te bouwen
+function getImageUrl(image) {
+  if (image && image.id) {
+    return `https://cms.core.909play.com/assets/${image.id}`;
+  }
+  return "https://via.placeholder.com/600x200?text=Geen+afbeelding";
+}
+
+// ✅ Short form data uit sessionStorage ophalen
+function getShortFormData() {
+  return {
+    firstname: sessionStorage.getItem("firstname") || "",
+    lastname: sessionStorage.getItem("lastname") || "",
+    email: sessionStorage.getItem("email") || "",
+    dob: sessionStorage.getItem("dob") || "",
+    postcode: sessionStorage.getItem("postcode") || "",
+    phone1: sessionStorage.getItem("phone1") || ""
+  };
+}
+
 function renderSingle(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
-      <img src="https://cms.core.909play.com/assets/${campaign.image.id}" alt="${campaign.title}" class="coreg-image" />
+      <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
       <h3 class="coreg-title">${campaign.title}</h3>
       <p class="coreg-description">${campaign.description}</p>
       <div class="coreg-answers">
@@ -34,7 +54,7 @@ function renderSingle(campaign, isFinal) {
 function renderDropdown(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
-      <img src="https://cms.core.909play.com/assets/${campaign.image.id}" alt="${campaign.title}" class="coreg-image" />
+      <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
       <h3 class="coreg-title">${campaign.title}</h3>
       <p class="coreg-description">${campaign.description}</p>
       <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
@@ -50,7 +70,7 @@ function renderDropdown(campaign, isFinal) {
 function renderMultistep(campaign, isFinal) {
   return `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
-      <img src="https://cms.core.909play.com/assets/${campaign.image.id}" alt="${campaign.title}" class="coreg-image" />
+      <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
       <h3 class="coreg-title">${campaign.title}</h3>
       <p class="coreg-description">${campaign.description}</p>
       <button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2"
@@ -61,7 +81,7 @@ function renderMultistep(campaign, isFinal) {
     </div>
 
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}-step2" style="display:none">
-      <img src="https://cms.core.909play.com/assets/${campaign.image.id}" alt="${campaign.title}" class="coreg-image" />
+      <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
       <h3 class="coreg-title">Wie is je huidige energieleverancier?</h3>
       <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
         <option value="">Kies je huidige leverancier...</option>
@@ -74,6 +94,7 @@ function renderMultistep(campaign, isFinal) {
 }
 
 function renderCampaign(campaign, isFinal) {
+  // ✅ Multistep fix: alleen de eerste stap renderen als multistep
   if (campaign.hasCoregFlow) return renderMultistep(campaign, isFinal);
   if (campaign.type === "dropdown") return renderDropdown(campaign, isFinal);
   return renderSingle(campaign, isFinal);
@@ -81,7 +102,13 @@ function renderCampaign(campaign, isFinal) {
 
 async function sendLead(cid, sid, answer) {
   try {
-    const payload = { cid, sid, answer };
+    const payload = {
+      cid,
+      sid,
+      answer,
+      ...getShortFormData()
+    };
+
     await fetch(API_LEAD, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -97,8 +124,12 @@ async function initCoregFlow() {
   if (!container) return;
 
   const campaigns = await fetchCampaigns();
-  campaigns.forEach((camp, i) => {
-    const isFinal = i === campaigns.length - 1;
+
+  // ✅ Multistep fix: filter losse step2 als onderdeel van multistep
+  const filteredCampaigns = campaigns.filter(c => !(c.type === "dropdown" && c.Sponsor?.includes("Stap 2") && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)));
+
+  filteredCampaigns.forEach((camp, i) => {
+    const isFinal = i === filteredCampaigns.length - 1;
     container.innerHTML += renderCampaign(camp, isFinal);
   });
 
@@ -118,12 +149,8 @@ async function initCoregFlow() {
 
   function handleFinalCoreg(current) {
     current.style.display = "none"; // sluit de huidige sectie
-
-    // Trigger de verborgen button in Swipepages
     const finishBtn = document.getElementById("coreg-finish-btn");
-    if (finishBtn) {
-      finishBtn.click();
-    }
+    if (finishBtn) finishBtn.click();
   }
 
   // Event listeners
