@@ -1,8 +1,8 @@
 // coregRenderer.js
 // Renderer + flow logica
 
-const API_COREG = "/api/coreg";  // Proxy endpoint naar Directus
-const API_LEAD = "/api/lead";    // Proxy endpoint naar Databowl
+const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg";
+const API_LEAD  = "https://globalcoregflow-nl.vercel.app/api/lead";
 
 async function fetchCampaigns() {
   const res = await fetch(API_COREG);
