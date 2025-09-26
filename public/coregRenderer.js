@@ -1,8 +1,8 @@
 // coregRenderer.js
-// Renderer + flow logica
+// Renderer + flow logica met hidden button integratie
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
-const API_LEAD  = "https://globalcoregflow-nl.vercel.app/api/lead.js";
+const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
 
 async function fetchCampaigns() {
   const res = await fetch(API_COREG);
@@ -19,10 +19,13 @@ function renderSingle(campaign, isFinal) {
       <p class="coreg-description">${campaign.description}</p>
       <div class="coreg-answers">
         ${campaign.coreg_answers
-          .map(ans => `
+          .map(
+            ans => `
             <button class="flow-next btn-answer" data-answer="yes" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
               Ja, ${ans.label}
-            </button>`).join("")}
+            </button>`
+          )
+          .join("")}
         <button class="flow-next btn-skip" data-answer="no" data-campaign="${campaign.id}">Sla over, geen interesse</button>
       </div>
     </div>`;
@@ -36,7 +39,9 @@ function renderDropdown(campaign, isFinal) {
       <p class="coreg-description">${campaign.description}</p>
       <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
         <option value="">Maak een keuze...</option>
-        ${campaign.coreg_dropdown_options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
+        ${campaign.coreg_dropdown_options
+          .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
+          .join("")}
       </select>
       <a href="#" class="skip-link" data-answer="no" data-campaign="${campaign.id}">Geen interesse, sla over</a>
     </div>`;
@@ -48,17 +53,21 @@ function renderMultistep(campaign, isFinal) {
       <img src="https://cms.core.909play.com/assets/${campaign.image.id}" alt="${campaign.title}" class="coreg-image" />
       <h3 class="coreg-title">${campaign.title}</h3>
       <p class="coreg-description">${campaign.description}</p>
-      <button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2" data-answer="yes" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+      <button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2"
+              data-answer="yes" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
         Ja, graag
       </button>
       <button class="flow-next skip-next" data-answer="no" data-campaign="${campaign.id}">Nee, geen interesse</button>
     </div>
+
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}-step2" style="display:none">
       <img src="https://cms.core.909play.com/assets/${campaign.image.id}" alt="${campaign.title}" class="coreg-image" />
       <h3 class="coreg-title">Wie is je huidige energieleverancier?</h3>
       <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
         <option value="">Kies je huidige leverancier...</option>
-        ${campaign.coreg_dropdown_options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
+        ${campaign.coreg_dropdown_options
+          .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
+          .join("")}
       </select>
       <a href="#" class="skip-link" data-answer="no" data-campaign="${campaign.id}">Toch geen interesse</a>
     </div>`;
@@ -108,27 +117,12 @@ async function initCoregFlow() {
   }
 
   function handleFinalCoreg(current) {
-    let hasTmPositive = false;
-    campaigns.forEach(camp => {
-      const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
-      if (camp.requiresLongForm && answer === "yes") {
-        hasTmPositive = true;
-      }
-    });
+    current.style.display = "none"; // sluit de huidige sectie
 
-    const longForm = document.getElementById("long-form-section");
-    current.style.display = "none";
-    if (longForm) {
-      if (hasTmPositive) {
-        longForm.style.display = "block";
-      } else {
-        longForm.style.display = "none";
-        const allSteps = Array.from(document.querySelectorAll(".flow-section, .coreg-section"));
-        const idx = allSteps.indexOf(longForm);
-        if (idx > -1 && allSteps[idx + 1]) {
-          allSteps[idx + 1].style.display = "block";
-        }
-      }
+    // Trigger de verborgen button in Swipepages
+    const finishBtn = document.getElementById("coreg-finish-btn");
+    if (finishBtn) {
+      finishBtn.click();
     }
   }
 
@@ -166,9 +160,10 @@ async function initCoregFlow() {
 
         if (btn.classList.contains("sponsor-next")) {
           const nextStep = section.nextElementSibling;
-          section.style.display = "none";
+          section.style.display = "none"; // sluit step1
           if (nextStep) nextStep.style.display = "block";
         } else if (btn.classList.contains("skip-next")) {
+          section.style.display = "none";
           showNextSection(section.nextElementSibling || section);
         } else {
           showNextSection(section);
