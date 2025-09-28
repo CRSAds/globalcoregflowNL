@@ -1,8 +1,8 @@
- // coregRenderer.js
-// Renderer + flow logica met correcte afbeeldingen, Databowl payload en multistep fix
+// coregRenderer.js
+// Renderer + flow logica met correcte afbeeldingen, Databowl payload en multistep fix + debug
 
-const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
-const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
+const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg";
+const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead";
 
 // ✅ Directus afbeelding URL
 function getImageUrl(image) {
@@ -17,7 +17,7 @@ function getShortFormData() {
     firstname: sessionStorage.getItem("firstname") || "",
     lastname: sessionStorage.getItem("lastname") || "",
     email: sessionStorage.getItem("email") || "",
-    dob: sessionStorage.getItem("dob") || "", // moet yyyy-mm-dd zijn
+    dob: sessionStorage.getItem("dob") || "", // yyyy-mm-dd
     postcode: sessionStorage.getItem("postcode") || "",
     phone1: sessionStorage.getItem("phone1") || ""
   };
@@ -106,6 +106,9 @@ async function sendLead(cid, sid, answer) {
       answer,
       ...getShortFormData()
     };
+
+    // 🔎 Debug: log payload naar console
+    console.log("Verstuur lead naar Databowl (via /api/lead):", payload);
 
     await fetch(API_LEAD, {
       method: "POST",
