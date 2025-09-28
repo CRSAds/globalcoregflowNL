@@ -1,5 +1,5 @@
 // api/lead.js
-// Endpoint om leads server-side naar Databowl te sturen met CORS support
+// Endpoint om leads server-side naar Databowl te sturen met CORS support + debug
 
 export default async function handler(req, res) {
   // ✅ CORS headers
@@ -7,7 +7,6 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // ✅ OPTIONS preflight
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -23,20 +22,22 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "cid en sid zijn verplicht" });
     }
 
-    // ✅ Payload naar Databowl (velden gemapt zoals in template 5.2)
+    // ✅ Payload zoals in Template 5.2
     const payload = {
       cid,
       sid,
       f_1_firstname: firstname || "",
       f_2_lastname: lastname || "",
       f_3_email: email || "",
-      f_5_dob: dob || "", // ISO 8601 formaat yyyy-mm-dd (zoals in je template)
+      f_5_dob: dob || "",            // yyyy-mm-dd
       f_6_postcode: postcode || "",
       f_7_phone1: phone1 || "",
       f_2047_EM_CO_sponsors: answer || "" // coreg sponsor antwoord
     };
 
-    // ✅ Verstuur lead naar Databowl
+    // 🔎 Debug: log payload in Vercel logs
+    console.log("Lead naar Databowl:", payload);
+
     const response = await fetch("https://crsadvertising.databowl.com/api/v1/lead", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
