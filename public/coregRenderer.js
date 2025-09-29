@@ -191,16 +191,29 @@ async function initCoregFlow() {
   // Toon long form als er positieve TM leads zijn, anders funnel direct door
   function handleFinalCoreg(current) {
     current.style.display = "none";
-    // Check of er daadwerkelijk positief geantwoord is op een TM campagne
+    // Multistep: ALLE stappen moeten positief zijn voor long form
     let hasTmPositive = false;
     window.allCampaigns.forEach(camp => {
       if (camp.requiresLongForm) {
-        const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
-        if (answer === "yes") {
-          hasTmPositive = true;
+        if (camp.hasCoregFlow) {
+          const step1 = sessionStorage.getItem(`coreg_answer_${camp.id}`);
+          const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && c.type === 'dropdown');
+          const step2 = dropdownCamp ? sessionStorage.getItem(`coreg_answer_${dropdownCamp.id}`) : null;
+          if (step1 === "yes" && step2 === "yes") {
+            hasTmPositive = true;
+          }
+        } else {
+          const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
+          if (answer === "yes") {
+            hasTmPositive = true;
+          }
         }
       }
     });
+
+    // Sluit coreg sectie altijd
+    const coregContainer = document.getElementById("coreg-container");
+    if (coregContainer) coregContainer.style.display = "none";
 
     const longForm = document.getElementById("long-form-section");
     if (longForm) {
