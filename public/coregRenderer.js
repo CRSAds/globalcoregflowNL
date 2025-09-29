@@ -67,18 +67,14 @@ function renderDropdown(campaign, isFinal) {
 }
 
 function renderMultistep(campaign, isFinal) {
-  // Workaround: als coreg_dropdown_options leeg is, probeer via campaigns array te zoeken
-  let dropdownOptions = campaign.coreg_dropdown_options;
-  if (!dropdownOptions || dropdownOptions.length === 0) {
-    if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
-      const full = window.allCampaigns.find(c => c.id === campaign.id);
-      if (full && Array.isArray(full.coreg_dropdown_options)) {
-        dropdownOptions = full.coreg_dropdown_options;
-        console.log('[FIXED] coreg_dropdown_options opgehaald uit allCampaigns:', dropdownOptions);
-      }
-    }
+  // Multistep stap 2 fix: zoek de campagne met leveranciers-opties (zelfde cid, type: 'dropdown')
+  let dropdownCampaign = campaign;
+  if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
+    const found = window.allCampaigns.find(c => c.cid === campaign.cid && c.type === 'dropdown');
+    if (found) dropdownCampaign = found;
   }
-  console.log("[DEBUG] renderMultistep dropdown opties voor campaign", campaign.id, dropdownOptions);
+  const dropdownOptions = dropdownCampaign.coreg_dropdown_options || [];
+  console.log("[DEBUG] renderMultistep stap 2 gebruikt campaign id:", dropdownCampaign.id, dropdownOptions);
 
   return `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
@@ -92,16 +88,16 @@ function renderMultistep(campaign, isFinal) {
       <button class="flow-next skip-next" data-answer="no" data-campaign="${campaign.id}">Nee, geen interesse</button>
     </div>
 
-    <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}-step2" style="display:none">
-      <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
+    <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${dropdownCampaign.id}-step2" style="display:none">
+      <img src="${getImageUrl(dropdownCampaign.image)}" alt="${dropdownCampaign.title}" class="coreg-image" />
       <h3 class="coreg-title">Wie is je huidige energieleverancier?</h3>
-      <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+      <select class="coreg-dropdown" data-campaign="${dropdownCampaign.id}" data-cid="${dropdownCampaign.cid}" data-sid="${dropdownCampaign.sid}">
         <option value="">Kies je huidige leverancier...</option>
         ${dropdownOptions
           .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
           .join("")}
       </select>
-      <a href="#" class="skip-link" data-answer="no" data-campaign="${campaign.id}">Toch geen interesse</a>
+      <a href="#" class="skip-link" data-answer="no" data-campaign="${dropdownCampaign.id}">Toch geen interesse</a>
     </div>`;
 }
 
