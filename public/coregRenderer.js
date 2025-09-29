@@ -134,6 +134,7 @@ async function initCoregFlow() {
   if (!container) return;
 
   const campaigns = await fetchCampaigns();
+  window.allCampaigns = campaigns;
   console.log("Campagne response:", campaigns); // Toegevoegd voor debug
 
   // ✅ Multistep fix: filter losse stap 2 als onderdeel van multistep
