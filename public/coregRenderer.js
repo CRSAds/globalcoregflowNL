@@ -191,20 +191,35 @@ async function initCoregFlow() {
   // Toon long form als er positieve TM leads zijn, anders funnel direct door
   function handleFinalCoreg(current) {
     current.style.display = "none";
-    const tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
-    if (tmLeads.length > 0) {
-      // Toon long form (maak zichtbaar of trigger event)
-      const longForm = document.getElementById('long-form-section');
-      if (longForm) {
-        longForm.style.display = 'block';
+    // Check of er daadwerkelijk positief geantwoord is op een TM campagne
+    let hasTmPositive = false;
+    window.allCampaigns.forEach(camp => {
+      if (camp.requiresLongForm) {
+        const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
+        if (answer === "yes") {
+          hasTmPositive = true;
+        }
+      }
+    });
+
+    const longForm = document.getElementById("long-form-section");
+    if (longForm) {
+      if (hasTmPositive) {
+        longForm.style.display = "block";
         window.scrollTo({ top: longForm.offsetTop, behavior: "smooth" });
       } else {
-        alert('Vul nu het long form in!'); // Fallback
+        longForm.style.display = "none";
+        const finishBtn = document.getElementById("coreg-finish-btn");
+        if (finishBtn) finishBtn.click();
       }
     } else {
-      // Geen TM leads, funnel direct door
-      const finishBtn = document.getElementById("coreg-finish-btn");
-      if (finishBtn) finishBtn.click();
+      // Fallback: als geen long form sectie bestaat
+      if (hasTmPositive) {
+        alert("Vul nu het long form in!");
+      } else {
+        const finishBtn = document.getElementById("coreg-finish-btn");
+        if (finishBtn) finishBtn.click();
+      }
     }
   }
 
