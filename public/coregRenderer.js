@@ -223,14 +223,7 @@ async function initCoregFlow() {
         window.scrollTo({ top: longForm.offsetTop, behavior: "smooth" });
       } else {
         longForm.style.display = "none";
-        const finishBtn = document.getElementById("coreg-finish-btn");
-        if (finishBtn) finishBtn.click();
-      }
-    } else {
-      // Fallback: als geen long form sectie bestaat
-      if (hasTmPositive) {
-        alert("Vul nu het long form in!");
-      } else {
+        // Funnel direct door naar volgende sectie
         const finishBtn = document.getElementById("coreg-finish-btn");
         if (finishBtn) finishBtn.click();
       }
