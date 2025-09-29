@@ -107,7 +107,7 @@ function renderCampaign(campaign, isFinal) {
   return renderSingle(campaign, isFinal);
 }
 
-async function sendLead(cid, sid, answer) {
+async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
   try {
     const payload = {
       cid,
@@ -116,9 +116,18 @@ async function sendLead(cid, sid, answer) {
       ...getShortFormData()
     };
 
-    // 🔎 Debug: log payload naar console
-    console.log("Verstuur lead naar Databowl (via /api/lead):", payload);
+    if (isTM || storeOnly) {
+      // TM: opslaan voor later
+      let tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
+      tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid); // voorkom dubbele
+      tmLeads.push(payload);
+      sessionStorage.setItem('pendingTMLeads', JSON.stringify(tmLeads));
+      console.log('[TM] Lead opgeslagen voor later versturen:', payload);
+      return;
+    }
 
+    // EM: direct versturen
+    console.log("[EM] Verstuur lead naar Databowl (via /api/lead):", payload);
     await fetch(API_LEAD, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -128,6 +137,21 @@ async function sendLead(cid, sid, answer) {
     console.error("Lead versturen mislukt:", err);
   }
 }
+
+// Functie om alle opgeslagen TM leads te versturen
+async function sendAllTMLeads() {
+  const tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
+  for (const lead of tmLeads) {
+    console.log('[TM] Verstuur lead na long form:', lead);
+    await fetch(API_LEAD, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lead),
+    });
+  }
+  sessionStorage.removeItem('pendingTMLeads');
+}
+
 
 async function initCoregFlow() {
   const container = document.getElementById("coreg-container");
@@ -164,10 +188,24 @@ async function initCoregFlow() {
     }
   }
 
+  // Toon long form als er positieve TM leads zijn, anders funnel direct door
   function handleFinalCoreg(current) {
-    current.style.display = "none"; // sluit de huidige sectie
-    const finishBtn = document.getElementById("coreg-finish-btn");
-    if (finishBtn) finishBtn.click();
+    current.style.display = "none";
+    const tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
+    if (tmLeads.length > 0) {
+      // Toon long form (maak zichtbaar of trigger event)
+      const longForm = document.getElementById('long-form-section');
+      if (longForm) {
+        longForm.style.display = 'block';
+        window.scrollTo({ top: longForm.offsetTop, behavior: "smooth" });
+      } else {
+        alert('Vul nu het long form in!'); // Fallback
+      }
+    } else {
+      // Geen TM leads, funnel direct door
+      const finishBtn = document.getElementById("coreg-finish-btn");
+      if (finishBtn) finishBtn.click();
+    }
   }
 
   // Event listeners
@@ -177,7 +215,13 @@ async function initCoregFlow() {
       dropdown.addEventListener("change", () => {
         if (dropdown.value !== "") {
           sessionStorage.setItem(`coreg_answer_${dropdown.dataset.campaign}`, "yes");
-          sendLead(dropdown.dataset.cid, dropdown.dataset.sid, dropdown.value);
+          // Bepaal of het een TM of EM campagne is
+          const camp = window.allCampaigns.find(c => c.id == dropdown.dataset.campaign);
+          if (camp && camp.requiresLongForm) {
+            sendLead(dropdown.dataset.cid, dropdown.dataset.sid, dropdown.value, true);
+          } else {
+            sendLead(dropdown.dataset.cid, dropdown.dataset.sid, dropdown.value, false);
+          }
           showNextSection(section);
         }
       });
@@ -200,11 +244,18 @@ async function initCoregFlow() {
         const answer = btn.dataset.answer;
 
         sessionStorage.setItem(`coreg_answer_${campId}`, answer);
-        if (answer === "yes") sendLead(cid, sid, answer);
+        if (answer === "yes") {
+          const camp = window.allCampaigns.find(c => c.id == campId);
+          if (camp && camp.requiresLongForm) {
+            sendLead(cid, sid, answer, true);
+          } else {
+            sendLead(cid, sid, answer, false);
+          }
+        }
 
         if (btn.classList.contains("sponsor-next")) {
           const nextStep = section.nextElementSibling;
-          section.style.display = "none"; // sluit step1
+          section.style.display = "none";
           if (nextStep) nextStep.style.display = "block";
         } else if (btn.classList.contains("skip-next")) {
           section.style.display = "none";
@@ -215,6 +266,10 @@ async function initCoregFlow() {
       });
     });
   });
+
+  // Voeg een globale functie toe om na long form alle TM leads te versturen
+  window.sendAllTMLeads = sendAllTMLeads;
+
 }
 
 window.addEventListener("DOMContentLoaded", initCoregFlow);
