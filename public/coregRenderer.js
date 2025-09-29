@@ -67,7 +67,19 @@ function renderDropdown(campaign, isFinal) {
 }
 
 function renderMultistep(campaign, isFinal) {
-  console.log("[DEBUG] renderMultistep dropdown opties voor campaign", campaign.id, campaign.coreg_dropdown_options);
+  // Workaround: als coreg_dropdown_options leeg is, probeer via campaigns array te zoeken
+  let dropdownOptions = campaign.coreg_dropdown_options;
+  if (!dropdownOptions || dropdownOptions.length === 0) {
+    if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
+      const full = window.allCampaigns.find(c => c.id === campaign.id);
+      if (full && Array.isArray(full.coreg_dropdown_options)) {
+        dropdownOptions = full.coreg_dropdown_options;
+        console.log('[FIXED] coreg_dropdown_options opgehaald uit allCampaigns:', dropdownOptions);
+      }
+    }
+  }
+  console.log("[DEBUG] renderMultistep dropdown opties voor campaign", campaign.id, dropdownOptions);
+
   return `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
       <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
@@ -85,7 +97,7 @@ function renderMultistep(campaign, isFinal) {
       <h3 class="coreg-title">Wie is je huidige energieleverancier?</h3>
       <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
         <option value="">Kies je huidige leverancier...</option>
-        ${campaign.coreg_dropdown_options
+        ${dropdownOptions
           .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
           .join("")}
       </select>
