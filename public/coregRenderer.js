@@ -212,6 +212,7 @@ async function initCoregFlow() {
     });
 
     // Sluit coreg sectie altijd
+    document.querySelectorAll('.coreg-section').forEach(s => s.style.display = 'none');
     const coregContainer = document.getElementById("coreg-container");
     if (coregContainer) coregContainer.style.display = "none";
 
