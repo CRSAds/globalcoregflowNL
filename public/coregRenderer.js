@@ -67,6 +67,7 @@ function renderDropdown(campaign, isFinal) {
 }
 
 function renderMultistep(campaign, isFinal) {
+  console.log("[DEBUG] renderMultistep dropdown opties voor campaign", campaign.id, campaign.coreg_dropdown_options);
   return `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
       <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
