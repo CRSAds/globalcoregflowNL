@@ -240,6 +240,9 @@ async function initCoregFlow() {
           if (src) img.src = src;
         });
         setTimeout(() => {
+          window.dispatchEvent(new Event('scroll'));
+          window.scrollBy(0, 1);
+          window.scrollBy(0, -1);
           window.scrollTo({ top: longForm.offsetTop, behavior: "smooth" });
         }, 30);
       } else {
