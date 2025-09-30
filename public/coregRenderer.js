@@ -161,6 +161,27 @@ async function sendAllTMLeads() {
 }
 
 
+// --- Progress Bar Logic ---
+function renderProgressBar(currentIdx, total) {
+  const root = document.getElementById('progress-bar-root');
+  if (!root) return;
+  let stepsHtml = '';
+  for (let i = 0; i < total; i++) {
+    let cls = 'progress-step';
+    if (i < currentIdx) cls += ' completed';
+    if (i === currentIdx) cls += ' active';
+    if (i === total - 1) cls += ' trophy';
+    stepsHtml += `<div class="${cls}">${i === total-1 ? '🏆' : i+1}${i === currentIdx ? '<span class=confetti>✨</span>' : ''}</div>`;
+  }
+  root.innerHTML = `
+    <div class="progress-bar-container">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" style="width:${(currentIdx/(total-1))*100}%;"></div>
+        <div class="progress-bar-steps">${stepsHtml}</div>
+      </div>
+    </div>`;
+}
+
 async function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
@@ -185,13 +206,21 @@ async function initCoregFlow() {
   const sections = Array.from(container.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
+  // Progress bar init
+  let progressIdx = 0;
+  renderProgressBar(progressIdx, sections.length);
+
   function showNextSection(current) {
     const idx = sections.indexOf(current);
     if (idx > -1 && idx < sections.length - 1) {
       current.style.display = "none";
       sections[idx + 1].style.display = "block";
+      progressIdx = Math.min(idx + 1, sections.length - 1);
+      renderProgressBar(progressIdx, sections.length);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (current.classList.contains("final-coreg")) {
+      progressIdx = sections.length - 1;
+      renderProgressBar(progressIdx, sections.length);
       handleFinalCoreg(current);
     }
   }
