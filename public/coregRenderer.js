@@ -229,7 +229,12 @@ async function initCoregFlow() {
       if (hasTmPositive) {
         longForm.style.display = "block";
         longForm.offsetHeight; // force repaint
-        window.scrollTo({ top: longForm.offsetTop, behavior: "smooth" });
+        // Verwijder eventueel lazy-loading attribuut van img
+        const imgs = longForm.querySelectorAll('img[loading="lazy"]');
+        imgs.forEach(img => img.removeAttribute('loading'));
+        setTimeout(() => {
+          window.scrollTo({ top: longForm.offsetTop, behavior: "smooth" });
+        }, 30);
       } else {
         longForm.style.display = "none";
         // Funnel direct door naar volgende sectie
