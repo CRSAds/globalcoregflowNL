@@ -228,6 +228,7 @@ async function initCoregFlow() {
     if (longForm) {
       if (hasTmPositive) {
         longForm.style.display = "block";
+        longForm.offsetHeight; // force repaint
         window.scrollTo({ top: longForm.offsetTop, behavior: "smooth" });
       } else {
         longForm.style.display = "none";
