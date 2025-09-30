@@ -229,6 +229,7 @@ async function initCoregFlow() {
       if (hasTmPositive) {
         longForm.style.display = "block";
         longForm.offsetHeight; // force repaint
+        window.dispatchEvent(new Event('resize'));
         // Verwijder eventueel lazy-loading attribuut van img
         const imgs = longForm.querySelectorAll('img[loading="lazy"]');
         imgs.forEach(img => img.removeAttribute('loading'));
