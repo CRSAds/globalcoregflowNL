@@ -232,6 +232,12 @@ async function initCoregFlow() {
         // Verwijder eventueel lazy-loading attribuut van img
         const imgs = longForm.querySelectorAll('img[loading="lazy"]');
         imgs.forEach(img => img.removeAttribute('loading'));
+        // Forceer Swipepages lazyload images
+        const lazyImgs = longForm.querySelectorAll('img.tatsu-image-lazyload');
+        lazyImgs.forEach(img => {
+          const src = img.getAttribute('src');
+          if (src) img.src = src;
+        });
         setTimeout(() => {
           window.scrollTo({ top: longForm.offsetTop, behavior: "smooth" });
         }, 30);
