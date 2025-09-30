@@ -52,6 +52,7 @@ function renderSingle(campaign, isFinal, idx, total, progressIdx) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
+        ${renderProgressBar(progressIdx, total)}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -71,6 +72,99 @@ function renderSingle(campaign, isFinal, idx, total, progressIdx) {
 }
 
 function renderDropdown(campaign, isFinal, idx, total, progressIdx) {
+  return `
+    <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
+      <div class="coreg-inner">
+        ${renderProgressBar(progressIdx, total)}
+        <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
+        <h3 class="coreg-title">${campaign.title}</h3>
+        <p class="coreg-description">${campaign.description}</p>
+        <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+          <option value="">Maak een keuze...</option>
+          ${campaign.coreg_dropdown_options
+            .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
+            .join("")}
+        </select>
+        <a href="#" class="skip-link" data-answer="no" data-campaign="${campaign.id}">Geen interesse, sla over</a>
+      </div>
+    </div>`;
+}
+
+function renderMultistep(campaign, isFinal, idx, total, progressIdx) {
+  let dropdownCampaign = campaign;
+  if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
+    const found = window.allCampaigns.find(c => c.cid === campaign.cid && c.type === 'dropdown');
+    if (found) dropdownCampaign = found;
+  }
+  const dropdownOptions = dropdownCampaign.coreg_dropdown_options || [];
+  return `
+    <div class="coreg-section" id="campaign-${campaign.id}-step1">
+      <div class="coreg-inner">
+        ${renderProgressBar(progressIdx, total)}
+        <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
+        <h3 class="coreg-title">${campaign.title}</h3>
+        <p class="coreg-description">${campaign.description}</p>
+        <button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2"
+                data-answer="yes" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+          Ja, graag
+        </button>
+        <button class="flow-next skip-next" data-answer="no" data-campaign="${campaign.id}">Nee, geen interesse</button>
+      </div>
+    </div>
+    <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${dropdownCampaign.id}-step2" style="display:none">
+      <div class="coreg-inner">
+        ${renderProgressBar(progressIdx, total)}
+        <img src="${getImageUrl(dropdownCampaign.image)}" alt="${dropdownCampaign.title}" class="coreg-image" />
+        <h3 class="coreg-title">Wie is je huidige energieleverancier?</h3>
+        <select class="coreg-dropdown" data-campaign="${dropdownCampaign.id}" data-cid="${dropdownCampaign.cid}" data-sid="${dropdownCampaign.sid}">
+          <option value="">Kies je huidige leverancier...</option>
+          ${dropdownOptions
+            .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
+            .join("")}
+        </select>
+        <a href="#" class="skip-link" data-answer="no" data-campaign="${dropdownCampaign.id}">Toch geen interesse</a>
+      </div>
+    </div>`;
+}
+  return `
+    <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
+      <div class="coreg-inner">
+        ${renderProgressBar(progressIdx, total)}
+        <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
+        <h3 class="coreg-title">${campaign.title}</h3>
+        <p class="coreg-description">${campaign.description}</p>
+        <div class="coreg-answers">
+          ${campaign.coreg_answers
+            .map(
+              ans => `
+              <button class="flow-next btn-answer" data-answer="yes" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+                Ja, ${ans.label}
+              </button>`
+            )
+            .join("")}
+          <button class="flow-next btn-skip" data-answer="no" data-campaign="${campaign.id}">Sla over, geen interesse</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderDropdown(campaign, isFinal, idx, total, progressIdx) {
+  return `
+    <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
+      <div class="coreg-inner">
+        ${renderProgressBar(progressIdx, total)}
+        <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
+        <h3 class="coreg-title">${campaign.title}</h3>
+        <p class="coreg-description">${campaign.description}</p>
+        <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+          <option value="">Maak een keuze...</option>
+          ${campaign.coreg_dropdown_options
+            .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
+            .join("")}
+        </select>
+        <a href="#" class="skip-link" data-answer="no" data-campaign="${campaign.id}">Geen interesse, sla over</a>
+      </div>
+    </div>`;
 }
 
 function renderMultistep(campaign, isFinal, idx, total, progressIdx) {
