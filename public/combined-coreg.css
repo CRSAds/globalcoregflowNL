@@ -7,7 +7,7 @@
 
 .ld-progress {
   border-radius: 4px;
-  height: 28px; /* Dikkere bar */
+  height: 24px; /* Dikkere bar */
   background-color: rgba(var(--ld-progress-bg-rgb), 0.15);
   position: relative;
 }
@@ -36,7 +36,7 @@
   font-weight: 700;
 }
 .ld-progress-wrap {
-  margin-bottom: 16px; /* extra ruimte onder progress bar */
+  margin-bottom: 12px; /* extra ruimte onder progress bar */
 }
 
 /* === Coreg section === */
@@ -78,7 +78,7 @@
   display: block;
   width: 100%;
   padding: 14px 18px;
-  margin: 4px 0 !important; /* minder witruimte forceren */
+  margin: 8px 0 !important; /* minder witruimte forceren */
   border: none;
   border-radius: 999px;
   font-size: 1rem;
