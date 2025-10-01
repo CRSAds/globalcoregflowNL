@@ -38,7 +38,7 @@ function renderProgressBar(progress = 0) {
         <span class="progress-label">Je bent er bijna</span>
         <span class="progress-value text-primary">${progress}%</span>
       </div>
-      <div class="ld-progress lh-6" role="progressbar" data-progress="${progress}">
+      <div class="ld-progress lh-8" role="progressbar" data-progress="${progress}">
         <div class="progress-bar"></div>
       </div>
     </div>`;
@@ -131,6 +131,7 @@ function renderCampaign(campaign, isFinal) {
   return renderSingle(campaign, isFinal);
 }
 
+// === Lead functies ===
 async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
   try {
     const payload = {
@@ -142,7 +143,7 @@ async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
 
     if (isTM || storeOnly) {
       let tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
-      tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid); // voorkom dubbele
+      tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid); 
       tmLeads.push(payload);
       sessionStorage.setItem('pendingTMLeads', JSON.stringify(tmLeads));
       console.log('[TM] Lead opgeslagen voor later versturen:', payload);
@@ -173,6 +174,7 @@ async function sendAllTMLeads() {
   sessionStorage.removeItem('pendingTMLeads');
 }
 
+// === Init flow ===
 async function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
@@ -180,7 +182,6 @@ async function initCoregFlow() {
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
 
-  // filter losse stap 2 bij multistep
   const filteredCampaigns = campaigns.filter(c => {
     if (c.type === "dropdown" && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)) {
       return false;
@@ -212,15 +213,15 @@ async function initCoregFlow() {
     }
   }
 
-  // Initieel
-  updateProgressBar(0);
-
   function showNextSection(current) {
     const idx = sections.indexOf(current);
     if (idx > -1 && idx < sections.length - 1) {
       current.style.display = "none";
       sections[idx + 1].style.display = "block";
       updateProgressBar(idx + 1);
+      // ✅ start animatie opnieuw
+      const newBar = sections[idx + 1].querySelector('.ld-progress');
+      if (newBar && window.animateProgressBar) window.animateProgressBar(newBar);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (current.classList.contains("final-coreg")) {
       handleFinalCoreg(current);
