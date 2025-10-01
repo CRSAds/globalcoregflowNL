@@ -35,6 +35,9 @@
   color: #4B7C82;
   font-weight: 700;
 }
+.ld-progress-wrap {
+  margin-bottom: 16px; /* extra ruimte onder progress bar */
+}
 
 /* === Coreg section === */
 .coreg-section {
@@ -75,7 +78,7 @@
   display: block;
   width: 100%;
   padding: 14px 18px;
-  margin: 6px 0; /* Minder ruimte */
+  margin: 4px 0; /* minder witruimte */
   border: none;
   border-radius: 999px;
   font-size: 1rem;
@@ -92,12 +95,12 @@
   background: #11985a;
 }
 .btn-skip {
-  background: #f5f5f5; /* veel lichter */
-  color: #666;
+  background: #f5f5f5 !important; /* veel lichter */
+  color: #444 !important;
   font-weight: 500;
 }
 .btn-skip:hover {
-  background: #e0e0e0;
+  background: #e0e0e0 !important;
 }
 
 /* Dropdown styling */
@@ -116,4 +119,17 @@
   border-color: #14B670;
   outline: none;
   box-shadow: 0 0 0 2px rgba(20,182,112,0.1);
+}
+
+/* Skip link onder dropdown */
+.skip-link {
+  display: block;
+  margin-top: 8px;
+  color: #444 !important; /* donkergrijs ipv blauw */
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+.skip-link:hover {
+  text-decoration: underline;
+  color: #222 !important;
 }
