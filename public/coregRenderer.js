@@ -1,5 +1,5 @@
 // coregRenderer.js
-// Renderer + flow logica met correcte afbeeldingen, Databowl payload en multistep fix
+// Renderer + flow logica met één centrale progressbar
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
 const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
@@ -30,7 +30,7 @@ async function fetchCampaigns() {
   return json.data;
 }
 
-// ✅ Template progress bar style 1
+// ✅ Centrale progressbar
 function renderProgressBar(progress = 0) {
   return `
     <div class="ld-progress-wrap mb-25">
@@ -44,11 +44,11 @@ function renderProgressBar(progress = 0) {
     </div>`;
 }
 
+// ✅ Campagne renders (zonder progressbar!)
 function renderSingle(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
-        ${renderProgressBar(window.currentProgress || 0)}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -71,7 +71,6 @@ function renderDropdown(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
-        ${renderProgressBar(window.currentProgress || 0)}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -97,7 +96,6 @@ function renderMultistep(campaign, isFinal) {
   return `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
       <div class="coreg-inner">
-        ${renderProgressBar(window.currentProgress || 0)}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -111,7 +109,6 @@ function renderMultistep(campaign, isFinal) {
 
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${dropdownCampaign.id}-step2" style="display:none">
       <div class="coreg-inner">
-        ${renderProgressBar(window.currentProgress || 0)}
         <img src="${getImageUrl(dropdownCampaign.image)}" alt="${dropdownCampaign.title}" class="coreg-image" />
         <h3 class="coreg-title">Wie is je huidige energieleverancier?</h3>
         <select class="coreg-dropdown" data-campaign="${dropdownCampaign.id}" data-cid="${dropdownCampaign.cid}" data-sid="${dropdownCampaign.sid}">
@@ -131,7 +128,7 @@ function renderCampaign(campaign, isFinal) {
   return renderSingle(campaign, isFinal);
 }
 
-// === Lead functies ===
+// === Lead functies (ongewijzigd) ===
 async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
   try {
     const payload = {
@@ -140,17 +137,13 @@ async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
       answer,
       ...getShortFormData()
     };
-
     if (isTM || storeOnly) {
       let tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
       tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid); 
       tmLeads.push(payload);
       sessionStorage.setItem('pendingTMLeads', JSON.stringify(tmLeads));
-      console.log('[TM] Lead opgeslagen voor later versturen:', payload);
       return;
     }
-
-    console.log("[EM] Verstuur lead naar Databowl (via /api/lead):", payload);
     await fetch(API_LEAD, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -164,7 +157,6 @@ async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
 async function sendAllTMLeads() {
   const tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
   for (const lead of tmLeads) {
-    console.log('[TM] Verstuur lead na long form:', lead);
     await fetch(API_LEAD, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -182,13 +174,16 @@ async function initCoregFlow() {
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
 
+  // ✅ eerst de centrale progressbar renderen
+  container.innerHTML = renderProgressBar(0);
+
+  // dan de campagnes erachter
   const filteredCampaigns = campaigns.filter(c => {
     if (c.type === "dropdown" && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)) {
       return false;
     }
     return true;
   });
-
   filteredCampaigns.forEach((camp, i) => {
     const isFinal = i === filteredCampaigns.length - 1;
     container.innerHTML += renderCampaign(camp, isFinal);
@@ -197,23 +192,20 @@ async function initCoregFlow() {
   const sections = Array.from(container.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
+  // ✅ update één centrale progressbar
   function updateProgressBar(sectionIdx) {
     const total = sections.length;
     const current = Math.max(1, Math.min(sectionIdx + 1, total));
     const percent = Math.round((current / total) * 100);
-    window.currentProgress = percent; // ✅ opslaan globaal
+    window.currentProgress = percent;
 
-    const section = sections[sectionIdx];
-    if (!section) return;
-    const progressWrap = section.querySelector('.ld-progress[role="progressbar"]');
+    const progressWrap = container.querySelector('.ld-progress[role="progressbar"]');
+    const progressValue = container.querySelector('.progress-value.text-primary');
     if (progressWrap && window.animateProgressBar) {
       progressWrap.setAttribute('data-progress', percent);
       window.animateProgressBar(progressWrap);
     }
-    const progressValue = section.querySelector('.progress-value.text-primary');
-    if (progressValue) {
-      progressValue.textContent = percent + '%';
-    }
+    if (progressValue) progressValue.textContent = percent + '%';
   }
 
   function showNextSection(current) {
@@ -231,29 +223,21 @@ async function initCoregFlow() {
   function handleFinalCoreg(current) {
     current.style.display = "none";
     let hasTmPositive = false;
-
     window.allCampaigns.forEach(camp => {
       if (camp.requiresLongForm) {
         if (camp.hasCoregFlow) {
           const step1 = sessionStorage.getItem(`coreg_answer_${camp.id}`);
           const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && c.type === 'dropdown');
           const step2 = dropdownCamp ? sessionStorage.getItem(`coreg_answer_${dropdownCamp.id}`) : null;
-          if (step1 === "yes" && step2 === "yes") {
-            hasTmPositive = true;
-          }
+          if (step1 === "yes" && step2 === "yes") hasTmPositive = true;
         } else {
           const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
-          if (answer === "yes") {
-            hasTmPositive = true;
-          }
+          if (answer === "yes") hasTmPositive = true;
         }
       }
     });
-
     document.querySelectorAll('.coreg-section').forEach(s => s.style.display = 'none');
-    const coregContainer = document.getElementById("coreg-container");
-    if (coregContainer) coregContainer.style.display = "none";
-
+    container.style.display = "none";
     const longForm = document.getElementById("long-form-section");
     if (longForm) {
       if (hasTmPositive) {
@@ -300,7 +284,6 @@ async function initCoregFlow() {
         const cid = btn.dataset.cid;
         const sid = btn.dataset.sid;
         const answer = btn.dataset.answer;
-
         sessionStorage.setItem(`coreg_answer_${campId}`, answer);
         if (answer === "yes") {
           const camp = window.allCampaigns.find(c => c.id == campId);
@@ -310,7 +293,6 @@ async function initCoregFlow() {
             sendLead(cid, sid, answer, false);
           }
         }
-
         if (btn.classList.contains("sponsor-next")) {
           const nextStep = section.nextElementSibling;
           section.style.display = "none";
