@@ -1,23 +1,21 @@
 // coregRenderer.js
-// Renderer + flow logica met progressbar in het witte kader (alleen boven eerste sectie)
+// Renderer + flow logica met één vaste progressbar boven de hele flow
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
 const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
 
-// ✅ Directus afbeelding URL
 function getImageUrl(image) {
   return image?.id
     ? `https://cms.core.909play.com/assets/${image.id}`
     : "https://via.placeholder.com/600x200?text=Geen+afbeelding";
 }
 
-// ✅ Short form data ophalen uit sessionStorage
 function getShortFormData() {
   return {
     firstname: sessionStorage.getItem("firstname") || "",
     lastname: sessionStorage.getItem("lastname") || "",
     email: sessionStorage.getItem("email") || "",
-    dob: sessionStorage.getItem("dob") || "", // yyyy-mm-dd
+    dob: sessionStorage.getItem("dob") || "",
     postcode: sessionStorage.getItem("postcode") || "",
     phone1: sessionStorage.getItem("phone1") || ""
   };
@@ -30,7 +28,7 @@ async function fetchCampaigns() {
   return json.data;
 }
 
-// ✅ Centrale progressbar (wordt maar 1x toegevoegd, bij eerste sectie)
+// ✅ vaste progressbar
 function renderProgressBar(progress = 0) {
   return `
     <div class="ld-progress-wrap mb-25">
@@ -44,12 +42,10 @@ function renderProgressBar(progress = 0) {
     </div>`;
 }
 
-// ✅ Campagne renders
-function renderSingle(campaign, isFinal, withProgress) {
+function renderSingle(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
-        ${withProgress ? renderProgressBar(window.currentProgress || 0) : ""}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -68,11 +64,10 @@ function renderSingle(campaign, isFinal, withProgress) {
     </div>`;
 }
 
-function renderDropdown(campaign, isFinal, withProgress) {
+function renderDropdown(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
-        ${withProgress ? renderProgressBar(window.currentProgress || 0) : ""}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -87,7 +82,7 @@ function renderDropdown(campaign, isFinal, withProgress) {
     </div>`;
 }
 
-function renderMultistep(campaign, isFinal, withProgress) {
+function renderMultistep(campaign, isFinal) {
   let dropdownCampaign = campaign;
   if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
     const found = window.allCampaigns.find(c => c.cid === campaign.cid && c.type === 'dropdown');
@@ -98,7 +93,6 @@ function renderMultistep(campaign, isFinal, withProgress) {
   return `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
       <div class="coreg-inner">
-        ${withProgress ? renderProgressBar(window.currentProgress || 0) : ""}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -129,10 +123,10 @@ function renderMultistep(campaign, isFinal, withProgress) {
     </div>`;
 }
 
-function renderCampaign(campaign, isFinal, withProgress = false) {
-  if (campaign.hasCoregFlow) return renderMultistep(campaign, isFinal, withProgress);
-  if (campaign.type === "dropdown") return renderDropdown(campaign, isFinal, withProgress);
-  return renderSingle(campaign, isFinal, withProgress);
+function renderCampaign(campaign, isFinal) {
+  if (campaign.hasCoregFlow) return renderMultistep(campaign, isFinal);
+  if (campaign.type === "dropdown") return renderDropdown(campaign, isFinal);
+  return renderSingle(campaign, isFinal);
 }
 
 // === Lead functies (ongewijzigd) ===
@@ -176,7 +170,11 @@ async function initCoregFlow() {
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
 
-  // ✅ campagnes renderen, alleen eerste sectie krijgt progressbar
+  // ✅ Progressbar + secties container
+  container.innerHTML = renderProgressBar(0) + '<div id="coreg-sections"></div>';
+  const sectionsContainer = container.querySelector("#coreg-sections");
+
+  // ✅ campagnes in #coreg-sections
   const filteredCampaigns = campaigns.filter(c => {
     if (c.type === "dropdown" && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)) {
       return false;
@@ -185,14 +183,13 @@ async function initCoregFlow() {
   });
   filteredCampaigns.forEach((camp, i) => {
     const isFinal = i === filteredCampaigns.length - 1;
-    const withProgress = i === 0;
-    container.innerHTML += renderCampaign(camp, isFinal, withProgress);
+    sectionsContainer.innerHTML += renderCampaign(camp, isFinal);
   });
 
-  const sections = Array.from(container.querySelectorAll(".coreg-section"));
+  const sections = Array.from(sectionsContainer.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
-  // ✅ update centrale progressbar
+  // ✅ update progressbar
   function updateProgressBar(sectionIdx) {
     const total = sections.length;
     const current = Math.max(1, Math.min(sectionIdx + 1, total));
@@ -236,8 +233,7 @@ async function initCoregFlow() {
         }
       }
     });
-    document.querySelectorAll('.coreg-section').forEach(s => s.style.display = 'none');
-    container.style.display = "none";
+    sectionsContainer.style.display = "none";
     const longForm = document.getElementById("long-form-section");
     if (longForm) {
       if (hasTmPositive) {
