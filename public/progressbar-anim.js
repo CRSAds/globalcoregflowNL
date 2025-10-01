@@ -1,25 +1,29 @@
 // progressbar-anim.js
 // Animatie voor Style 1 progressbars (groen)
 
+function animateProgressBar(bar) {
+  if (!bar) return;
+  const progressBar = bar.querySelector('.progress-bar');
+  const progressValue = parseInt(bar.getAttribute('data-progress')) || 0;
+  const label = bar.parentElement.querySelector('.progress-value');
+
+  let width = 0;
+  const interval = setInterval(() => {
+    if (width >= progressValue) {
+      clearInterval(interval);
+    } else {
+      width++;
+      progressBar.style.width = width + '%';
+      if (label) label.textContent = width + '%';
+    }
+  }, 15);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        const progressBar = entry.target.querySelector('.progress-bar');
-        const progressValue = parseInt(entry.target.getAttribute('data-progress')) || 0;
-        const label = entry.target.parentElement.querySelector('.progress-value');
-
-        let width = 0;
-        const interval = setInterval(() => {
-          if (width >= progressValue) {
-            clearInterval(interval);
-          } else {
-            width++;
-            progressBar.style.width = width + '%';
-            if (label) label.textContent = width + '%';
-          }
-        }, 15);
-
+        animateProgressBar(entry.target);
         observer.unobserve(entry.target);
       }
     });
@@ -29,3 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
     observer.observe(progress);
   });
 });
+
+// Exporteer naar global zodat coregRenderer ook kan aanroepen
+window.animateProgressBar = animateProgressBar;
