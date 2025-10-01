@@ -1,5 +1,5 @@
 // coregRenderer.js
-// Renderer + flow logica met één vaste progressbar boven de hele flow
+// Renderer + flow logica met progressbar in wit kader (blijvend bovenaan)
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
 const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
@@ -28,7 +28,7 @@ async function fetchCampaigns() {
   return json.data;
 }
 
-// ✅ vaste progressbar
+// ✅ Progressbar
 function renderProgressBar(progress = 0) {
   return `
     <div class="ld-progress-wrap mb-25">
@@ -129,13 +129,13 @@ function renderCampaign(campaign, isFinal) {
   return renderSingle(campaign, isFinal);
 }
 
-// === Lead functies (ongewijzigd) ===
+// === Lead functies ===
 async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
   try {
     const payload = { cid, sid, answer, ...getShortFormData() };
     if (isTM || storeOnly) {
       let tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
-      tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid); 
+      tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid);
       tmLeads.push(payload);
       sessionStorage.setItem('pendingTMLeads', JSON.stringify(tmLeads));
       return;
@@ -170,11 +170,16 @@ async function initCoregFlow() {
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
 
-  // ✅ Progressbar + secties container
-  container.innerHTML = renderProgressBar(0) + '<div id="coreg-sections"></div>';
+  // ✅ Progressbar in eigen coreg-inner wrapper
+  container.innerHTML = `
+    <div class="coreg-inner coreg-progress">
+      ${renderProgressBar(0)}
+    </div>
+    <div id="coreg-sections"></div>
+  `;
+
   const sectionsContainer = container.querySelector("#coreg-sections");
 
-  // ✅ campagnes in #coreg-sections
   const filteredCampaigns = campaigns.filter(c => {
     if (c.type === "dropdown" && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)) {
       return false;
@@ -189,7 +194,6 @@ async function initCoregFlow() {
   const sections = Array.from(sectionsContainer.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
-  // ✅ update progressbar
   function updateProgressBar(sectionIdx) {
     const total = sections.length;
     const current = Math.max(1, Math.min(sectionIdx + 1, total));
