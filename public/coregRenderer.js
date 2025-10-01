@@ -203,22 +203,17 @@ function updateProgressBar(sectionIdx) {
   const percent = Math.round((current / total) * 100);
   const section = sections[sectionIdx];
   if (!section) return;
-  const progressBar = section.querySelector('.ld-progress[role="progressbar"] .progress-bar');
+  const progressWrap = section.querySelector('.ld-progress[role="progressbar"]');
   const progressValue = section.querySelector('.progress-value.text-primary');
-
-  if (progressBar) {
-    // Animate van huidige breedte naar nieuwe breedte
-    const currentWidth = parseInt(progressBar.style.width) || 0;
-    let width = currentWidth;
-    const interval = setInterval(() => {
-      if (width >= percent) {
-        clearInterval(interval);
-      } else {
-        width++;
-        progressBar.style.width = width + '%';
-        if (progressValue) progressValue.textContent = width + '%';
-      }
-    }, 15);
+  
+  if (progressWrap) {
+    progressWrap.setAttribute('data-progress', percent);
+    if (window.animateProgressBar) {
+      window.animateProgressBar(progressWrap);
+    }
+  }
+  if (progressValue) {
+    progressValue.textContent = percent + '%';
   }
 }
 
