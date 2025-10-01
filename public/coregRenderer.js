@@ -34,6 +34,18 @@ function renderSingle(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
+  <div class="progressbar-outer">
+    <div class="progressbar-label">Je bent er bijna</div>
+    <div class="ld-progress-wrap" style="margin-bottom:18px;">
+      <div class="ld-progress-info">
+        <span class="progress-label"></span>
+        <span class="progress-value progressbar-value"></span>
+      </div>
+      <div class="ld-progress progress-green lh-6 coreg-progressbar" role="progressbar" aria-label="progressbar" data-progress="0">
+        <div class="progress-bar"></div>
+      </div>
+    </div>
+  </div>
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -56,6 +68,18 @@ function renderDropdown(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
+  <div class="progressbar-outer">
+    <div class="progressbar-label">Je bent er bijna</div>
+    <div class="ld-progress-wrap" style="margin-bottom:18px;">
+      <div class="ld-progress-info">
+        <span class="progress-label"></span>
+        <span class="progress-value progressbar-value"></span>
+      </div>
+      <div class="ld-progress progress-green lh-6 coreg-progressbar" role="progressbar" aria-label="progressbar" data-progress="0">
+        <div class="progress-bar"></div>
+      </div>
+    </div>
+  </div>
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -83,6 +107,18 @@ function renderMultistep(campaign, isFinal) {
   return `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
       <div class="coreg-inner">
+  <div class="progressbar-outer">
+    <div class="progressbar-label">Je bent er bijna</div>
+    <div class="ld-progress-wrap" style="margin-bottom:18px;">
+      <div class="ld-progress-info">
+        <span class="progress-label"></span>
+        <span class="progress-value progressbar-value"></span>
+      </div>
+      <div class="ld-progress progress-green lh-6 coreg-progressbar" role="progressbar" aria-label="progressbar" data-progress="0">
+        <div class="progress-bar"></div>
+      </div>
+    </div>
+  </div>
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -96,6 +132,18 @@ function renderMultistep(campaign, isFinal) {
 
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${dropdownCampaign.id}-step2" style="display:none">
       <div class="coreg-inner">
+  <div class="progressbar-outer">
+    <div class="progressbar-label">Je bent er bijna</div>
+    <div class="ld-progress-wrap" style="margin-bottom:18px;">
+      <div class="ld-progress-info">
+        <span class="progress-label"></span>
+        <span class="progress-value progressbar-value"></span>
+      </div>
+      <div class="ld-progress progress-green lh-6 coreg-progressbar" role="progressbar" aria-label="progressbar" data-progress="0">
+        <div class="progress-bar"></div>
+      </div>
+    </div>
+  </div>
         <img src="${getImageUrl(dropdownCampaign.image)}" alt="${dropdownCampaign.title}" class="coreg-image" />
         <h3 class="coreg-title">Wie is je huidige energieleverancier?</h3>
         <select class="coreg-dropdown" data-campaign="${dropdownCampaign.id}" data-cid="${dropdownCampaign.cid}" data-sid="${dropdownCampaign.sid}">
@@ -185,11 +233,32 @@ async function initCoregFlow() {
   const sections = Array.from(container.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
+  function updateProgressBar(sectionIdx) {
+    const total = sections.length;
+    const current = Math.max(1, Math.min(sectionIdx + 1, total));
+    const percent = Math.round((current / total) * 100);
+    const section = sections[sectionIdx];
+    if (!section) return;
+    const progressBar = section.querySelector('.coreg-progressbar');
+    const progressValue = section.querySelector('.progressbar-value');
+    if (progressBar) {
+      progressBar.setAttribute('data-progress', percent);
+      progressBar.querySelector('.progress-bar').style.width = percent + '%';
+    }
+    if (progressValue) {
+      progressValue.textContent = percent + '%';
+    }
+  }
+
+  // Initieel tonen
+  updateProgressBar(0);
+
   function showNextSection(current) {
     const idx = sections.indexOf(current);
     if (idx > -1 && idx < sections.length - 1) {
       current.style.display = "none";
       sections[idx + 1].style.display = "block";
+      updateProgressBar(idx + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (current.classList.contains("final-coreg")) {
       handleFinalCoreg(current);
