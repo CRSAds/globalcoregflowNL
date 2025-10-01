@@ -1,5 +1,5 @@
 // coregRenderer.js
-// Renderer + flow logica met progressbar in wit kader (blijvend bovenaan)
+// Renderer + flow logica met progressbar in wit kader (blijft zichtbaar bovenaan)
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
 const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
@@ -42,47 +42,46 @@ function renderProgressBar(progress = 0) {
     </div>`;
 }
 
-function renderSingle(campaign, isFinal) {
+// ✅ Campagnes
+function renderSingle(campaign, isFinal, withProgress) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
+        ${withProgress ? renderProgressBar(0) : ""}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
         <div class="coreg-answers">
           ${campaign.coreg_answers
-            .map(
-              ans => `
+            .map(ans => `
               <button class="flow-next btn-answer" data-answer="yes" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
                 Ja, ${ans.label}
               </button>`
-            )
-            .join("")}
+            ).join("")}
           <button class="flow-next btn-skip" data-answer="no" data-campaign="${campaign.id}">Nee, geen interesse</button>
         </div>
       </div>
     </div>`;
 }
 
-function renderDropdown(campaign, isFinal) {
+function renderDropdown(campaign, isFinal, withProgress) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
+        ${withProgress ? renderProgressBar(0) : ""}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
         <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
           <option value="">Maak een keuze...</option>
-          ${campaign.coreg_dropdown_options
-            .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
-            .join("")}
+          ${campaign.coreg_dropdown_options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
         </select>
         <a href="#" class="skip-link" data-answer="no" data-campaign="${campaign.id}">Geen interesse, sla over</a>
       </div>
     </div>`;
 }
 
-function renderMultistep(campaign, isFinal) {
+function renderMultistep(campaign, isFinal, withProgress) {
   let dropdownCampaign = campaign;
   if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
     const found = window.allCampaigns.find(c => c.cid === campaign.cid && c.type === 'dropdown');
@@ -93,6 +92,7 @@ function renderMultistep(campaign, isFinal) {
   return `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
       <div class="coreg-inner">
+        ${withProgress ? renderProgressBar(0) : ""}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -114,19 +114,17 @@ function renderMultistep(campaign, isFinal) {
         <h3 class="coreg-title">Wie is je huidige energieleverancier?</h3>
         <select class="coreg-dropdown" data-campaign="${dropdownCampaign.id}" data-cid="${dropdownCampaign.cid}" data-sid="${dropdownCampaign.sid}">
           <option value="">Kies je huidige leverancier...</option>
-          ${dropdownOptions
-            .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
-            .join("")}
+          ${dropdownOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
         </select>
         <a href="#" class="skip-link" data-answer="no" data-campaign="${dropdownCampaign.id}">Toch geen interesse</a>
       </div>
     </div>`;
 }
 
-function renderCampaign(campaign, isFinal) {
-  if (campaign.hasCoregFlow) return renderMultistep(campaign, isFinal);
-  if (campaign.type === "dropdown") return renderDropdown(campaign, isFinal);
-  return renderSingle(campaign, isFinal);
+function renderCampaign(campaign, isFinal, withProgress = false) {
+  if (campaign.hasCoregFlow) return renderMultistep(campaign, isFinal, withProgress);
+  if (campaign.type === "dropdown") return renderDropdown(campaign, isFinal, withProgress);
+  return renderSingle(campaign, isFinal, withProgress);
 }
 
 // === Lead functies ===
@@ -170,16 +168,8 @@ async function initCoregFlow() {
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
 
-  // ✅ Progressbar in eigen coreg-inner wrapper
-  container.innerHTML = `
-    <div class="coreg-inner coreg-progress">
-      ${renderProgressBar(0)}
-    </div>
-    <div id="coreg-sections"></div>
-  `;
-
-  const sectionsContainer = container.querySelector("#coreg-sections");
-
+  // ✅ campagnes renderen, alleen eerste sectie krijgt progressbar
+  container.innerHTML = "";
   const filteredCampaigns = campaigns.filter(c => {
     if (c.type === "dropdown" && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)) {
       return false;
@@ -188,10 +178,11 @@ async function initCoregFlow() {
   });
   filteredCampaigns.forEach((camp, i) => {
     const isFinal = i === filteredCampaigns.length - 1;
-    sectionsContainer.innerHTML += renderCampaign(camp, isFinal);
+    const withProgress = i === 0;
+    container.innerHTML += renderCampaign(camp, isFinal, withProgress);
   });
 
-  const sections = Array.from(sectionsContainer.querySelectorAll(".coreg-section"));
+  const sections = Array.from(container.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
   function updateProgressBar(sectionIdx) {
@@ -212,7 +203,13 @@ async function initCoregFlow() {
   function showNextSection(current) {
     const idx = sections.indexOf(current);
     if (idx > -1 && idx < sections.length - 1) {
-      current.style.display = "none";
+      if (idx === 0) {
+        // ✅ verberg alleen de content, laat progressbar staan
+        current.querySelectorAll('.coreg-image, .coreg-title, .coreg-description, .coreg-answers')
+          .forEach(el => el.style.display = "none");
+      } else {
+        current.style.display = "none";
+      }
       sections[idx + 1].style.display = "block";
       updateProgressBar(idx + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -237,7 +234,8 @@ async function initCoregFlow() {
         }
       }
     });
-    sectionsContainer.style.display = "none";
+    document.querySelectorAll('.coreg-section').forEach(s => s.style.display = 'none');
+    container.style.display = "none";
     const longForm = document.getElementById("long-form-section");
     if (longForm) {
       if (hasTmPositive) {
