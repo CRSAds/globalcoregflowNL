@@ -39,20 +39,24 @@
   margin-bottom: 12px; /* extra ruimte onder progress bar */
 }
 
-/* === Coreg section === */
+/* === Coreg section + wit kader === */
 .coreg-section {
-  background: #fff;
-  padding: 0;
-  text-align: center;
-  font-family: "Plus Jakarta Sans", sans-serif;
-  margin: 0 auto 24px;
+  background: transparent;     /* geen achtergrondkleur, roze van SwipePages loopt door */
+  width: 100%;
+  margin: 0 auto 24px auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.coreg-inner {
+  background: #fff;            /* wit vlak */
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 28px 24px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  max-width: 700px;
 }
-.coreg-inner {
-  padding: 28px 24px;
-}
+
 .coreg-section h3 {
   font-size: 1.25rem;
   font-weight: 700;
@@ -73,12 +77,17 @@
 }
 
 /* === Buttons === */
+.coreg-answers {
+  display: flex;
+  flex-direction: column;
+}
+
 .btn-answer,
 .btn-skip {
   display: block;
   width: 100%;
   padding: 14px 18px;
-  margin: 8px 0 !important; /* minder witruimte forceren */
+  margin: 6px 0 !important; /* minder witruimte */
   border: none;
   border-radius: 999px;
   font-size: 1rem;
@@ -131,7 +140,7 @@ button[data-answer="no"]:hover,
 .skip-link {
   display: block;
   margin-top: 8px;
-  color: #444 !important; /* donkergrijs ipv blauw */
+  color: #444 !important;
   font-size: 0.95rem;
   text-decoration: none;
 }
