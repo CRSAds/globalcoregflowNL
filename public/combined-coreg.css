@@ -1,6 +1,4 @@
-/* Combined coreg + progress + global styles */
-
-/* === Progress bar base (Style 1, groen) === */
+/* === Progress Bar Style 1 (groen) === */
 :root {
   --ld-primary: #14B670;
   --ld-progress-bg: var(--ld-primary);
@@ -38,15 +36,16 @@
   font-weight: 700;
 }
 
-/* === Coreg section styling === */
+/* === Coreg section === */
 .coreg-section {
   background: #fff;
   padding: 0;
   text-align: center;
   font-family: "Plus Jakarta Sans", sans-serif;
-  margin: 0;
+  margin: 0 auto 24px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  max-width: 700px;
 }
 .coreg-inner {
   padding: 28px 24px;
