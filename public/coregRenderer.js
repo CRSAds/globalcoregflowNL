@@ -197,21 +197,21 @@ async function initCoregFlow() {
   const sections = Array.from(container.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
-  function updateProgressBar(sectionIdx) {
-    const total = sections.length;
-    const current = Math.max(1, Math.min(sectionIdx + 1, total));
-    const percent = Math.round((current / total) * 100);
-    const section = sections[sectionIdx];
-    if (!section) return;
-    const progressBar = section.querySelector('.ld-progress[role="progressbar"]');
-    const progressValue = section.querySelector('.progress-value.text-primary');
-    if (progressBar) {
-      progressBar.setAttribute('data-progress', percent);
-    }
-    if (progressValue) {
-      progressValue.textContent = percent + '%';
-    }
+function updateProgressBar(sectionIdx) {
+  const total = sections.length;
+  const current = Math.max(1, Math.min(sectionIdx + 1, total));
+  const percent = Math.round((current / total) * 100);
+  const section = sections[sectionIdx];
+  if (!section) return;
+  const progressBar = section.querySelector('.ld-progress[role="progressbar"] .progress-bar');
+  const progressValue = section.querySelector('.progress-value.text-primary');
+  if (progressBar) {
+    progressBar.style.width = percent + '%'; // ✅ direct vullen
   }
+  if (progressValue) {
+    progressValue.textContent = percent + '%';
+  }
+}
 
   function showNextSection(current) {
     const idx = sections.indexOf(current);
