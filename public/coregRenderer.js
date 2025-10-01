@@ -1,5 +1,5 @@
 // coregRenderer.js
-// Renderer + flow logica met één centrale progressbar en consistente button-styling
+// Renderer + flow logica met progressbar in het witte kader (alleen boven eerste sectie)
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
 const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
@@ -30,7 +30,7 @@ async function fetchCampaigns() {
   return json.data;
 }
 
-// ✅ Centrale progressbar
+// ✅ Centrale progressbar (wordt maar 1x toegevoegd, bij eerste sectie)
 function renderProgressBar(progress = 0) {
   return `
     <div class="ld-progress-wrap mb-25">
@@ -44,11 +44,12 @@ function renderProgressBar(progress = 0) {
     </div>`;
 }
 
-// ✅ Campagne renders (zonder progressbar!)
-function renderSingle(campaign, isFinal) {
+// ✅ Campagne renders
+function renderSingle(campaign, isFinal, withProgress) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
+        ${withProgress ? renderProgressBar(window.currentProgress || 0) : ""}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -67,10 +68,11 @@ function renderSingle(campaign, isFinal) {
     </div>`;
 }
 
-function renderDropdown(campaign, isFinal) {
+function renderDropdown(campaign, isFinal, withProgress) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
+        ${withProgress ? renderProgressBar(window.currentProgress || 0) : ""}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -85,7 +87,7 @@ function renderDropdown(campaign, isFinal) {
     </div>`;
 }
 
-function renderMultistep(campaign, isFinal) {
+function renderMultistep(campaign, isFinal, withProgress) {
   let dropdownCampaign = campaign;
   if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
     const found = window.allCampaigns.find(c => c.cid === campaign.cid && c.type === 'dropdown');
@@ -96,6 +98,7 @@ function renderMultistep(campaign, isFinal) {
   return `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
       <div class="coreg-inner">
+        ${withProgress ? renderProgressBar(window.currentProgress || 0) : ""}
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
@@ -126,10 +129,10 @@ function renderMultistep(campaign, isFinal) {
     </div>`;
 }
 
-function renderCampaign(campaign, isFinal) {
-  if (campaign.hasCoregFlow) return renderMultistep(campaign, isFinal);
-  if (campaign.type === "dropdown") return renderDropdown(campaign, isFinal);
-  return renderSingle(campaign, isFinal);
+function renderCampaign(campaign, isFinal, withProgress = false) {
+  if (campaign.hasCoregFlow) return renderMultistep(campaign, isFinal, withProgress);
+  if (campaign.type === "dropdown") return renderDropdown(campaign, isFinal, withProgress);
+  return renderSingle(campaign, isFinal, withProgress);
 }
 
 // === Lead functies (ongewijzigd) ===
@@ -173,10 +176,7 @@ async function initCoregFlow() {
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
 
-  // ✅ eerst de centrale progressbar renderen
-  container.innerHTML = renderProgressBar(0);
-
-  // dan de campagnes erachter
+  // ✅ campagnes renderen, alleen eerste sectie krijgt progressbar
   const filteredCampaigns = campaigns.filter(c => {
     if (c.type === "dropdown" && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)) {
       return false;
@@ -185,13 +185,14 @@ async function initCoregFlow() {
   });
   filteredCampaigns.forEach((camp, i) => {
     const isFinal = i === filteredCampaigns.length - 1;
-    container.innerHTML += renderCampaign(camp, isFinal);
+    const withProgress = i === 0;
+    container.innerHTML += renderCampaign(camp, isFinal, withProgress);
   });
 
   const sections = Array.from(container.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
-  // ✅ update één centrale progressbar
+  // ✅ update centrale progressbar
   function updateProgressBar(sectionIdx) {
     const total = sections.length;
     const current = Math.max(1, Math.min(sectionIdx + 1, total));
