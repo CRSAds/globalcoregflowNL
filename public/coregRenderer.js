@@ -34,6 +34,15 @@ function renderSingle(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
+  <div class="ld-progress-wrap mb-25">
+    <div class="ld-progress-info">
+      <span class="progress-label">Je bent er bijna</span>
+      <span class="progress-value text-primary"></span>
+    </div>
+    <div class="ld-progress lh-6" role="progressbar" aria-label="progressbar" data-progress="0">
+      <div class="progress-bar"></div>
+    </div>
+  </div>
   <div class="progressbar-outer">
     <div class="progressbar-label">Je bent er bijna</div>
     <div class="ld-progress-wrap" style="margin-bottom:18px;">
@@ -68,6 +77,15 @@ function renderDropdown(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <div class="coreg-inner">
+  <div class="ld-progress-wrap mb-25">
+    <div class="ld-progress-info">
+      <span class="progress-label">Je bent er bijna</span>
+      <span class="progress-value text-primary"></span>
+    </div>
+    <div class="ld-progress lh-6" role="progressbar" aria-label="progressbar" data-progress="0">
+      <div class="progress-bar"></div>
+    </div>
+  </div>
   <div class="progressbar-outer">
     <div class="progressbar-label">Je bent er bijna</div>
     <div class="ld-progress-wrap" style="margin-bottom:18px;">
@@ -107,6 +125,15 @@ function renderMultistep(campaign, isFinal) {
   return `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
       <div class="coreg-inner">
+  <div class="ld-progress-wrap mb-25">
+    <div class="ld-progress-info">
+      <span class="progress-label">Je bent er bijna</span>
+      <span class="progress-value text-primary"></span>
+    </div>
+    <div class="ld-progress lh-6" role="progressbar" aria-label="progressbar" data-progress="0">
+      <div class="progress-bar"></div>
+    </div>
+  </div>
   <div class="progressbar-outer">
     <div class="progressbar-label">Je bent er bijna</div>
     <div class="ld-progress-wrap" style="margin-bottom:18px;">
@@ -132,6 +159,15 @@ function renderMultistep(campaign, isFinal) {
 
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${dropdownCampaign.id}-step2" style="display:none">
       <div class="coreg-inner">
+  <div class="ld-progress-wrap mb-25">
+    <div class="ld-progress-info">
+      <span class="progress-label">Je bent er bijna</span>
+      <span class="progress-value text-primary"></span>
+    </div>
+    <div class="ld-progress lh-6" role="progressbar" aria-label="progressbar" data-progress="0">
+      <div class="progress-bar"></div>
+    </div>
+  </div>
   <div class="progressbar-outer">
     <div class="progressbar-label">Je bent er bijna</div>
     <div class="ld-progress-wrap" style="margin-bottom:18px;">
@@ -239,11 +275,10 @@ async function initCoregFlow() {
     const percent = Math.round((current / total) * 100);
     const section = sections[sectionIdx];
     if (!section) return;
-    const progressBar = section.querySelector('.coreg-progressbar');
-    const progressValue = section.querySelector('.progressbar-value');
+    const progressBar = section.querySelector('.ld-progress[role="progressbar"]');
+    const progressValue = section.querySelector('.progress-value.text-primary');
     if (progressBar) {
       progressBar.setAttribute('data-progress', percent);
-      progressBar.querySelector('.progress-bar').style.width = percent + '%';
     }
     if (progressValue) {
       progressValue.textContent = percent + '%';
