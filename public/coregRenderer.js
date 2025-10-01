@@ -131,5 +131,4 @@ function renderCampaign(campaign, isFinal) {
   return renderSingle(campaign, isFinal);
 }
 
-// ... rest (sendLead, initCoregFlow, etc.) blijft gelijk
-// Geen dubbele progressbar meer
+// … (rest van de functies zoals sendLead, initCoregFlow blijven identiek)
