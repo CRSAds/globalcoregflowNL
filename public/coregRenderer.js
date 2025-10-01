@@ -205,11 +205,20 @@ function updateProgressBar(sectionIdx) {
   if (!section) return;
   const progressBar = section.querySelector('.ld-progress[role="progressbar"] .progress-bar');
   const progressValue = section.querySelector('.progress-value.text-primary');
+
   if (progressBar) {
-    progressBar.style.width = percent + '%'; // ✅ direct vullen
-  }
-  if (progressValue) {
-    progressValue.textContent = percent + '%';
+    // Animate van huidige breedte naar nieuwe breedte
+    const currentWidth = parseInt(progressBar.style.width) || 0;
+    let width = currentWidth;
+    const interval = setInterval(() => {
+      if (width >= percent) {
+        clearInterval(interval);
+      } else {
+        width++;
+        progressBar.style.width = width + '%';
+        if (progressValue) progressValue.textContent = width + '%';
+      }
+    }, 15);
   }
 }
 
