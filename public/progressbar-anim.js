@@ -1,15 +1,25 @@
 // progressbar-anim.js
 // Animatie voor Style 1 progressbars (groen)
+// ✅ Fix: progressbar loopt nu verder vanaf huidige breedte i.p.v. elke keer vanaf 0
 
 function animateProgressBar(bar) {
   if (!bar) return;
   const progressBar = bar.querySelector('.progress-bar');
-  const progressValue = parseInt(bar.getAttribute('data-progress')) || 0;
+  const targetValue = parseInt(bar.getAttribute('data-progress')) || 0;
   const label = bar.parentElement.querySelector('.progress-value');
 
-  let width = 0;
+  // ✅ Start vanaf huidige breedte
+  let width = parseInt(progressBar.style.width) || 0;
+
+  // Als huidige breedte al gelijk of groter is, direct updaten en klaar
+  if (width >= targetValue) {
+    if (label) label.textContent = targetValue + '%';
+    progressBar.style.width = targetValue + '%';
+    return;
+  }
+
   const interval = setInterval(() => {
-    if (width >= progressValue) {
+    if (width >= targetValue) {
       clearInterval(interval);
     } else {
       width++;
@@ -34,5 +44,5 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// Exporteer naar global zodat coregRenderer ook kan aanroepen
+// ✅ Exporteer naar global zodat coregRenderer ook kan aanroepen
 window.animateProgressBar = animateProgressBar;
