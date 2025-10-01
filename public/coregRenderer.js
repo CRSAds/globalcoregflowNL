@@ -1,5 +1,5 @@
 // coregRenderer.js
-// Renderer + flow logica met één centrale progressbar
+// Renderer + flow logica met één centrale progressbar en consistente button-styling
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
 const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
@@ -99,11 +99,15 @@ function renderMultistep(campaign, isFinal) {
         <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description}</p>
-        <button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2"
-                data-answer="yes" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
-          Ja, graag
-        </button>
-        <button class="flow-next skip-next" data-answer="no" data-campaign="${campaign.id}">Nee, geen interesse</button>
+        <div class="coreg-answers">
+          <button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2"
+                  data-answer="yes" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+            Ja, graag
+          </button>
+          <button class="flow-next skip-next btn-skip" data-answer="no" data-campaign="${campaign.id}">
+            Nee, geen interesse
+          </button>
+        </div>
       </div>
     </div>
 
@@ -131,12 +135,7 @@ function renderCampaign(campaign, isFinal) {
 // === Lead functies (ongewijzigd) ===
 async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
   try {
-    const payload = {
-      cid,
-      sid,
-      answer,
-      ...getShortFormData()
-    };
+    const payload = { cid, sid, answer, ...getShortFormData() };
     if (isTM || storeOnly) {
       let tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
       tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid); 
