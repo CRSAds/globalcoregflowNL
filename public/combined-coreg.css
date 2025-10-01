@@ -1,0 +1,204 @@
+/*
+ * COMBINED COREGBAR CSS
+ * Bevat progress bar, algemene styles, en coreg funnel styling
+ */
+
+/* === progress.css === */
+:root{
+	--ld-primary: #14B670;
+	--ld-progress-bg: var(--ld-primary);
+	--ld-progress-bg-rgb: 20, 182, 112;
+}
+.progress-orange{
+	--ld-progress-bg: #FBAA37;
+	--ld-progress-bg-rgb: 251, 170, 55;
+}
+.progress-red{
+	--ld-progress-bg: #FD4438;
+	--ld-progress-bg-rgb: 253, 68, 56;
+}
+.progress-dark{
+	--ld-progress-bg: #003C43;
+	--ld-progress-bg-rgb: 0, 60, 67;
+}
+.progress-blue{
+	--ld-progress-bg: #0066D6;
+	--ld-progress-bg-rgb: 0, 102, 214;
+}
+.progress-skyblue{
+	--ld-progress-bg: #03ABFE;
+	--ld-progress-bg-rgb: 3, 171, 254;
+}
+.progress-pink{
+	--ld-progress-bg: #9243D2;
+	--ld-progress-bg-rgb: 146, 67, 210;
+}
+.progress-purple{
+	--ld-progress-bg: #4152E5;
+	--ld-progress-bg-rgb: 65, 82, 229;
+}
+.text-primary{
+	color: var(--ld-primary) !important;
+}
+.text-orange{
+	color: #FBAA37 !important;
+}
+.text-red{
+	color: #FD4438 !important;
+}
+.text-dark{
+	color: #003C43 !important;
+}
+.text-blue{
+	color: #0066D6 !important;
+}
+.text-skyblue{
+	color: #03ABFE !important;
+}
+.text-pink{
+	color: #9243D2 !important;
+}
+.text-purple{
+	color: #4152E5 !important;
+}
+.ld-progress{
+	border-radius: 4px;
+	height: 8px;
+	background-color: rgba(var(--ld-progress-bg-rgb), 0.15);
+	position: relative;
+}
+.ld-progress .progress-bar{
+	border-radius: inherit;
+    height: 100%;
+    background-color: var(--ld-progress-bg);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+ 	transition: width 1.5s ease-out;
+	width: 0;
+}
+.progress-label{
+	color: #003C43;
+    display: inline-flex;
+    align-items: center;
+}
+.progress-value{
+	color: #4B7C82;
+    display: inline-flex;
+    align-items: center;
+	font-weight: 700;
+    font-size: 14px;
+}
+.ld-progress-info{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 700;
+	font-size: 14px;
+}
+
+/* === styles.css === */
+:root{
+	--ld-primary: #14B670;
+}
+*, *::before, *::after {
+	box-sizing: border-box;
+}
+body {
+	margin: 0;
+	font-family: "Plus Jakarta Sans", serif;
+	font-size: 15px;
+	font-weight: 400;
+	line-height: 1.5;
+	color: #7F9EA1;
+	background-color: #E7F0E9;
+}
+h6, h5, h4, h3, h2, h1{
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #003C43;
+}
+p {
+	margin-top: 0;
+	margin-bottom: 1rem;
+}
+a {
+	text-decoration: none;
+	color: var(--ld-primary);
+}
+img, svg {
+	vertical-align: middle;
+	max-width: 100%;
+}
+button{
+	border-radius: 0;
+	-webkit-appearance: button;
+	cursor: pointer;
+	font-family: "Plus Jakarta Sans", serif;
+}
+
+/* === public/style.css === */
+.coreg-section {
+  background: #fff;
+  padding: 0;
+  text-align: center;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.coreg-inner {
+  padding: 28px 24px;
+}
+.coreg-section h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #222;
+}
+.coreg-section p {
+  font-size: 0.95rem;
+  margin-bottom: 22px;
+  color: #555;
+  line-height: 1.5;
+}
+.button-group button,
+.coreg-section .flow-next {
+  display: block;
+  width: 100%;
+  padding: 14px 18px;
+  margin: 10px 0;
+  background: #222;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+.button-group button:hover,
+.coreg-section .flow-next:hover {
+  background: #444;
+}
+.coreg-section .flow-next:last-child {
+  background: #eee;
+  color: #333;
+  font-weight: 500;
+}
+.coreg-section .flow-next:last-child:hover {
+  background: #ddd;
+}
+.coreg-section select {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  border-radius: 8px;
+  border: 1.5px solid #ccc;
+}
