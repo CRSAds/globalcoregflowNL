@@ -1,5 +1,6 @@
 // coregRenderer.js
 // Renderer + flow logica met progressbar bovenin het witte kader
+// Inclusief fix: bij TM positief wordt coreg afgesloten via een verborgen flow-next button
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
 const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
@@ -58,6 +59,8 @@ function renderSingle(campaign, isFinal) {
           ).join("")}
         <button class="flow-next btn-skip" data-answer="no" data-campaign="${campaign.id}">Nee, geen interesse</button>
       </div>
+      <!-- Verborgen knop om naar long form te gaan -->
+      <button id="coreg-longform-btn" class="flow-next" style="display:none"></button>
     </div>`;
 }
 
@@ -72,6 +75,8 @@ function renderDropdown(campaign, isFinal) {
         ${campaign.coreg_dropdown_options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
       </select>
       <a href="#" class="skip-link" data-answer="no" data-campaign="${campaign.id}">Geen interesse, sla over</a>
+      <!-- Verborgen knop om naar long form te gaan -->
+      <button id="coreg-longform-btn" class="flow-next" style="display:none"></button>
     </div>`;
 }
 
@@ -97,6 +102,8 @@ function renderMultistep(campaign, isFinal) {
           Nee, geen interesse
         </button>
       </div>
+      <!-- Verborgen knop om naar long form te gaan -->
+      <button id="coreg-longform-btn" class="flow-next" style="display:none"></button>
     </div>
 
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${dropdownCampaign.id}-step2" style="display:none">
@@ -107,6 +114,8 @@ function renderMultistep(campaign, isFinal) {
         ${dropdownOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
       </select>
       <a href="#" class="skip-link" data-answer="no" data-campaign="${dropdownCampaign.id}">Toch geen interesse</a>
+      <!-- Verborgen knop om naar long form te gaan -->
+      <button id="coreg-longform-btn" class="flow-next" style="display:none"></button>
     </div>`;
 }
 
@@ -226,22 +235,13 @@ async function initCoregFlow() {
       }
     });
 
-    // ✅ Hele coreg afsluiten
-    const coregContainer = document.getElementById("coreg-container");
-    if (coregContainer) coregContainer.style.display = "none";
-
-    const longForm = document.getElementById("long-form-section");
-    const finishBtn = document.getElementById("coreg-finish-btn");
-
     if (hasTmPositive) {
-      // Toon long form
-      if (longForm) {
-        longForm.style.display = "block";
-        longForm.scrollIntoView({ behavior: "smooth", block: "start" });
-        window.dispatchEvent(new Event("resize"));
-      }
+      // ✅ Laat Swipepages zelf naar long form springen via verborgen button
+      const longFormBtn = document.getElementById("coreg-longform-btn");
+      if (longFormBtn) longFormBtn.click();
     } else {
-      // Geen long form → klik finish
+      // ✅ Geen long form → trigger de standaard finish
+      const finishBtn = document.getElementById("coreg-finish-btn");
       if (finishBtn) finishBtn.click();
     }
   }
