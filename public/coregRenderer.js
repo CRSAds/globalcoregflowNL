@@ -208,35 +208,40 @@ async function initCoregFlow() {
     }
   }
 
-  function handleFinalCoreg(current) {
-    current.style.display = "none";
-    let hasTmPositive = false;
-    window.allCampaigns.forEach(camp => {
-      if (camp.requiresLongForm) {
-        if (camp.hasCoregFlow) {
-          const step1 = sessionStorage.getItem(`coreg_answer_${camp.id}`);
-          const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && c.type === 'dropdown');
-          const step2 = dropdownCamp ? sessionStorage.getItem(`coreg_answer_${dropdownCamp.id}`) : null;
-          if (step1 === "yes" && step2 === "yes") hasTmPositive = true;
-        } else {
-          const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
-          if (answer === "yes") hasTmPositive = true;
-        }
-      }
-    });
-    sectionsContainer.style.display = "none";
-    const longForm = document.getElementById("long-form-section");
-    if (longForm) {
-      if (hasTmPositive) {
-        longForm.style.display = "block";
-        window.dispatchEvent(new Event('resize'));
+function handleFinalCoreg(current) {
+  current.style.display = "none";
+  let hasTmPositive = false;
+
+  window.allCampaigns.forEach(camp => {
+    if (camp.requiresLongForm) {
+      if (camp.hasCoregFlow) {
+        const step1 = sessionStorage.getItem(`coreg_answer_${camp.id}`);
+        const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && c.type === 'dropdown');
+        const step2 = dropdownCamp ? sessionStorage.getItem(`coreg_answer_${dropdownCamp.id}`) : null;
+        if (step1 === "yes" && step2 === "yes") hasTmPositive = true;
       } else {
-        longForm.style.display = "none";
-        const finishBtn = document.getElementById("coreg-finish-btn");
-        if (finishBtn) finishBtn.click();
+        const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
+        if (answer === "yes") hasTmPositive = true;
       }
     }
+  });
+
+  // ✅ Verberg ALLES (inclusief progressbar)
+  const coregContainer = document.getElementById("coreg-container");
+  if (coregContainer) coregContainer.style.display = "none";
+
+  const longForm = document.getElementById("long-form-section");
+  if (longForm) {
+    if (hasTmPositive) {
+      longForm.style.display = "block";
+      window.dispatchEvent(new Event('resize'));
+    } else {
+      longForm.style.display = "none";
+      const finishBtn = document.getElementById("coreg-finish-btn");
+      if (finishBtn) finishBtn.click();
+    }
   }
+}
 
   // Event listeners
   sections.forEach(section => {
