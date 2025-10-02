@@ -209,9 +209,10 @@ async function initCoregFlow() {
   }
 
 function handleFinalCoreg(current) {
-  current.style.display = "none";
-  let hasTmPositive = false;
+  // Sluit altijd de huidige sectie
+  if (current) current.style.display = "none";
 
+  let hasTmPositive = false;
   window.allCampaigns.forEach(camp => {
     if (camp.requiresLongForm) {
       if (camp.hasCoregFlow) {
@@ -226,15 +227,18 @@ function handleFinalCoreg(current) {
     }
   });
 
-  // ✅ Verberg ALLES (inclusief progressbar)
+  // ✅ Hele coreg sectie afsluiten
   const coregContainer = document.getElementById("coreg-container");
-  if (coregContainer) coregContainer.style.display = "none";
+  if (coregContainer) {
+    coregContainer.style.display = "none";
+  }
 
+  // ✅ Toon long form of finish
   const longForm = document.getElementById("long-form-section");
   if (longForm) {
     if (hasTmPositive) {
       longForm.style.display = "block";
-      window.dispatchEvent(new Event('resize'));
+      window.dispatchEvent(new Event("resize"));
     } else {
       longForm.style.display = "none";
       const finishBtn = document.getElementById("coreg-finish-btn");
