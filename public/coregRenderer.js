@@ -1,5 +1,7 @@
 // coregRenderer.js
 // Renderer + flow logica met progressbar bovenin het witte kader
+// Final fix: bij TM-positief/negatief klikken we de bestaande SwipePages flow-next knoppen,
+// zodat de huidige sectie sluit en de juiste volgende sectie opent.
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
 const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
@@ -28,7 +30,9 @@ async function fetchCampaigns() {
   return json.data;
 }
 
-// ✅ Progressbar
+// =======================================
+// Progressbar (style 1 — groen)
+// =======================================
 function renderProgressBar(progress = 0) {
   return `
     <div class="ld-progress-wrap mb-25">
@@ -42,7 +46,9 @@ function renderProgressBar(progress = 0) {
     </div>`;
 }
 
-// ✅ Campagne renders
+// =======================================
+// Campaign renders
+// =======================================
 function renderSingle(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
@@ -52,11 +58,19 @@ function renderSingle(campaign, isFinal) {
       <div class="coreg-answers">
         ${campaign.coreg_answers
           .map(ans => `
-            <button class="flow-next btn-answer" data-answer="yes" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+            <button class="flow-next btn-answer"
+                    data-answer="yes"
+                    data-campaign="${campaign.id}"
+                    data-cid="${campaign.cid}"
+                    data-sid="${campaign.sid}">
               Ja, ${ans.label}
             </button>`
           ).join("")}
-        <button class="flow-next btn-skip" data-answer="no" data-campaign="${campaign.id}">Nee, geen interesse</button>
+        <button class="flow-next btn-skip"
+                data-answer="no"
+                data-campaign="${campaign.id}">
+          Nee, geen interesse
+        </button>
       </div>
     </div>`;
 }
@@ -67,7 +81,10 @@ function renderDropdown(campaign, isFinal) {
       <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
       <h3 class="coreg-title">${campaign.title}</h3>
       <p class="coreg-description">${campaign.description}</p>
-      <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+      <select class="coreg-dropdown"
+              data-campaign="${campaign.id}"
+              data-cid="${campaign.cid}"
+              data-sid="${campaign.sid}">
         <option value="">Maak een keuze...</option>
         ${campaign.coreg_dropdown_options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
       </select>
@@ -78,7 +95,7 @@ function renderDropdown(campaign, isFinal) {
 function renderMultistep(campaign, isFinal) {
   let dropdownCampaign = campaign;
   if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
-    const found = window.allCampaigns.find(c => c.cid === campaign.cid && c.type === 'dropdown');
+    const found = window.allCampaigns.find(c => c.cid === campaign.cid && c.type === "dropdown");
     if (found) dropdownCampaign = found;
   }
   const dropdownOptions = dropdownCampaign.coreg_dropdown_options || [];
@@ -90,19 +107,29 @@ function renderMultistep(campaign, isFinal) {
       <p class="coreg-description">${campaign.description}</p>
       <div class="coreg-answers">
         <button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2"
-                data-answer="yes" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+                data-answer="yes"
+                data-campaign="${campaign.id}"
+                data-cid="${campaign.cid}"
+                data-sid="${campaign.sid}">
           Ja, graag
         </button>
-        <button class="flow-next skip-next btn-skip" data-answer="no" data-campaign="${campaign.id}">
+        <button class="flow-next skip-next btn-skip"
+                data-answer="no"
+                data-campaign="${campaign.id}">
           Nee, geen interesse
         </button>
       </div>
     </div>
 
-    <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${dropdownCampaign.id}-step2" style="display:none">
+    <div class="coreg-section ${isFinal ? "final-coreg" : ""}"
+         id="campaign-${dropdownCampaign.id}-step2"
+         style="display:none">
       <img src="${getImageUrl(dropdownCampaign.image)}" alt="${dropdownCampaign.title}" class="coreg-image" />
       <h3 class="coreg-title">Wie is je huidige energieleverancier?</h3>
-      <select class="coreg-dropdown" data-campaign="${dropdownCampaign.id}" data-cid="${dropdownCampaign.cid}" data-sid="${dropdownCampaign.sid}">
+      <select class="coreg-dropdown"
+              data-campaign="${dropdownCampaign.id}"
+              data-cid="${dropdownCampaign.cid}"
+              data-sid="${dropdownCampaign.sid}">
         <option value="">Kies je huidige leverancier...</option>
         ${dropdownOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
       </select>
@@ -116,21 +143,23 @@ function renderCampaign(campaign, isFinal) {
   return renderSingle(campaign, isFinal);
 }
 
-// === Lead functies ===
+// =======================================
+// Lead functies
+// =======================================
 async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
   try {
     const payload = { cid, sid, answer, ...getShortFormData() };
     if (isTM || storeOnly) {
-      let tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
+      let tmLeads = JSON.parse(sessionStorage.getItem("pendingTMLeads") || "[]");
       tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid);
       tmLeads.push(payload);
-      sessionStorage.setItem('pendingTMLeads', JSON.stringify(tmLeads));
+      sessionStorage.setItem("pendingTMLeads", JSON.stringify(tmLeads));
       return;
     }
     await fetch(API_LEAD, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
   } catch (err) {
     console.error("Lead versturen mislukt:", err);
@@ -138,18 +167,20 @@ async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
 }
 
 async function sendAllTMLeads() {
-  const tmLeads = JSON.parse(sessionStorage.getItem('pendingTMLeads') || '[]');
+  const tmLeads = JSON.parse(sessionStorage.getItem("pendingTMLeads") || "[]");
   for (const lead of tmLeads) {
     await fetch(API_LEAD, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(lead),
+      body: JSON.stringify(lead)
     });
   }
-  sessionStorage.removeItem('pendingTMLeads');
+  sessionStorage.removeItem("pendingTMLeads");
 }
 
-// === Init flow ===
+// =======================================
+// Init flow
+// =======================================
 async function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
@@ -157,24 +188,24 @@ async function initCoregFlow() {
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
 
-  // ✅ Eén wit kader met progressbar bovenin
+  // Eén wit kader met progressbar bovenin
   container.innerHTML = `
     <div class="coreg-inner">
       ${renderProgressBar(0)}
       <div id="coreg-sections"></div>
-      <!-- ✅ Verborgen knop voor longform -->
-      <button class="flow-next coreg-longform-btn" style="display:none"></button>
     </div>
   `;
 
   const sectionsContainer = container.querySelector("#coreg-sections");
 
+  // dropdown die onderdeel is van een multistep niet dubbel tonen
   const filteredCampaigns = campaigns.filter(c => {
     if (c.type === "dropdown" && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)) {
       return false;
     }
     return true;
   });
+
   filteredCampaigns.forEach((camp, i) => {
     const isFinal = i === filteredCampaigns.length - 1;
     sectionsContainer.innerHTML += renderCampaign(camp, isFinal);
@@ -189,13 +220,13 @@ async function initCoregFlow() {
     const percent = Math.round((current / total) * 100);
     window.currentProgress = percent;
 
-    const progressWrap = container.querySelector('.ld-progress[role="progressbar"]');
+    const progressWrap  = container.querySelector('.ld-progress[role="progressbar"]');
     const progressValue = container.querySelector('.progress-value.text-primary');
     if (progressWrap && window.animateProgressBar) {
-      progressWrap.setAttribute('data-progress', percent);
+      progressWrap.setAttribute("data-progress", String(percent));
       window.animateProgressBar(progressWrap);
     }
-    if (progressValue) progressValue.textContent = percent + '%';
+    if (progressValue) progressValue.textContent = percent + "%";
   }
 
   function showNextSection(current) {
@@ -210,16 +241,23 @@ async function initCoregFlow() {
     }
   }
 
+  // ---- Finaliseer coreg & navigeer via SwipePages knoppen
   function handleFinalCoreg(current) {
+    if (window.__coregFinalised) return; // safeguard tegen dubbele triggers
+    window.__coregFinalised = true;
+
+    // verberg alleen deze interne sectie; sectieswitch doet SwipePages zelf
     if (current) current.style.display = "none";
 
+    // bepaal of er TM-positieve interesse is
     let hasTmPositive = false;
     window.allCampaigns.forEach(camp => {
       if (camp.requiresLongForm) {
         if (camp.hasCoregFlow) {
           const step1 = sessionStorage.getItem(`coreg_answer_${camp.id}`);
-          const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && c.type === 'dropdown');
+          const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && c.type === "dropdown");
           const step2 = dropdownCamp ? sessionStorage.getItem(`coreg_answer_${dropdownCamp.id}`) : null;
+          // bij multistep: step1 = yes én step2 is yes of een waarde ≠ "no"
           if (step1 === "yes" && step2 && step2 !== "no") hasTmPositive = true;
         } else {
           const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
@@ -229,22 +267,35 @@ async function initCoregFlow() {
     });
 
     if (hasTmPositive) {
-      // ✅ Klik de verborgen knop → SwipePages opent long form
-      const longFormBtn = document.querySelector(".coreg-longform-btn");
-      if (longFormBtn) longFormBtn.click();
+      // Klik de door jou geplaatste globale hidden knop voor long form
+      const longFormBtn =
+        document.getElementById("coreg-longform-btn") ||
+        document.querySelector(".coreg-longform-btn.flow-next");
+      if (longFormBtn) {
+        longFormBtn.click();
+      } else {
+        console.warn("[coreg] coreg-longform-btn niet gevonden – controleer ID/class in SwipePages.");
+      }
     } else {
-      // ✅ Klik de hidden finish button → flow naar bedanktpagina
-      const finishBtn = document.getElementById("coreg-finish-btn");
-      if (finishBtn) finishBtn.click();
+      // Geen long form → klik de verborgen finish-knop
+      const finishBtn =
+        document.getElementById("coreg-finish-btn") ||
+        document.querySelector(".final-coreg.flow-next");
+      if (finishBtn) {
+        finishBtn.click();
+      } else {
+        console.warn("[coreg] coreg-finish-btn niet gevonden – controleer ID/class in SwipePages.");
+      }
     }
   }
 
-  // Event listeners
+  // Listeners (dropdown/skip/call-to-action)
   sections.forEach(section => {
     const dropdown = section.querySelector(".coreg-dropdown");
     if (dropdown) {
       dropdown.addEventListener("change", () => {
         if (dropdown.value !== "") {
+          // we slaan "yes" op zodat multistep-detectie consistent is
           sessionStorage.setItem(`coreg_answer_${dropdown.dataset.campaign}`, "yes");
           const camp = window.allCampaigns.find(c => c.id == dropdown.dataset.campaign);
           if (camp && camp.requiresLongForm) {
@@ -269,18 +320,22 @@ async function initCoregFlow() {
     section.querySelectorAll(".flow-next").forEach(btn => {
       btn.addEventListener("click", () => {
         const campId = btn.dataset.campaign;
-        const cid = btn.dataset.cid;
-        const sid = btn.dataset.sid;
+        const cid    = btn.dataset.cid;
+        const sid    = btn.dataset.sid;
         const answer = btn.dataset.answer;
-        sessionStorage.setItem(`coreg_answer_${campId}`, answer);
-        if (answer === "yes") {
-          const camp = window.allCampaigns.find(c => c.id == campId);
-          if (camp && camp.requiresLongForm) {
-            sendLead(cid, sid, answer, true);
-          } else {
-            sendLead(cid, sid, answer, false);
+
+        if (campId) {
+          sessionStorage.setItem(`coreg_answer_${campId}`, answer);
+          if (answer === "yes") {
+            const camp = window.allCampaigns.find(c => c.id == campId);
+            if (camp && camp.requiresLongForm) {
+              sendLead(cid, sid, answer, true);
+            } else {
+              sendLead(cid, sid, answer, false);
+            }
           }
         }
+
         if (btn.classList.contains("sponsor-next")) {
           const nextStep = section.nextElementSibling;
           section.style.display = "none";
