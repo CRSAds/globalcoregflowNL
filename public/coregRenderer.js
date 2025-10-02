@@ -208,44 +208,43 @@ async function initCoregFlow() {
     }
   }
 
-function handleFinalCoreg(current) {
-  // Sluit altijd de huidige sectie
-  if (current) current.style.display = "none";
+  function handleFinalCoreg(current) {
+    if (current) current.style.display = "none";
 
-  let hasTmPositive = false;
-  window.allCampaigns.forEach(camp => {
-    if (camp.requiresLongForm) {
-      if (camp.hasCoregFlow) {
-        const step1 = sessionStorage.getItem(`coreg_answer_${camp.id}`);
-        const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && c.type === 'dropdown');
-        const step2 = dropdownCamp ? sessionStorage.getItem(`coreg_answer_${dropdownCamp.id}`) : null;
-        if (step1 === "yes" && step2 === "yes") hasTmPositive = true;
-      } else {
-        const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
-        if (answer === "yes") hasTmPositive = true;
+    let hasTmPositive = false;
+    window.allCampaigns.forEach(camp => {
+      if (camp.requiresLongForm) {
+        if (camp.hasCoregFlow) {
+          const step1 = sessionStorage.getItem(`coreg_answer_${camp.id}`);
+          const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && c.type === 'dropdown');
+          const step2 = dropdownCamp ? sessionStorage.getItem(`coreg_answer_${dropdownCamp.id}`) : null;
+          if (step1 === "yes" && step2 && step2 !== "no") hasTmPositive = true;
+        } else {
+          const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
+          if (answer === "yes") hasTmPositive = true;
+        }
       }
-    }
-  });
+    });
 
-  // ✅ Hele coreg sectie afsluiten
-  const coregContainer = document.getElementById("coreg-container");
-  if (coregContainer) {
-    coregContainer.style.display = "none";
-  }
+    // ✅ Hele coreg afsluiten
+    const coregContainer = document.getElementById("coreg-container");
+    if (coregContainer) coregContainer.style.display = "none";
 
-  // ✅ Toon long form of finish
-  const longForm = document.getElementById("long-form-section");
-  if (longForm) {
+    const longForm = document.getElementById("long-form-section");
+    const finishBtn = document.getElementById("coreg-finish-btn");
+
     if (hasTmPositive) {
-      longForm.style.display = "block";
-      window.dispatchEvent(new Event("resize"));
+      // Toon long form
+      if (longForm) {
+        longForm.style.display = "block";
+        longForm.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.dispatchEvent(new Event("resize"));
+      }
     } else {
-      longForm.style.display = "none";
-      const finishBtn = document.getElementById("coreg-finish-btn");
+      // Geen long form → klik finish
       if (finishBtn) finishBtn.click();
     }
   }
-}
 
   // Event listeners
   sections.forEach(section => {
