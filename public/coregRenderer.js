@@ -237,7 +237,7 @@ async function initCoregFlow() {
 
     if (hasTmPositive) {
       // ✅ Laat Swipepages zelf naar long form springen via verborgen button
-      const longFormBtn = document.getElementById("coreg-longform-btn");
+      const longFormBtn = current.querySelector(".coreg-longform-btn");
       if (longFormBtn) longFormBtn.click();
     } else {
       // ✅ Geen long form → trigger de standaard finish
