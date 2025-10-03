@@ -56,21 +56,21 @@ function renderSingle(campaign, isFinal) {
       <h3 class="coreg-title">${campaign.title}</h3>
       <p class="coreg-description">${campaign.description}</p>
       <div class="coreg-answers">
-        ${campaign.coreg_answers
-          .map(ans => `
-            <button class="flow-next btn-answer"
-                    data-answer="yes"
-                    data-campaign="${campaign.id}"
-                    data-cid="${campaign.cid}"
-                    data-sid="${campaign.sid}">
-              Ja, ${ans.label}
-            </button>`
-          ).join("")}
-        <button class="flow-next btn-skip"
-                data-answer="no"
-                data-campaign="${campaign.id}">
-          Nee, geen interesse
-        </button>
+${campaign.coreg_answers
+  .map(ans => `
+    <button class="flow-next btn-answer"
+            data-answer="yes"
+            data-campaign="${campaign.id}"
+            data-cid="${campaign.cid}"
+            data-sid="${campaign.sid}">
+      ${ans.label}
+    </button>`
+  ).join("")}
+<button class="flow-next btn-skip"
+        data-answer="no"
+        data-campaign="${campaign.id}">
+  Nee, geen interesse
+</button>
       </div>
     </div>`;
 }
