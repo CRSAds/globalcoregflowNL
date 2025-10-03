@@ -65,7 +65,16 @@ async function fetchLead(payload) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    const result = await response.json();
+
+    let result = {};
+    try {
+      const text = await response.text();
+      result = text ? JSON.parse(text) : {};
+    } catch (parseErr) {
+      console.warn("⚠️ Geen geldige JSON in response:", parseErr);
+      result = {};
+    }
+
     console.log("✅ API antwoord:", result);
     window.submittedCampaigns.add(key);
     return result;
