@@ -3,8 +3,6 @@
 // Bij TM-positief/negatief klikken we de bestaande SwipePages flow-next knoppen,
 // zodat de huidige sectie sluit en de juiste volgende sectie opent.
 
-import { buildPayload, fetchLead } from "./formSubmit.js";
-
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
 
 function getImageUrl(image) {
