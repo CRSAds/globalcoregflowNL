@@ -82,13 +82,17 @@ function renderDropdown(campaign, isFinal) {
 
 function renderMultistep(campaign, isFinal) {
   let dropdownCampaign = campaign;
+
+  // Pak stap 2 campaign uit Directus (zelfde cid, step=2)
   if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
-    const found = window.allCampaigns.find(c => c.cid === campaign.cid && c.type === "dropdown");
+    const found = window.allCampaigns.find(c => c.cid === campaign.cid && c.step === 2);
     if (found) dropdownCampaign = found;
   }
-  const dropdownOptions = dropdownCampaign.coreg_dropdown_options || [];
 
-  return `
+  const dropdownOptions = (dropdownCampaign.coreg_answers || []);
+
+  // Stap 1 = altijd buttons
+  const step1 = `
     <div class="coreg-section" id="campaign-${campaign.id}-step1">
       <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
       <h3 class="coreg-title">${campaign.title}</h3>
@@ -107,22 +111,48 @@ function renderMultistep(campaign, isFinal) {
           Nee, geen interesse
         </button>
       </div>
-    </div>
-
-    <div class="coreg-section ${isFinal ? "final-coreg" : ""}"
-         id="campaign-${dropdownCampaign.id}-step2"
-         style="display:none">
-      <img src="${getImageUrl(dropdownCampaign.image)}" alt="${dropdownCampaign.title}" class="coreg-image" />
-      <h3 class="coreg-title">Wie is je huidige energieleverancier?</h3>
-      <select class="coreg-dropdown"
-              data-campaign="${dropdownCampaign.id}"
-              data-cid="${dropdownCampaign.cid}"
-              data-sid="${dropdownCampaign.sid}">
-        <option value="">Kies je huidige leverancier...</option>
-        ${dropdownOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
-      </select>
-      <a href="#" class="skip-link" data-answer="no" data-campaign="${dropdownCampaign.id}">Toch geen interesse</a>
     </div>`;
+
+  // Stap 2 = afhankelijk van ui_style dropdownCampaign
+  let step2Content = "";
+  if (dropdownCampaign.ui_style === "dropdown") {
+    step2Content = `
+      <div class="coreg-section ${isFinal ? "final-coreg" : ""}"
+           id="campaign-${dropdownCampaign.id}-step2"
+           style="display:none">
+        <img src="${getImageUrl(dropdownCampaign.image)}" alt="${dropdownCampaign.title}" class="coreg-image" />
+        <h3 class="coreg-title">${dropdownCampaign.title}</h3>
+        <select class="coreg-dropdown"
+                data-campaign="${dropdownCampaign.id}"
+                data-cid="${dropdownCampaign.cid}"
+                data-sid="${dropdownCampaign.sid}">
+          <option value="">Maak een keuze...</option>
+          ${dropdownOptions.map(opt => `<option value="${opt.answer_value}">${opt.label}</option>`).join("")}
+        </select>
+        <a href="#" class="skip-link" data-answer="no" data-campaign="${dropdownCampaign.id}">Toch geen interesse</a>
+      </div>`;
+  } else {
+    step2Content = `
+      <div class="coreg-section ${isFinal ? "final-coreg" : ""}"
+           id="campaign-${dropdownCampaign.id}-step2"
+           style="display:none">
+        <img src="${getImageUrl(dropdownCampaign.image)}" alt="${dropdownCampaign.title}" class="coreg-image" />
+        <h3 class="coreg-title">${dropdownCampaign.title}</h3>
+        <div class="coreg-answers">
+          ${dropdownOptions.map(opt => `
+            <button class="flow-next"
+                    data-answer="${opt.answer_value}"
+                    data-campaign="${dropdownCampaign.id}"
+                    data-cid="${opt.has_own_campaign ? opt.cid : dropdownCampaign.cid}"
+                    data-sid="${opt.has_own_campaign ? opt.sid : dropdownCampaign.sid}">
+              ${opt.label}
+            </button>
+          `).join("")}
+        </div>
+      </div>`;
+  }
+
+  return step1 + step2Content;
 }
 
 function renderCampaign(campaign, isFinal) {
