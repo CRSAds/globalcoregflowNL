@@ -126,8 +126,15 @@ function renderMultistep(campaign, isFinal) {
 }
 
 function renderCampaign(campaign, isFinal) {
+  // Multistep blijft zoals het was
   if (campaign.hasCoregFlow) return renderMultistep(campaign, isFinal);
-  if (campaign.type === "dropdown") return renderDropdown(campaign, isFinal);
+
+  // Check ui_style
+  if (campaign.ui_style === "dropdown") {
+    return renderDropdown(campaign, isFinal);
+  }
+
+  // Default = buttons
   return renderSingle(campaign, isFinal);
 }
 
