@@ -144,38 +144,56 @@ function renderCampaign(campaign, isFinal) {
 }
 
 // =======================================
-// Lead functies
+// Lead functies met console logging
 // =======================================
 async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
   try {
     const payload = { cid, sid, answer, ...getShortFormData() };
+    console.log("[coreg] sendLead()", { cid, sid, answer, isTM, storeOnly, payload });
+
     if (isTM || storeOnly) {
       let tmLeads = JSON.parse(sessionStorage.getItem("pendingTMLeads") || "[]");
       tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid);
       tmLeads.push(payload);
       sessionStorage.setItem("pendingTMLeads", JSON.stringify(tmLeads));
+      console.log("[coreg] TM lead opgeslagen in pendingTMLeads:", tmLeads);
       return;
     }
-    await fetch(API_LEAD, {
+
+    const res = await fetch(API_LEAD, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
+
+    const result = await res.json();
+    console.log("[coreg] EM lead direct verstuurd:", { payload, result });
+
   } catch (err) {
-    console.error("Lead versturen mislukt:", err);
+    console.error("[coreg] Fout bij sendLead:", err);
   }
 }
 
 async function sendAllTMLeads() {
   const tmLeads = JSON.parse(sessionStorage.getItem("pendingTMLeads") || "[]");
+  console.log("[coreg] sendAllTMLeads gestart. Leads gevonden:", tmLeads);
+
   for (const lead of tmLeads) {
-    await fetch(API_LEAD, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(lead)
-    });
+    try {
+      const res = await fetch(API_LEAD, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(lead)
+      });
+      const result = await res.json();
+      console.log("[coreg] TM lead verstuurd:", { lead, result });
+    } catch (err) {
+      console.error("[coreg] Fout bij versturen TM lead:", err);
+    }
   }
+
   sessionStorage.removeItem("pendingTMLeads");
+  console.log("[coreg] pendingTMLeads geleegd");
 }
 
 // =======================================
@@ -257,7 +275,6 @@ async function initCoregFlow() {
           const step1 = sessionStorage.getItem(`coreg_answer_${camp.id}`);
           const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && c.type === "dropdown");
           const step2 = dropdownCamp ? sessionStorage.getItem(`coreg_answer_${dropdownCamp.id}`) : null;
-          // bij multistep: step1 = yes én step2 is yes of een waarde ≠ "no"
           if (step1 === "yes" && step2 && step2 !== "no") hasTmPositive = true;
         } else {
           const answer = sessionStorage.getItem(`coreg_answer_${camp.id}`);
@@ -267,21 +284,21 @@ async function initCoregFlow() {
     });
 
     if (hasTmPositive) {
-      // Klik de door jou geplaatste globale hidden knop voor long form
       const longFormBtn =
         document.getElementById("coreg-longform-btn") ||
         document.querySelector(".coreg-longform-btn.flow-next");
       if (longFormBtn) {
+        console.log("[coreg] TM positief → klik longform knop");
         longFormBtn.click();
       } else {
         console.warn("[coreg] coreg-longform-btn niet gevonden – controleer ID/class in SwipePages.");
       }
     } else {
-      // Geen long form → klik de verborgen finish-knop
       const finishBtn =
         document.getElementById("coreg-finish-btn") ||
         document.querySelector(".final-coreg.flow-next");
       if (finishBtn) {
+        console.log("[coreg] Geen TM positief → klik finish knop");
         finishBtn.click();
       } else {
         console.warn("[coreg] coreg-finish-btn niet gevonden – controleer ID/class in SwipePages.");
@@ -295,7 +312,6 @@ async function initCoregFlow() {
     if (dropdown) {
       dropdown.addEventListener("change", () => {
         if (dropdown.value !== "") {
-          // we slaan "yes" op zodat multistep-detectie consistent is
           sessionStorage.setItem(`coreg_answer_${dropdown.dataset.campaign}`, "yes");
           const camp = window.allCampaigns.find(c => c.id == dropdown.dataset.campaign);
           if (camp && camp.requiresLongForm) {
