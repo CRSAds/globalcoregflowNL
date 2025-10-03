@@ -334,20 +334,29 @@ async function initCoregFlow() {
   // Listeners
   sections.forEach(section => {
     const dropdown = section.querySelector(".coreg-dropdown");
-    if (dropdown) {
-      dropdown.addEventListener("change", () => {
-        if (dropdown.value !== "") {
-          sessionStorage.setItem(`coreg_answer_${dropdown.dataset.campaign}`, "yes");
-          const camp = window.allCampaigns.find(c => c.id == dropdown.dataset.campaign);
-          if (camp && camp.requiresLongForm) {
-            sendLead(dropdown.dataset.cid, dropdown.dataset.sid, dropdown.value, true);
-          } else {
-            sendLead(dropdown.dataset.cid, dropdown.dataset.sid, dropdown.value, false);
-          }
-          showNextSection(section);
-        }
-      });
-    }
+if (dropdown) {
+  dropdown.addEventListener("change", () => {
+    const opt = dropdown.options[dropdown.selectedIndex];
+    if (!opt || !opt.value) return;
+
+    const selCid = opt.getAttribute("data-cid") || dropdown.dataset.cid;
+    const selSid = opt.getAttribute("data-sid") || dropdown.dataset.sid;
+
+    const key = `coreg_answer_${dropdown.dataset.campaign}`;
+    const prev = sessionStorage.getItem(key);
+    const combined = prev && prev.toLowerCase() === "yes"
+      ? `${prev} - ${opt.value}`
+      : opt.value;
+
+    sessionStorage.setItem(key, combined);
+
+    const camp = window.allCampaigns.find(c => c.id == dropdown.dataset.campaign);
+    const isTM = !!(camp && camp.requiresLongForm);
+
+    sendLead(selCid, selSid, combined, isTM);
+    showNextSection(section);
+  });
+}
 
     const skipLink = section.querySelector(".skip-link");
     if (skipLink) {
