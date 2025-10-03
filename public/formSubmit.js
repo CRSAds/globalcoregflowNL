@@ -1,5 +1,4 @@
 // formSubmit.js
-import sponsorCampaigns from "./sponsorCampaigns.js";
 
 window.submittedCampaigns = window.submittedCampaigns || new Set();
 
@@ -21,6 +20,7 @@ export function buildPayload(campaign) {
 
   const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
 
+  // Geboortedatum ISO
   const dob_day = sessionStorage.getItem("dob_day");
   const dob_month = sessionStorage.getItem("dob_month");
   const dob_year = sessionStorage.getItem("dob_year");
@@ -36,9 +36,6 @@ export function buildPayload(campaign) {
     firstname: sessionStorage.getItem("firstname"),
     lastname: sessionStorage.getItem("lastname"),
     email: sessionStorage.getItem("email"),
-    dob_day,
-    dob_month,
-    dob_year,
     f_5_dob: dob_iso,
     postcode: sessionStorage.getItem("postcode") || "",
     straat: sessionStorage.getItem("straat") || "",
