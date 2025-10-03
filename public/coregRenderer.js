@@ -134,25 +134,28 @@ function renderCampaign(campaign, isFinal) {
 // =======================================
 // Lead functies met console logging
 // =======================================
+
 async function sendLead(cid, sid, answer, isTM = false) {
   try {
-    const payload = buildPayload({ cid, sid });
+    // sla antwoord op voor coregAnswerKey
+    if (answer) {
+      sessionStorage.setItem(`coreg_answer_${cid}_${sid}`, answer);
+    }
+
+    const payload = window.buildPayload({ cid, sid });
     console.log("[coreg] sendLead()", { cid, sid, answer, isTM, payload });
 
     if (isTM) {
-      // TM-leads tijdelijk opslaan tot long form ingevuld is
       let tmLeads = JSON.parse(sessionStorage.getItem("pendingTMLeads") || "[]");
-      tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid); // dubbele eruit
+      tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid);
       tmLeads.push(payload);
       sessionStorage.setItem("pendingTMLeads", JSON.stringify(tmLeads));
       console.log("[coreg] TM lead opgeslagen in pendingTMLeads:", tmLeads);
       return;
     }
 
-    // EM-lead direct versturen
-    const result = await fetchLead(payload);
+    const result = await window.fetchLead(payload);
     console.log("[coreg] EM lead direct verstuurd:", { payload, result });
-
   } catch (err) {
     console.error("[coreg] Fout bij sendLead:", err);
   }
@@ -164,7 +167,7 @@ async function sendAllTMLeads() {
 
   for (const lead of tmLeads) {
     try {
-      const result = await fetchLead(lead);
+      const result = await window.fetchLead(lead);
       console.log("[coreg] TM lead verstuurd:", { lead, result });
     } catch (err) {
       console.error("[coreg] Fout bij versturen TM lead:", err);
