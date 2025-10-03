@@ -64,17 +64,24 @@ ${campaign.coreg_answers
 }
 
 function renderDropdown(campaign, isFinal) {
+  const answers = campaign.coreg_answers || [];
+
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
       <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
       <h3 class="coreg-title">${campaign.title}</h3>
-      <p class="coreg-description">${campaign.description}</p>
+      <p class="coreg-description">${campaign.description || ""}</p>
       <select class="coreg-dropdown"
               data-campaign="${campaign.id}"
-              data-cid="${campaign.cid}"
-              data-sid="${campaign.sid}">
+              data-cid="${campaign.cid || ""}"
+              data-sid="${campaign.sid || ""}">
         <option value="">Maak een keuze...</option>
-        ${campaign.coreg_dropdown_options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
+        ${answers.map(opt => `
+          <option value="${opt.answer_value}"
+                  data-cid="${opt.has_own_campaign ? opt.cid : campaign.cid}"
+                  data-sid="${opt.has_own_campaign ? opt.sid : campaign.sid}">
+            ${opt.label}
+          </option>`).join("")}
       </select>
       <a href="#" class="skip-link" data-answer="no" data-campaign="${campaign.id}">Geen interesse, sla over</a>
     </div>`;
