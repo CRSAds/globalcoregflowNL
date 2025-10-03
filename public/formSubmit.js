@@ -1,6 +1,5 @@
 // formSubmit.js
 
-// Zorg dat we niet dubbel leads sturen
 window.submittedCampaigns = window.submittedCampaigns || new Set();
 
 // Trackingvelden uit URL opslaan bij pageload
@@ -30,8 +29,8 @@ function buildPayload(campaign) {
       ? `${dob_year.padStart(4, "0")}-${dob_month.padStart(2, "0")}-${dob_day.padStart(2, "0")}`
       : "";
 
-  return {
-    cid: campaign.cid || 925, // short form altijd naar campagne 925
+  const payload = {
+    cid: campaign.cid || 925, // short form default → campagne 925
     sid: campaign.sid || 34,
     gender: sessionStorage.getItem("gender"),
     firstname: sessionStorage.getItem("firstname"),
@@ -50,6 +49,18 @@ function buildPayload(campaign) {
     f_1687_offer_id: offer_id,
     sub2
   };
+
+  // Coreg antwoorden opslaan (indien aanwezig)
+  if (campaign.coregAnswerKey) {
+    payload.f_2014_coreg_answer = sessionStorage.getItem(campaign.coregAnswerKey) || "";
+  }
+  if (campaign.answerFieldKey) {
+    const dropdownAnswer = sessionStorage.getItem(`dropdown_answer_${campaign.cid}`) || "";
+    payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
+  }
+
+  console.log("📦 Payload opgebouwd:", payload);
+  return payload;
 }
 
 async function fetchLead(payload) {
@@ -84,6 +95,6 @@ async function fetchLead(payload) {
   }
 }
 
-// 👇 Zet de functies beschikbaar op window
+// Globaal beschikbaar
 window.buildPayload = buildPayload;
 window.fetchLead = fetchLead;
