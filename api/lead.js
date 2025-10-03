@@ -17,9 +17,6 @@ export default async function handler(req, res) {
       firstname,
       lastname,
       email,
-      dob_day,
-      dob_month,
-      dob_year,
       f_5_dob,
       postcode,
       straat,
@@ -31,7 +28,8 @@ export default async function handler(req, res) {
       f_1453_campagne_url,
       f_1684_sub_id,
       f_1685_aff_id,
-      f_1687_offer_id
+      f_1687_offer_id,
+      sub2               // 👈 toegevoegd
     } = req.body;
 
     console.log("Ontvangen lead payload:", req.body);
@@ -68,7 +66,8 @@ export default async function handler(req, res) {
       f_1453_campagne_url: f_1453_campagne_url || "",
       f_1684_sub_id: f_1684_sub_id || "",
       f_1685_aff_id: f_1685_aff_id || "",
-      f_1687_offer_id: f_1687_offer_id || ""
+      f_1687_offer_id: f_1687_offer_id || "",
+      sub2: sub2 || ""   // 👈 toegevoegd
     });
 
     console.log("➡️ Naar Databowl:", params.toString());
