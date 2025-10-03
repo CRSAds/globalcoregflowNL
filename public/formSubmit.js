@@ -1,8 +1,9 @@
 // formSubmit.js
 
+// Zorg dat we niet dubbel leads sturen
 window.submittedCampaigns = window.submittedCampaigns || new Set();
 
-// Trackingvelden uit URL opslaan
+// Trackingvelden uit URL opslaan bij pageload
 document.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
   ["t_id", "aff_id", "sub_id", "sub2", "offer_id"].forEach(key => {
@@ -11,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-export function buildPayload(campaign) {
+function buildPayload(campaign) {
   const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
   const aff_id = sessionStorage.getItem("aff_id") || "";
   const sub_id = sessionStorage.getItem("sub_id") || "";
@@ -20,7 +21,7 @@ export function buildPayload(campaign) {
 
   const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
 
-  // Geboortedatum ISO
+  // Geboortedatum naar ISO
   const dob_day = sessionStorage.getItem("dob_day");
   const dob_month = sessionStorage.getItem("dob_month");
   const dob_year = sessionStorage.getItem("dob_year");
@@ -30,7 +31,7 @@ export function buildPayload(campaign) {
       : "";
 
   return {
-    cid: campaign.cid || 925, // short form default naar 925
+    cid: campaign.cid || 925, // short form altijd naar campagne 925
     sid: campaign.sid || 34,
     gender: sessionStorage.getItem("gender"),
     firstname: sessionStorage.getItem("firstname"),
@@ -51,7 +52,7 @@ export function buildPayload(campaign) {
   };
 }
 
-export async function fetchLead(payload) {
+async function fetchLead(payload) {
   const key = `${payload.cid}_${payload.sid}`;
   if (window.submittedCampaigns.has(key)) {
     console.log("✅ Lead al verzonden:", key);
@@ -73,3 +74,7 @@ export async function fetchLead(payload) {
     throw err;
   }
 }
+
+// 👇 Zet de functies beschikbaar op window
+window.buildPayload = buildPayload;
+window.fetchLead = fetchLead;
