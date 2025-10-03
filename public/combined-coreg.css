@@ -97,25 +97,30 @@
   font-family: "Plus Jakarta Sans", sans-serif;
 }
 
-/* Positieve knoppen */
-.btn-answer {
-  background: var(--ld-primary);
-  color: #fff;
+/* === OVERRIDES om externe stylesheets te forceren === */
+
+/* JA-knoppen */
+.coreg-section .btn-answer {
+  background: var(--ld-primary) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
 }
-.btn-answer:hover {
-  background: #11985a;
+.coreg-section .btn-answer:hover {
+  background: #11985a !important;
+  color: #fff !important;
 }
 
-/* Negatieve knoppen – ALTIJD */
-button[data-answer="no"],
-.btn-skip {
+/* NEE / Skip-knoppen */
+.coreg-section button[data-answer="no"],
+.coreg-section .btn-skip {
   background: #f5f5f5 !important;
   color: #444 !important;
   font-weight: 500 !important;
 }
-button[data-answer="no"]:hover,
-.btn-skip:hover {
+.coreg-section button[data-answer="no"]:hover,
+.coreg-section .btn-skip:hover {
   background: #e0e0e0 !important;
+  color: #222 !important;
 }
 
 /* === Dropdown styling === */
