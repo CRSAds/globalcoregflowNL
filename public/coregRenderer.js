@@ -1,28 +1,16 @@
 // coregRenderer.js
 // Renderer + flow logica met progressbar bovenin het witte kader
-// Final fix: bij TM-positief/negatief klikken we de bestaande SwipePages flow-next knoppen,
+// Bij TM-positief/negatief klikken we de bestaande SwipePages flow-next knoppen,
 // zodat de huidige sectie sluit en de juiste volgende sectie opent.
 
 import { buildPayload, fetchLead } from "./formSubmit.js";
 
 const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
-const API_LEAD = "https://globalcoregflow-nl.vercel.app/api/lead.js";
 
 function getImageUrl(image) {
   return image?.id
     ? `https://cms.core.909play.com/assets/${image.id}`
     : "https://via.placeholder.com/600x200?text=Geen+afbeelding";
-}
-
-function getShortFormData() {
-  return {
-    firstname: sessionStorage.getItem("firstname") || "",
-    lastname: sessionStorage.getItem("lastname") || "",
-    email: sessionStorage.getItem("email") || "",
-    dob: sessionStorage.getItem("dob") || "",
-    postcode: sessionStorage.getItem("postcode") || "",
-    phone1: sessionStorage.getItem("phone1") || ""
-  };
 }
 
 async function fetchCampaigns() {
@@ -145,8 +133,6 @@ function renderCampaign(campaign, isFinal) {
   return renderSingle(campaign, isFinal);
 }
 
-import { buildPayload, fetchLead } from "./formSubmit.js";
-
 // =======================================
 // Lead functies met console logging
 // =======================================
@@ -259,7 +245,6 @@ async function initCoregFlow() {
     if (window.__coregFinalised) return; // safeguard tegen dubbele triggers
     window.__coregFinalised = true;
 
-    // verberg alleen deze interne sectie; sectieswitch doet SwipePages zelf
     if (current) current.style.display = "none";
 
     // bepaal of er TM-positieve interesse is
@@ -301,7 +286,7 @@ async function initCoregFlow() {
     }
   }
 
-  // Listeners (dropdown/skip/call-to-action)
+  // Listeners
   sections.forEach(section => {
     const dropdown = section.querySelector(".coreg-dropdown");
     if (dropdown) {
