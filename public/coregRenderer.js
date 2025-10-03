@@ -143,30 +143,28 @@ function renderCampaign(campaign, isFinal) {
   return renderSingle(campaign, isFinal);
 }
 
+import { buildPayload, fetchLead } from "./formSubmit.js";
+
 // =======================================
 // Lead functies met console logging
 // =======================================
-async function sendLead(cid, sid, answer, isTM = false, storeOnly = false) {
+async function sendLead(cid, sid, answer, isTM = false) {
   try {
-    const payload = { cid, sid, answer, ...getShortFormData() };
-    console.log("[coreg] sendLead()", { cid, sid, answer, isTM, storeOnly, payload });
+    const payload = buildPayload({ cid, sid });
+    console.log("[coreg] sendLead()", { cid, sid, answer, isTM, payload });
 
-    if (isTM || storeOnly) {
+    if (isTM) {
+      // TM-leads tijdelijk opslaan tot long form ingevuld is
       let tmLeads = JSON.parse(sessionStorage.getItem("pendingTMLeads") || "[]");
-      tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid);
+      tmLeads = tmLeads.filter(l => l.cid !== cid || l.sid !== sid); // dubbele eruit
       tmLeads.push(payload);
       sessionStorage.setItem("pendingTMLeads", JSON.stringify(tmLeads));
       console.log("[coreg] TM lead opgeslagen in pendingTMLeads:", tmLeads);
       return;
     }
 
-    const res = await fetch(API_LEAD, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await res.json();
+    // EM-lead direct versturen
+    const result = await fetchLead(payload);
     console.log("[coreg] EM lead direct verstuurd:", { payload, result });
 
   } catch (err) {
@@ -180,12 +178,7 @@ async function sendAllTMLeads() {
 
   for (const lead of tmLeads) {
     try {
-      const res = await fetch(API_LEAD, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lead)
-      });
-      const result = await res.json();
+      const result = await fetchLead(lead);
       console.log("[coreg] TM lead verstuurd:", { lead, result });
     } catch (err) {
       console.error("[coreg] Fout bij versturen TM lead:", err);
