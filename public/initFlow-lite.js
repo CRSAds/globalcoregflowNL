@@ -129,15 +129,36 @@ function initFlowLite() {
 }
 
 // =============================================================
-// Hulpfunctie: forceer lazy images of data-src afbeeldingen te laden
+// Hulpfunctie: forceer lazy images te laden + mini scroll bump
 // =============================================================
 function reloadImages(section) {
   if (!section) return;
+
+  // 1️⃣ Forceren dat images met data-src of base64 worden geladen
   const imgs = section.querySelectorAll("img[data-src], img[src*='data:image']");
   imgs.forEach(img => {
     const newSrc = img.getAttribute("data-src") || img.src;
-    if (newSrc && img.src !== newSrc) {
+    if (newSrc && !img.src.includes(newSrc)) {
       img.src = newSrc;
     }
   });
+
+  // 2️⃣ Trigger mini scroll om Swipe Pages lazyload te activeren
+  window.scrollBy(0, 1);
+  setTimeout(() => window.scrollBy(0, -1), 150);
+
+  // 3️⃣ Fallback: IntersectionObserver om nieuwe secties af te dwingen
+  const visibleImages = section.querySelectorAll("img");
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && entry.target.dataset.src) {
+        entry.target.src = entry.target.dataset.src;
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  visibleImages.forEach(img => observer.observe(img));
+
+  console.log("🖼️ Afbeeldingen geforceerd geladen in sectie:", section.className);
 }
