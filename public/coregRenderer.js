@@ -469,4 +469,25 @@ console.log("✅ coregReady event verstuurd naar initFlow-lite.js");
   window.sendAllTMLeads = sendAllTMLeads;
 }
 
+// ======================================
+// ✅ Afbeeldingen herladen bij scroll (lazyload fix)
+// ======================================
+window.addEventListener("scroll", () => {
+  const visibleSections = document.querySelectorAll(".coreg-section");
+  visibleSections.forEach(section => {
+    const rect = section.getBoundingClientRect();
+    const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+    if (isVisible) {
+      const imgs = section.querySelectorAll("img[data-src], img[src*='data:image']");
+      imgs.forEach(img => {
+        const newSrc = img.getAttribute("data-src") || img.src;
+        if (newSrc && img.src !== newSrc) {
+          img.src = newSrc;
+          console.log("🖼️ Lazy image geladen:", newSrc);
+        }
+      });
+    }
+  });
+});
+
 window.addEventListener("DOMContentLoaded", initCoregFlow);
