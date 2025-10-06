@@ -168,91 +168,69 @@ function renderDropdown(campaign, isFinal) {
 }
 
 function renderMultistep(campaign, isFinal) {
-  let dropdownCampaign = campaign;
+  // Verzamel alle stappen voor deze campagne (step 1, 2, 3, ...)
+  const steps = (window.allCampaigns || [])
+    .filter(c => c.cid === campaign.cid)
+    .sort((a, b) => Number(a.step) - Number(b.step));
 
-  // Pak stap 2 campaign uit Directus (zelfde cid, step=2)
-  if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
-    const found = window.allCampaigns.find(c => c.cid === campaign.cid && c.step === 2);
-    if (found) dropdownCampaign = found;
-  }
+  // Bouw HTML per stap
+  const html = steps.map((step, index) => {
+    const visible = index === 0 ? "block" : "none";
+    const answers = step.coreg_answers || [];
 
-  const dropdownOptions = (dropdownCampaign.coreg_answers || []);
+    // === UI-style: dropdown ===
+    if (step.ui_style === "dropdown") {
+      return `
+        <div class="coreg-section ${isFinal && index === steps.length - 1 ? "final-coreg" : ""}"
+             id="campaign-${step.id}-step${step.step}"
+             style="display:${visible}">
+          <img src="${getImageUrl(step.image)}" alt="${step.title}" class="coreg-image" />
+          <h3 class="coreg-title">${step.title}</h3>
+          <p class="coreg-description">${step.description || ""}</p>
+          <select class="coreg-dropdown"
+                  data-campaign="${step.id}"
+                  data-cid="${step.cid || ""}"
+                  data-sid="${step.sid || ""}">
+            <option value="">Maak een keuze...</option>
+            ${answers.map(opt => `
+              <option value="${opt.answer_value}"
+                      data-cid="${opt.has_own_campaign ? opt.cid : step.cid}"
+                      data-sid="${opt.has_own_campaign ? opt.sid : step.sid}">
+                ${opt.label}
+              </option>`).join("")}
+          </select>
+          <a href="#" class="skip-link" data-answer="no" data-campaign="${step.id}">Geen interesse, sla over</a>
+        </div>`;
+    }
 
-  // Stap 1 = altijd buttons
-  const step1 = `
-    <div class="coreg-section" id="campaign-${campaign.id}-step1">
-      <img src="${getImageUrl(campaign.image)}" alt="${campaign.title}" class="coreg-image" />
-      <h3 class="coreg-title">${campaign.title}</h3>
-      <p class="coreg-description">${campaign.description}</p>
-      <div class="coreg-answers">
-        <button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2"
-                data-answer="yes"
-                data-campaign="${campaign.id}"
-                data-cid="${ans.cid || campaign.cid || ''}"
-                data-sid="${ans.sid || campaign.sid || ''}">
-          Ja, graag
-        </button>
-        <button class="flow-next skip-next btn-skip"
-                data-answer="no"
-                data-campaign="${campaign.id}">
-          Nee, geen interesse
-        </button>
-      </div>
-    </div>`;
-
-  // Stap 2 = afhankelijk van ui_style dropdownCampaign
-  let step2Content = "";
-  if (dropdownCampaign.ui_style === "dropdown") {
-    step2Content = `
-      <div class="coreg-section ${isFinal ? "final-coreg" : ""}"
-           id="campaign-${dropdownCampaign.id}-step2"
-           style="display:none">
-        <img src="${getImageUrl(dropdownCampaign.image)}" alt="${dropdownCampaign.title}" class="coreg-image" />
-        <h3 class="coreg-title">${dropdownCampaign.title}</h3>
-        <select class="coreg-dropdown"
-                data-campaign="${dropdownCampaign.id}"
-                data-cid="${dropdownCampaign.cid}"
-                data-sid="${dropdownCampaign.sid}">
-          <option value="">Maak een keuze...</option>
-          ${dropdownOptions.map(opt => `<option value="${opt.answer_value}">${opt.label}</option>`).join("")}
-        </select>
-        <a href="#" class="skip-link" data-answer="no" data-campaign="${dropdownCampaign.id}">Toch geen interesse</a>
-      </div>`;
-  } else {
-    step2Content = `
-      <div class="coreg-section ${isFinal ? "final-coreg" : ""}"
-           id="campaign-${dropdownCampaign.id}-step2"
-           style="display:none">
-        <img src="${getImageUrl(dropdownCampaign.image)}" alt="${dropdownCampaign.title}" class="coreg-image" />
-        <h3 class="coreg-title">${dropdownCampaign.title}</h3>
+    // === Default: buttons ===
+    return `
+      <div class="coreg-section ${isFinal && index === steps.length - 1 ? "final-coreg" : ""}"
+           id="campaign-${step.id}-step${step.step}"
+           style="display:${visible}">
+        <img src="${getImageUrl(step.image)}" alt="${step.title}" class="coreg-image" />
+        <h3 class="coreg-title">${step.title}</h3>
+        <p class="coreg-description">${step.description || ""}</p>
         <div class="coreg-answers">
-          ${dropdownOptions.map(opt => `
-            <button class="flow-next"
+          ${answers.map(opt => `
+            <button class="flow-next ${index < steps.length - 1 ? "sponsor-next next-step-campaign-" + step.cid + "-step" + (step.step + 1) : ""}"
                     data-answer="${opt.answer_value}"
-                    data-campaign="${dropdownCampaign.id}"
-                    data-cid="${opt.has_own_campaign ? opt.cid : dropdownCampaign.cid}"
-                    data-sid="${opt.has_own_campaign ? opt.sid : dropdownCampaign.sid}">
+                    data-campaign="${step.id}"
+                    data-cid="${opt.has_own_campaign ? opt.cid : step.cid}"
+                    data-sid="${opt.has_own_campaign ? opt.sid : step.sid}">
               ${opt.label}
-            </button>
-          `).join("")}
+            </button>`).join("")}
+          ${index < steps.length - 1 ? "" : `
+          <button class="flow-next btn-skip"
+                  data-answer="no"
+                  data-campaign="${step.id}">
+            Nee, geen interesse
+          </button>`}
         </div>
       </div>`;
-  }
+  }).join("");
 
-  return step1 + step2Content;
-}
-
-function renderCampaign(campaign, isFinal) {
-  // Multistep blijft zoals het was
-  if (campaign.hasCoregFlow) return renderMultistep(campaign, isFinal);
-
-  // Check ui_style
-  if (campaign.ui_style === "dropdown") {
-    return renderDropdown(campaign, isFinal);
-  }
-
-  // Default = buttons
-  return renderSingle(campaign, isFinal);
+  return html;
 }
 
 // =======================================
