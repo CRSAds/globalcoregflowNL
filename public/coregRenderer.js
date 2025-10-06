@@ -223,7 +223,7 @@ async function sendAllTMLeads() {
 }
 
 // =======================================
-// Init flow
+// Init flow (volledige versie met fixes)
 // =======================================
 async function initCoregFlow() {
   const container = document.getElementById("coreg-container");
@@ -242,10 +242,11 @@ async function initCoregFlow() {
 
   const sectionsContainer = container.querySelector("#coreg-sections");
 
-  // dropdown die onderdeel is van een multistep niet dubbel tonen
+  // ✅ Fix 1: filter step=2 uit bij multistep campagnes
   const filteredCampaigns = campaigns.filter(c => {
-    if (c.type === "dropdown" && campaigns.find(p => p.hasCoregFlow && p.cid === c.cid)) {
-      return false;
+    if (c.hasCoregFlow && Number(c.step) === 2) {
+      const hasStep1 = campaigns.some(p => p.hasCoregFlow && p.cid === c.cid && Number(p.step) === 1);
+      if (hasStep1) return false;
     }
     return true;
   });
@@ -258,6 +259,7 @@ async function initCoregFlow() {
   const sections = Array.from(sectionsContainer.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
+  // Progressbar updaten
   function updateProgressBar(sectionIdx) {
     const total = sections.length;
     const current = Math.max(1, Math.min(sectionIdx + 1, total));
@@ -273,6 +275,7 @@ async function initCoregFlow() {
     if (progressValue) progressValue.textContent = percent + "%";
   }
 
+  // Volgende sectie tonen
   function showNextSection(current) {
     const idx = sections.indexOf(current);
     if (idx > -1 && idx < sections.length - 1) {
@@ -285,20 +288,19 @@ async function initCoregFlow() {
     }
   }
 
-  // ---- Finaliseer coreg & navigeer via SwipePages knoppen
+  // Finale coreg-afhandeling (naar long form of einde)
   function handleFinalCoreg(current) {
-    if (window.__coregFinalised) return; // safeguard tegen dubbele triggers
+    if (window.__coregFinalised) return;
     window.__coregFinalised = true;
 
     if (current) current.style.display = "none";
 
-    // bepaal of er TM-positieve interesse is
     let hasTmPositive = false;
     window.allCampaigns.forEach(camp => {
       if (camp.requiresLongForm) {
         if (camp.hasCoregFlow) {
           const step1 = sessionStorage.getItem(`coreg_answer_${camp.id}`);
-          const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && c.type === "dropdown");
+          const dropdownCamp = window.allCampaigns.find(c => c.cid === camp.cid && Number(c.step) === 2);
           const step2 = dropdownCamp ? sessionStorage.getItem(`coreg_answer_${dropdownCamp.id}`) : null;
           if (step1 === "yes" && step2 && step2 !== "no") hasTmPositive = true;
         } else {
@@ -331,33 +333,38 @@ async function initCoregFlow() {
     }
   }
 
-  // Listeners
+  // ======================================
+  // ✅ Listeners per sectie
+  // ======================================
   sections.forEach(section => {
+
+    // ✅ Fix 2: verbeterde dropdown listener
     const dropdown = section.querySelector(".coreg-dropdown");
-if (dropdown) {
-  dropdown.addEventListener("change", () => {
-    const opt = dropdown.options[dropdown.selectedIndex];
-    if (!opt || !opt.value) return;
+    if (dropdown) {
+      dropdown.addEventListener("change", () => {
+        const opt = dropdown.options[dropdown.selectedIndex];
+        if (!opt || !opt.value) return;
 
-    const selCid = opt.getAttribute("data-cid") || dropdown.dataset.cid;
-    const selSid = opt.getAttribute("data-sid") || dropdown.dataset.sid;
+        const selCid = opt.getAttribute("data-cid") || dropdown.dataset.cid;
+        const selSid = opt.getAttribute("data-sid") || dropdown.dataset.sid;
 
-    const key = `coreg_answer_${dropdown.dataset.campaign}`;
-    const prev = sessionStorage.getItem(key);
-    const combined = prev && prev.toLowerCase() === "yes"
-      ? `${prev} - ${opt.value}`
-      : opt.value;
+        const key = `coreg_answer_${dropdown.dataset.campaign}`;
+        const prev = sessionStorage.getItem(key);
+        const combined = prev && prev.toLowerCase() === "yes"
+          ? `${prev} - ${opt.value}`
+          : opt.value;
 
-    sessionStorage.setItem(key, combined);
+        sessionStorage.setItem(key, combined);
 
-    const camp = window.allCampaigns.find(c => c.id == dropdown.dataset.campaign);
-    const isTM = !!(camp && camp.requiresLongForm);
+        const camp = window.allCampaigns.find(c => c.id == dropdown.dataset.campaign);
+        const isTM = !!(camp && camp.requiresLongForm);
 
-    sendLead(selCid, selSid, combined, isTM);
-    showNextSection(section);
-  });
-}
+        sendLead(selCid, selSid, combined, isTM);
+        showNextSection(section);
+      });
+    }
 
+    // Skip-link
     const skipLink = section.querySelector(".skip-link");
     if (skipLink) {
       skipLink.addEventListener("click", e => {
@@ -367,6 +374,7 @@ if (dropdown) {
       });
     }
 
+    // Buttons
     section.querySelectorAll(".flow-next").forEach(btn => {
       btn.addEventListener("click", () => {
         const campId = btn.dataset.campaign;
