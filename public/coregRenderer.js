@@ -281,34 +281,70 @@ async function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
 
-  // ✅ Zorg dat formdata beschikbaar is in sessionStorage
+// =======================================
+// Zorg dat formdata altijd beschikbaar is in sessionStorage
+// (geldt voor zowel short form als long form)
+// =======================================
 function ensureFormDataInSession() {
-  const fields = ["gender", "firstname", "lastname", "email", "dob_day", "dob_month", "dob_year"];
-  let missing = fields.filter(f => !sessionStorage.getItem(f));
+  const shortForm = document.querySelector("#lead-form");
+  const longForm = document.querySelector("#long-form");
 
-  if (missing.length > 0) {
+  const fieldsShort = ["gender", "firstname", "lastname", "email", "dob_day", "dob_month", "dob_year"];
+  const fieldsLong = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
+
+  let missingShort = fieldsShort.filter(f => !sessionStorage.getItem(f));
+  let missingLong = fieldsLong.filter(f => !sessionStorage.getItem(f));
+
+  if (missingShort.length > 0 || missingLong.length > 0) {
     console.warn("⚠️ Niet alle formvelden in sessionStorage, probeer herstel...");
 
-    // Probeer formulier in DOM te vinden
-    const form = document.querySelector("#lead-form");
-    if (form) {
-      sessionStorage.setItem("gender", form.querySelector("input[name='gender']:checked")?.value || "");
-      sessionStorage.setItem("firstname", form.querySelector("#firstname")?.value || "");
-      sessionStorage.setItem("lastname", form.querySelector("#lastname")?.value || "");
-      sessionStorage.setItem("email", form.querySelector("#email")?.value || "");
-      sessionStorage.setItem("dob_day", form.querySelector("#dob-day")?.value || "");
-      sessionStorage.setItem("dob_month", form.querySelector("#dob-month")?.value || "");
-      sessionStorage.setItem("dob_year", form.querySelector("#dob-year")?.value || "");
-      console.log("✅ Formdata hersteld uit DOM:", Object.fromEntries(fields.map(f => [f, sessionStorage.getItem(f)])));
-    } else {
-      console.warn("❌ Geen lead-form gevonden om data te herstellen.");
+    // 🔹 Herstel vanuit short form
+    if (shortForm) {
+      sessionStorage.setItem("gender", shortForm.querySelector("input[name='gender']:checked")?.value || "");
+      sessionStorage.setItem("firstname", shortForm.querySelector("#firstname")?.value || "");
+      sessionStorage.setItem("lastname", shortForm.querySelector("#lastname")?.value || "");
+      sessionStorage.setItem("email", shortForm.querySelector("#email")?.value || "");
+      sessionStorage.setItem("dob_day", shortForm.querySelector("#dob-day")?.value || "");
+      sessionStorage.setItem("dob_month", shortForm.querySelector("#dob-month")?.value || "");
+      sessionStorage.setItem("dob_year", shortForm.querySelector("#dob-year")?.value || "");
     }
+
+    // 🔹 Herstel vanuit long form
+    if (longForm) {
+      sessionStorage.setItem("postcode", longForm.querySelector("#postcode")?.value || "");
+      sessionStorage.setItem("straat", longForm.querySelector("#straat")?.value || "");
+      sessionStorage.setItem("huisnummer", longForm.querySelector("#huisnummer")?.value || "");
+      sessionStorage.setItem("woonplaats", longForm.querySelector("#woonplaats")?.value || "");
+      sessionStorage.setItem("telefoon", longForm.querySelector("#telefoon")?.value || "");
+    }
+
+    console.log("✅ Formdata hersteld uit DOM:", {
+      shortForm: Object.fromEntries(fieldsShort.map(f => [f, sessionStorage.getItem(f)])),
+      longForm: Object.fromEntries(fieldsLong.map(f => [f, sessionStorage.getItem(f)]))
+    });
   } else {
-    console.log("✅ Formdata al aanwezig in sessionStorage:", Object.fromEntries(fields.map(f => [f, sessionStorage.getItem(f)])));
+    console.log("✅ Formdata al aanwezig in sessionStorage.");
   }
+
+  // 👇 Live updates voor beide formulieren
+  [shortForm, longForm].forEach(form => {
+    if (!form) return;
+    form.querySelectorAll("input").forEach(input => {
+      const name = input.name || input.id;
+      if (!name) return;
+
+      const saveValue = () => {
+        if (input.type === "radio" && !input.checked) return;
+        sessionStorage.setItem(name, input.value);
+      };
+
+      input.addEventListener("input", saveValue);
+      input.addEventListener("change", saveValue);
+    });
+  });
+
+  console.log("🔄 Live form tracking actief voor short + long form.");
 }
-await new Promise(resolve => setTimeout(resolve, 200));
-ensureFormDataInSession();
 
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
