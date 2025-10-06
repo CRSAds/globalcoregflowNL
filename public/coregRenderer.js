@@ -124,13 +124,13 @@ function renderSingle(campaign, isFinal) {
       <div class="coreg-answers">
 ${campaign.coreg_answers
   .map(ans => `
-    <button class="flow-next btn-answer"
-            data-answer="yes"
-            data-campaign="${campaign.id}"
-            data-cid="${ans.cid || campaign.cid || ''}"
-            data-sid="${ans.sid || campaign.sid || ''}">
-      ${ans.label}
-    </button>`
+<button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2"
+        data-answer="yes"
+        data-campaign="${campaign.id}"
+        data-cid="${campaign.cid || ''}"
+        data-sid="${campaign.sid || ''}">
+  Ja, graag
+</button>
   ).join("")}
 <button class="flow-next btn-skip"
         data-answer="no"
