@@ -221,8 +221,8 @@ async function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
 
-  ensureFormDataInSession(); // ✅ verplaatst naar begin
-
+  refreshSessionFormData(); // ✅ herstelt formdata uit short + long form
+  
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
 
