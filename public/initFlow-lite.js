@@ -110,6 +110,16 @@ function initFlowLite() {
   console.log("initFlow-lite.js actief");
   console.log("IVR aanwezig:", document.querySelectorAll(".ivr-section").length);
   console.log("Memory script actief:", typeof window.memoryGame !== "undefined");
+
+    // === Extra check: Directus Coreg data ===
+  if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
+    console.log(
+      `📊 Coreg campagnes geladen uit Directus: ${window.allCampaigns.length}`
+    );
+  } else {
+    console.warn("⚠️ Coreg campagnes nog niet geladen of onbekend (window.allCampaigns ontbreekt)");
+  }
+  
   console.groupEnd();
 }
 
