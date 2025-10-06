@@ -1,23 +1,33 @@
-/* === Progress Bar Style 1 (groen) === */
+/* ============================================================
+   GLOBAL VARIABLES
+   ============================================================ */
 :root {
-  --ld-primary: #14B670;
-  --ld-progress-bg: var(--ld-primary);
-  --ld-progress-bg-rgb: 20, 182, 112;
+  --ld-primary: #14B670;          /* Hoofdkleur: groen */
+  --ld-primary-hover: #11985a;    /* Hoverkleur */
+  --ld-text-dark: #003C43;        /* Donkergroen tekstkleur */
+  --ld-gray-bg: #f5f5f5;
+  --ld-gray-border: #ccc;
+  --ld-gray-text: #444;
 }
 
+/* ============================================================
+   PROGRESS BAR
+   ============================================================ */
 .ld-progress {
   border-radius: 4px;
-  height: 24px; /* Dikkere bar */
-  background-color: rgba(var(--ld-progress-bg-rgb), 0.15);
+  height: 24px;
+  background-color: rgba(20, 182, 112, 0.15);
   position: relative;
 }
+
 .ld-progress .progress-bar {
   border-radius: inherit;
   height: 100%;
-  background-color: var(--ld-progress-bg);
+  background-color: var(--ld-primary);
   transition: width 1.5s ease-out;
   width: 0;
 }
+
 .ld-progress-info {
   display: flex;
   align-items: center;
@@ -26,30 +36,23 @@
   font-weight: 600;
   font-size: 14px;
   font-family: "Plus Jakarta Sans", sans-serif;
-  color: #003C43;
+  color: var(--ld-text-dark);
 }
-.progress-label {
-  color: #003C43;
-}
+
 .progress-value {
   color: #4B7C82;
   font-weight: 700;
 }
+
 .ld-progress-wrap {
-  margin-bottom: 12px; /* extra ruimte onder progress bar */
+  margin-bottom: 12px;
 }
 
-/* === Coreg section + wit kader === */
-.coreg-section {
-  background: transparent;     /* geen achtergrondkleur, roze van SwipePages loopt door */
-  width: 100%;
-  margin: 0 auto 24px auto;
-  border-radius: 0;
-  box-shadow: none;
-}
-
+/* ============================================================
+   CORE SECTION WRAPPER
+   ============================================================ */
 .coreg-inner {
-  background: #fff;            /* wit vlak */
+  background: #fff;
   max-width: 550px;
   margin: 0 auto;
   padding: 28px 24px;
@@ -57,18 +60,31 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
+.coreg-section {
+  background: transparent;
+  width: 100%;
+  margin: 0 auto 24px auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ============================================================
+   TITLES, TEXT & IMAGES
+   ============================================================ */
 .coreg-section h3 {
   font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 12px;
-  color: #003C43;
+  color: var(--ld-text-dark);
 }
+
 .coreg-section p {
   font-size: 0.95rem;
   margin-bottom: 22px;
   color: #555;
   line-height: 1.5;
 }
+
 .coreg-image {
   width: 100%;
   height: auto;
@@ -76,80 +92,90 @@
   margin-bottom: 16px;
 }
 
-/* === Buttons === */
+/* ============================================================
+   BUTTONS (JA / NEE)
+   ============================================================ */
 .coreg-answers {
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
 .btn-answer,
-.btn-skip {
+.btn-skip,
+.flow-next {
   display: block;
   width: 100%;
   padding: 14px 18px;
-  margin: 6px 0 !important; /* minder witruimte */
   border: none;
   border-radius: 999px;
   font-size: 1rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease;
   font-family: "Plus Jakarta Sans", sans-serif;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-/* === OVERRIDES om externe stylesheets te forceren === */
-
-/* JA-knoppen */
-.coreg-section .btn-answer {
-  background: var(--ld-primary) !important;
-  color: #fff !important;
-  font-weight: 600 !important;
-}
-.coreg-section .btn-answer:hover {
-  background: #11985a !important;
-  color: #fff !important;
+/* JA / POSITIEF */
+.btn-answer,
+.flow-next[data-answer="yes"] {
+  background-color: var(--ld-primary);
+  color: #fff;
 }
 
-/* NEE / Skip-knoppen */
-.coreg-section button[data-answer="no"],
-.coreg-section .btn-skip {
-  background: #f5f5f5 !important;
-  color: #444 !important;
-  font-weight: 500 !important;
-}
-.coreg-section button[data-answer="no"]:hover,
-.coreg-section .btn-skip:hover {
-  background: #e0e0e0 !important;
-  color: #222 !important;
+.btn-answer:hover,
+.flow-next[data-answer="yes"]:hover {
+  background-color: var(--ld-primary-hover);
+  color: #fff;
 }
 
-/* === Dropdown styling === */
+/* NEE / NEGATIEF */
+.btn-skip,
+.flow-next[data-answer="no"] {
+  background-color: var(--ld-gray-bg);
+  color: var(--ld-gray-text);
+  font-weight: 500;
+}
+
+.btn-skip:hover,
+.flow-next[data-answer="no"]:hover {
+  background-color: #e0e0e0;
+  color: #222;
+}
+
+/* ============================================================
+   DROPDOWNS
+   ============================================================ */
 .coreg-section select {
   width: 100%;
   padding: 12px 14px;
   margin-bottom: 14px;
   border-radius: 8px;
-  border: 1.5px solid #ccc;
+  border: 1.5px solid var(--ld-gray-border);
   font-size: 1rem;
   color: #222;
-  appearance: none;
   background: #fff url("data:image/svg+xml;utf8,<svg fill='gray' height='14' viewBox='0 0 20 20' width='14' xmlns='http://www.w3.org/2000/svg'><path d='M5.293 7.293a1 1 0 0 1 1.414 0L10 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 0-1.414z'/></svg>") no-repeat right 12px center/18px 18px;
+  appearance: none;
 }
+
 .coreg-section select:focus {
-  border-color: #14B670;
+  border-color: var(--ld-primary);
   outline: none;
   box-shadow: 0 0 0 2px rgba(20,182,112,0.1);
 }
 
-/* Skip link onder dropdown */
+/* ============================================================
+   SKIP LINKS
+   ============================================================ */
 .skip-link {
   display: block;
   margin-top: 8px;
-  color: #444 !important;
+  color: var(--ld-gray-text);
   font-size: 0.95rem;
   text-decoration: none;
 }
+
 .skip-link:hover {
   text-decoration: underline;
-  color: #222 !important;
+  color: #222;
 }
