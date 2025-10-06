@@ -3,19 +3,64 @@
 // Bij TM-positief/negatief klikken we de bestaande SwipePages flow-next knoppen,
 // zodat de huidige sectie sluit en de juiste volgende sectie opent.
 
-const API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
+// ✅ Fix: gebruik let en check of het al bestaat, om "already declared" te voorkomen
+if (typeof window.API_COREG === "undefined") {
+  window.API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
+}
+const API_COREG = window.API_COREG;
 
-function getImageUrl(image) {
-  return image?.id
-    ? `https://cms.core.909play.com/assets/${image.id}`
-    : "https://via.placeholder.com/600x200?text=Geen+afbeelding";
+// === Logging helper ===
+function logCoregSystemCheck() {
+  console.groupCollapsed("🧩 Global CoregFlow System Check");
+  const required = [
+    { name: "formSubmit.js", ok: !!window.buildPayload && !!window.fetchLead },
+    { name: "coregRenderer.js", ok: true },
+    { name: "progressbar-anim.js", ok: !!window.animateProgressBar },
+    { name: "initFlow-lite.js", ok: typeof window.initCoregFlow !== "undefined" },
+    { name: "IVR", ok: typeof window.initIVR !== "undefined" },
+    { name: "Memory", ok: !!window.localStorage }
+  ];
+  required.forEach(r => {
+    if (r.ok) console.log(`✅ ${r.name} is geladen`);
+    else console.warn(`⚠️ ${r.name} geladen → ontbreekt of niet actief.`);
+  });
+  console.groupEnd();
+}
+document.addEventListener("DOMContentLoaded", logCoregSystemCheck);
+
+// =======================================
+// Fetch campagnes vanuit Directus endpoint
+// =======================================
+async function fetchCampaigns() {
+  try {
+    const res = await fetch(API_COREG);
+    if (!res.ok) throw new Error(`Kon campagnes niet laden (status ${res.status})`);
+    const json = await res.json();
+    console.log("📦 Campagnes geladen uit Directus:", json.data?.length || 0);
+    return json.data;
+  } catch (err) {
+    console.error("❌ Fout bij laden coreg campagnes:", err);
+    return [];
+  }
 }
 
-async function fetchCampaigns() {
-  const res = await fetch(API_COREG);
-  if (!res.ok) throw new Error("Kon campagnes niet laden");
-  const json = await res.json();
-  return json.data;
+// =======================================
+// Verbeterde fetchLead wrapper (extra logging)
+// =======================================
+async function sendLeadToDatabowl(payload) {
+  try {
+    const result = await window.fetchLead(payload);
+    const leadId = result?.result?.data?.id || result?.lead_id || result?.id || "onbekend";
+    console.log(
+      `%c✅ Lead verzonden naar Databowl`,
+      "color:green;font-weight:bold;",
+      { cid: payload.cid, sid: payload.sid, leadId, fullResult: result }
+    );
+    return result;
+  } catch (err) {
+    console.error("❌ Fout bij versturen lead naar Databowl:", err);
+    return null;
+  }
 }
 
 // =======================================
