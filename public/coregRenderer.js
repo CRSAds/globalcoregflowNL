@@ -243,7 +243,7 @@ async function sendLead(cid, sid, answer, isTM = false) {
       return;
     }
 
-    const result = await window.fetchLead(payload);
+    const result = await sendLeadToDatabowl(payload);
     console.log("[coreg] EM lead direct verstuurd:", { payload, result });
   } catch (err) {
     console.error("[coreg] Fout bij sendLead:", err);
