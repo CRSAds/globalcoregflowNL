@@ -115,6 +115,7 @@ function renderProgressBar(progress = 0) {
 // =======================================
 // Campaign renders
 // =======================================
+
 function renderSingle(campaign, isFinal) {
   return `
     <div class="coreg-section ${isFinal ? "final-coreg" : ""}" id="campaign-${campaign.id}">
@@ -122,21 +123,22 @@ function renderSingle(campaign, isFinal) {
       <h3 class="coreg-title">${campaign.title}</h3>
       <p class="coreg-description">${campaign.description}</p>
       <div class="coreg-answers">
-${campaign.coreg_answers
-  .map(ans => `
-<button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2"
-        data-answer="yes"
-        data-campaign="${campaign.id}"
-        data-cid="${campaign.cid || ''}"
-        data-sid="${campaign.sid || ''}">
-  Ja, graag
-</button>
-  ).join("")}
-<button class="flow-next btn-skip"
-        data-answer="no"
-        data-campaign="${campaign.id}">
-  Nee, geen interesse
-</button>
+        ${campaign.coreg_answers
+          .map(ans => `
+            <button class="flow-next btn-answer"
+                    data-answer="yes"
+                    data-campaign="${campaign.id}"
+                    data-cid="${ans.cid || campaign.cid || ''}"
+                    data-sid="${ans.sid || campaign.sid || ''}">
+              ${ans.label}
+            </button>
+          `)
+          .join("")}
+        <button class="flow-next btn-skip"
+                data-answer="no"
+                data-campaign="${campaign.id}">
+          Nee, geen interesse
+        </button>
       </div>
     </div>`;
 }
