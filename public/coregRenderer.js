@@ -9,6 +9,32 @@ if (typeof window.API_COREG === "undefined") {
 }
 const API_COREG = window.API_COREG;
 
+// =======================================
+// Formulierdata actief bijhouden in sessionStorage
+// =======================================
+function refreshSessionFormData() {
+  const shortForm = document.querySelector("#lead-form");
+  const longForm = document.querySelector("#long-form");
+
+  if (shortForm) {
+    sessionStorage.setItem("gender", shortForm.querySelector("input[name='gender']:checked")?.value || sessionStorage.getItem("gender") || "");
+    sessionStorage.setItem("firstname", shortForm.querySelector("#firstname")?.value || sessionStorage.getItem("firstname") || "");
+    sessionStorage.setItem("lastname", shortForm.querySelector("#lastname")?.value || sessionStorage.getItem("lastname") || "");
+    sessionStorage.setItem("email", shortForm.querySelector("#email")?.value || sessionStorage.getItem("email") || "");
+    sessionStorage.setItem("dob_day", shortForm.querySelector("#dob-day")?.value || sessionStorage.getItem("dob_day") || "");
+    sessionStorage.setItem("dob_month", shortForm.querySelector("#dob-month")?.value || sessionStorage.getItem("dob_month") || "");
+    sessionStorage.setItem("dob_year", shortForm.querySelector("#dob-year")?.value || sessionStorage.getItem("dob_year") || "");
+  }
+
+  if (longForm) {
+    sessionStorage.setItem("postcode", longForm.querySelector("#postcode")?.value || sessionStorage.getItem("postcode") || "");
+    sessionStorage.setItem("straat", longForm.querySelector("#straat")?.value || sessionStorage.getItem("straat") || "");
+    sessionStorage.setItem("huisnummer", longForm.querySelector("#huisnummer")?.value || sessionStorage.getItem("huisnummer") || "");
+    sessionStorage.setItem("woonplaats", longForm.querySelector("#woonplaats")?.value || sessionStorage.getItem("woonplaats") || "");
+    sessionStorage.setItem("telefoon", longForm.querySelector("#telefoon")?.value || sessionStorage.getItem("telefoon") || "");
+  }
+}
+
 function getImageUrl(image) {
   if (!image) return "https://via.placeholder.com/600x200?text=Geen+afbeelding";
   return image.id
@@ -233,6 +259,9 @@ function renderCampaign(campaign, isFinal) {
 
 async function sendLead(cid, sid, answer, isTM = false) {
   try {
+    // ✅ Formdata bijwerken uit DOM voordat payload wordt gemaakt
+    refreshSessionFormData();
+
     // sla antwoord op voor coregAnswerKey
     if (answer) {
       sessionStorage.setItem(`coreg_answer_${cid}_${sid}`, answer);
