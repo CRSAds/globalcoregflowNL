@@ -16,6 +16,11 @@ window.addEventListener("DOMContentLoaded", initFlowLite);
 function initFlowLite() {
   console.log("🚀 initFlow-lite.js gestart");
 
+  // Wacht op coregReady event voordat flow start
+  document.addEventListener("coregReady", (e) => {
+  console.log("✅ coregReady ontvangen:", e.detail.campaigns?.length, "campagnes");
+  });
+
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status") || "online";
 
