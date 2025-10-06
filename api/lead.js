@@ -4,7 +4,7 @@
 let recentIps = new Map();
 
 export default async function handler(req, res) {
-  // CORS
+  // ==== CORS ====
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cache-Control");
@@ -16,45 +16,22 @@ export default async function handler(req, res) {
 
   try {
     // ===== Inkomende payload =====
+    const body = req.body || {};
     const {
-      // verplicht
-      cid,
-      sid,
+      cid, sid,
+      gender, firstname, lastname, email, f_5_dob,
+      postcode, straat, huisnummer, woonplaats, telefoon,
+      t_id, f_1322_transaction_id, f_1453_campagne_url,
+      f_1684_sub_id, f_1685_aff_id, f_1687_offer_id, sub2,
+      f_2014_coreg_answer, f_2575_coreg_answer_dropdown
+    } = body;
 
-      // basisvelden
-      gender,
-      firstname,
-      lastname,
-      email,
-      f_5_dob,          // yyyy-mm-dd
+    console.log("➡️ Ontvangen lead payload:", body);
 
-      // adres/phone (long form)
-      postcode,
-      straat,
-      huisnummer,
-      woonplaats,
-      telefoon,
-
-      // tracking
-      t_id,
-      f_1322_transaction_id,
-      f_1453_campagne_url,
-      f_1684_sub_id,
-      f_1685_aff_id,
-      f_1687_offer_id,
-      sub2,
-
-      // optioneel: coreg specifieke velden (worden alleen doorgestuurd als ze bestaan)
-      f_2014_coreg_answer,
-      f_2575_coreg_answer_dropdown
-    } = req.body || {};
-
-    console.log("➡️ Ontvangen lead payload:", req.body);
-
-    // Validatie basis
-    if (!cid || !sid) {
-      console.error("❌ Campagnegegevens ontbreken (cid/sid)");
-      return res.status(400).json({ success: false, message: "Campagnegegevens ontbreken" });
+    // ===== Basisvalidatie =====
+    if (!cid || !sid || cid === "null" || sid === "null") {
+      console.error("❌ Ongeldige campagnegegevens:", { cid, sid });
+      return res.status(400).json({ success: false, message: "Campagnegegevens ontbreken of ongeldig" });
     }
 
     // ===== IP & optindate =====
@@ -77,13 +54,13 @@ export default async function handler(req, res) {
     // ===== E-mail fraud heuristics =====
     const emailLower = (email || "").toLowerCase();
     const suspiciousPatterns = [
-      /(?:[a-z]{3,}@teleworm\.us)/i,
-      /(?:michaeljm)+/i,
+      /teleworm\.us/i,
+      /michaeljm/i,
       /^[a-z]{3,12}jm.*@/i,
       /^[a-z]{4,}@gmail\.com$/i,
-      /^[a-z]*[M]{2,}/i
+      /[Mm]{2,}/
     ];
-    const isSuspicious = suspiciousPatterns.some((p) => p.test(emailLower));
+    const isSuspicious = suspiciousPatterns.some(p => p.test(emailLower));
     if (isSuspicious) {
       console.warn("⛔️ Verdacht e-mailadres, lead geblokkeerd:", email);
       return res.status(200).json({ success: false, blocked: true, reason: "suspicious_email" });
@@ -104,11 +81,11 @@ export default async function handler(req, res) {
       f_1_email: email || "",
       f_5_dob: f_5_dob || "",
 
-      // Adres/telefoon (leeg als niet aanwezig)
+      // Adres / telefoon
       f_11_postcode: postcode || "",
       f_6_address1: straat || "",
       f_7_address2: huisnummer || "",
-      f_8_address3: "",                 // niet gebruikt, maar veld bestaat in 5.2
+      f_8_address3: "",
       f_9_towncity: woonplaats || "",
       f_12_phone1: telefoon || "",
 
@@ -125,12 +102,12 @@ export default async function handler(req, res) {
       sub2: sub2 || ""
     });
 
-    // Optionele coreg velden alleen meesturen als ze aanwezig zijn
-    if (typeof f_2014_coreg_answer !== "undefined") {
-      params.set("f_2014_coreg_answer", f_2014_coreg_answer || "");
+    // ===== Coreg velden (altijd checken) =====
+    if (f_2014_coreg_answer && f_2014_coreg_answer !== "undefined") {
+      params.set("f_2014_coreg_answer", f_2014_coreg_answer);
     }
-    if (typeof f_2575_coreg_answer_dropdown !== "undefined") {
-      params.set("f_2575_coreg_answer_dropdown", f_2575_coreg_answer_dropdown || "");
+    if (f_2575_coreg_answer_dropdown && f_2575_coreg_answer_dropdown !== "undefined") {
+      params.set("f_2575_coreg_answer_dropdown", f_2575_coreg_answer_dropdown);
     }
 
     console.log("🎯 Parameters → Databowl:", params.toString());
@@ -145,14 +122,13 @@ export default async function handler(req, res) {
       body: params.toString()
     });
 
-    // Sommige responses (bv. bij errors) hebben lege body → veilig parsen
+    // Veilig JSON-parsen
     let dbResult = {};
     try {
       const text = await dbRes.text();
       dbResult = text ? JSON.parse(text) : {};
-    } catch (parseErr) {
-      console.warn("⚠️ Databowl gaf geen geldige JSON terug:", parseErr);
-      dbResult = { raw: "no-json-body", status: dbRes.status };
+    } catch {
+      dbResult = { raw: "non-json", status: dbRes.status };
     }
 
     console.log("✅ Databowl antwoord:", dbResult);
@@ -164,7 +140,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error("❌ Fout bij verzenden naar Databowl:", error);
-    // Zorg dat front-end altijd JSON krijgt
     return res.status(500).json({ success: false, message: "Interne fout bij verzenden" });
   }
 }
