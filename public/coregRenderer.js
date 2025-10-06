@@ -281,6 +281,34 @@ async function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
 
+  // ✅ Zorg dat formdata beschikbaar is in sessionStorage
+function ensureFormDataInSession() {
+  const fields = ["gender", "firstname", "lastname", "email", "dob_day", "dob_month", "dob_year"];
+  let missing = fields.filter(f => !sessionStorage.getItem(f));
+
+  if (missing.length > 0) {
+    console.warn("⚠️ Niet alle formvelden in sessionStorage, probeer herstel...");
+
+    // Probeer formulier in DOM te vinden
+    const form = document.querySelector("#lead-form");
+    if (form) {
+      sessionStorage.setItem("gender", form.querySelector("input[name='gender']:checked")?.value || "");
+      sessionStorage.setItem("firstname", form.querySelector("#firstname")?.value || "");
+      sessionStorage.setItem("lastname", form.querySelector("#lastname")?.value || "");
+      sessionStorage.setItem("email", form.querySelector("#email")?.value || "");
+      sessionStorage.setItem("dob_day", form.querySelector("#dob-day")?.value || "");
+      sessionStorage.setItem("dob_month", form.querySelector("#dob-month")?.value || "");
+      sessionStorage.setItem("dob_year", form.querySelector("#dob-year")?.value || "");
+      console.log("✅ Formdata hersteld uit DOM:", Object.fromEntries(fields.map(f => [f, sessionStorage.getItem(f)])));
+    } else {
+      console.warn("❌ Geen lead-form gevonden om data te herstellen.");
+    }
+  } else {
+    console.log("✅ Formdata al aanwezig in sessionStorage:", Object.fromEntries(fields.map(f => [f, sessionStorage.getItem(f)])));
+  }
+}
+ensureFormDataInSession();
+
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
 
