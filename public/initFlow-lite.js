@@ -1,157 +1,105 @@
+// =============================================================
 // initFlow-lite.js
-// Sectie-regie voor SwipePages + nieuwe coreg flow (Directus)
-// - verbergt/tonen van secties (.flow-section, .coreg-section)
-// - short form opslaan + lead naar cid=925
-// - smooth doorstappen
-// Vereist: window.buildPayload, window.fetchLead (uit formSubmit.js)
+// Lichtgewicht sectieregulator voor Swipe Pages + CoregFlow
+// -------------------------------------------------------------
+// Doet:
+// 1. Toont alleen de eerste sectie bij pageload
+// 2. Filtert gedrag op basis van ?status=online of ?status=live
+// 3. Verbergt of toont de juiste footers
+// 4. Slaat IVR-secties over bij status=online
+// 5. Forceert image load bij zichtbare secties
+// =============================================================
 
-(function () {
-  const suspiciousEmail = (email) => {
-    const e = (email || '').toLowerCase();
-    return [
-      /@teleworm\.us$/i,
-      /michaeljm/i,
-      /^[a-z]{3,12}jm.*@/i,
-      /[Mm]{3,}/
-    ].some((p) => p.test(e));
-  };
+window.addEventListener("DOMContentLoaded", initFlowLite);
 
-  function validateLeadForm(form) {
-    if (!form) return false;
-    const gender = form.querySelector('input[name="gender"]:checked');
-    const firstname = form.querySelector('#firstname')?.value.trim();
-    const lastname  = form.querySelector('#lastname')?.value.trim();
-    const dd = form.querySelector('#dob-day')?.value.trim();
-    const mm = form.querySelector('#dob-month')?.value.trim();
-    const yy = form.querySelector('#dob-year')?.value.trim();
-    const email = form.querySelector('#email')?.value.trim();
+function initFlowLite() {
+  console.log("🚀 initFlow-lite.js actief");
 
-    const errors = [];
-    if (!gender) errors.push('Geslacht');
-    if (!firstname) errors.push('Voornaam');
-    if (!lastname) errors.push('Achternaam');
-    if (!dd || !mm || !yy) errors.push('Geboortedatum');
-    if (!email || !email.includes('@') || !email.includes('.')) errors.push('E-mailadres');
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("status") || "online";
 
-    if (errors.length) {
-      alert('Vul aub alle velden correct in:\n' + errors.join('\n'));
-      return false;
-    }
-    if (suspiciousEmail(email)) {
-      console.warn('⛔ Verdachte lead geblokkeerd (short form):', email);
-      return false;
-    }
-    return true;
+  // Alle secties in Swipe Pages
+  const allSections = Array.from(document.querySelectorAll(".flow-section, .coreg-section, .ivr-section"));
+  console.log("📦 Aantal gevonden secties:", allSections.length);
+
+  // === 1️⃣ Verberg alles bij pageload ===
+  allSections.forEach(el => (el.style.display = "none"));
+
+  // === 2️⃣ Eerste sectie tonen ===
+  const first = allSections.find(el => !el.classList.contains("ivr-section"));
+  if (first) {
+    first.style.display = "block";
+    reloadImages(first);
+    console.log("✅ Eerste sectie getoond:", first.className);
   }
 
-  function storeLeadFormToSession(form) {
-    const gender = form.querySelector('input[name="gender"]:checked')?.value || '';
-    const firstname = form.querySelector('#firstname')?.value.trim() || '';
-    const lastname  = form.querySelector('#lastname')?.value.trim() || '';
-    const dd = form.querySelector('#dob-day')?.value.trim() || '';
-    const mm = form.querySelector('#dob-month')?.value.trim() || '';
-    const yy = form.querySelector('#dob-year')?.value.trim() || '';
-    const email = form.querySelector('#email')?.value.trim() || '';
+  // === 3️⃣ Filter op status (online / live) ===
+  if (status === "online") {
+    console.log("🌐 Status = ONLINE → IVR overslaan, footeronline tonen");
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const t_id = urlParams.get('t_id') || crypto.randomUUID();
+    // IVR-secties verbergen
+    document.querySelectorAll(".ivr-section").forEach(el => (el.style.display = "none"));
 
-    sessionStorage.setItem('gender', gender);
-    sessionStorage.setItem('firstname', firstname);
-    sessionStorage.setItem('lastname', lastname);
-    sessionStorage.setItem('dob_day', dd);
-    sessionStorage.setItem('dob_month', mm);
-    sessionStorage.setItem('dob_year', yy);
-    sessionStorage.setItem('email', email);
-    sessionStorage.setItem('t_id', t_id);
+    // Alleen footeronline tonen
+    document.querySelectorAll(".footeronline").forEach(el => (el.style.display = "block"));
+    document.querySelectorAll(".footerlive").forEach(el => (el.style.display = "none"));
+  } else if (status === "live") {
+    console.log("📺 Status = LIVE → IVR actief, footerlive tonen");
+
+    // footers omdraaien
+    document.querySelectorAll(".footeronline").forEach(el => (el.style.display = "none"));
+    document.querySelectorAll(".footerlive").forEach(el => (el.style.display = "block"));
   }
 
-  async function sendShortForm925() {
-    try {
-      const payload = window.buildPayload({ cid: 925, sid: 34 });
-      // sanity: status=online in URL (zoals je 5.2 controle)
-      if (!payload.f_1453_campagne_url?.includes('?status=online')) {
-        console.warn('⚠️ f_1453_campagne_url mist ?status=online:', payload.f_1453_campagne_url);
-      }
-      console.log('📦 Short form → 925 payload:', payload);
-      const res = await window.fetchLead(payload);
-      console.log('✅ Short form verstuurd → 925:', res);
-    } catch (e) {
-      console.error('❌ Fout bij short form 925:', e);
-    }
-  }
+  // === 4️⃣ SwipePages flow-buttons beheren ===
+  const flowButtons = document.querySelectorAll(".flow-next");
+  flowButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const current = btn.closest(".flow-section, .coreg-section, .ivr-section");
+      if (!current) return;
 
-  function nextSection(current, steps, skipOne = false) {
-    const idx = steps.indexOf(current);
-    if (idx === -1) return;
-    current.style.display = 'none';
-    const next = steps[idx + (skipOne ? 2 : 1)];
-    if (next) {
-      next.style.display = 'block';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }
+      // Huidige verbergen
+      current.style.display = "none";
 
-  function init() {
-    const params = new URLSearchParams(window.location.search);
-    const statusParam = params.get('status');
-
-    // Filter welke secties actief zijn
-    const rawSteps = Array.from(document.querySelectorAll('.flow-section, .coreg-section'));
-    const steps = rawSteps.filter(step => {
-      if (statusParam === 'online') {
-        return !step.classList.contains('status-live') && !step.classList.contains('ivr-section');
-      }
-      if (statusParam === 'live') return true;
-      return true; // default: alles tonen volgens live
-    });
-
-    // Verberg alles, toon eerste
-    steps.forEach((el, i) => el.style.display = i === 0 ? 'block' : 'none');
-
-    // Koppel click-handlers
-    steps.forEach((step, stepIndex) => {
-      // 1) Short form doorgang op .flow-next in #lead-form
-      const leadForm = step.querySelector('#lead-form');
-      if (leadForm) {
-        const goBtn = step.querySelector('.flow-next');
-        if (goBtn) {
-          goBtn.addEventListener('click', async () => {
-            if (!validateLeadForm(leadForm)) return;
-            storeLeadFormToSession(leadForm);
-            await sendShortForm925();
-            nextSection(step, steps, goBtn.classList.contains('skip-next-section'));
-          });
-        }
+      // Volgende sectie vinden
+      let next = current.nextElementSibling;
+      while (next && next.classList.contains("ivr-section") && status === "online") {
+        // sla ivr-secties over bij ONLINE
+        next = next.nextElementSibling;
       }
 
-      // 2) Generieke flow-next knoppen voor overige secties
-      step.querySelectorAll('.flow-next').forEach(btn => {
-        // skip als dit de short form knop is (al afgevangen)
-        if (leadForm && btn === step.querySelector('.flow-next')) return;
-
-        btn.addEventListener('click', () => {
-          const skipNext = btn.classList.contains('skip-next-section');
-          nextSection(step, steps, skipNext);
-        });
-      });
-
-      // 3) Long form: init via formSubmit.js (laat eigen submit logica draaien)
-      const longBtn = step.querySelector('#submit-long-form');
-      if (longBtn && typeof window.setupFormSubmit === 'function') {
-        // Zorg dat er niet dubbel geluisterd wordt
-        if (!longBtn.dataset._initDone) {
-          window.setupFormSubmit();
-          longBtn.dataset._initDone = '1';
-        }
+      if (next) {
+        next.style.display = "block";
+        reloadImages(next);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        console.log("➡️ Volgende sectie getoond:", next.className);
+      } else {
+        console.log("🏁 Einde van flow bereikt");
       }
     });
-  }
+  });
 
-  // Start
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+  // === 5️⃣ Check of alle hoofdscripts geladen zijn ===
+  console.groupCollapsed("✅ Global CoregFlow System Check");
+  console.log("formSubmit.js geladen:", !!window.buildPayload);
+  console.log("coregRenderer.js geladen:", !!window.initCoregFlow);
+  console.log("progressbar-anim.js geladen:", !!window.animateProgressBar);
+  console.log("initFlow-lite.js actief");
+  console.log("IVR geladen:", document.querySelectorAll(".ivr-section").length > 0);
+  console.log("Memory geladen:", typeof window.memoryGame !== "undefined");
+  console.groupEnd();
+}
+
+// =============================================================
+// Hulpfunctie: forceer lazy images te laden
+// =============================================================
+function reloadImages(section) {
+  if (!section) return;
+  const imgs = section.querySelectorAll("img[data-src], img[src*='data:image']");
+  imgs.forEach(img => {
+    const newSrc = img.getAttribute("data-src") || img.src;
+    if (newSrc && !img.src.includes(newSrc)) {
+      img.src = newSrc;
+    }
+  });
+}
