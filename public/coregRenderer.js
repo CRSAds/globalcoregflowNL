@@ -127,8 +127,8 @@ ${campaign.coreg_answers
     <button class="flow-next btn-answer"
             data-answer="yes"
             data-campaign="${campaign.id}"
-            data-cid="${campaign.cid}"
-            data-sid="${campaign.sid}">
+            data-cid="${ans.cid || campaign.cid || ''}"
+            data-sid="${ans.sid || campaign.sid || ''}">
       ${ans.label}
     </button>`
   ).join("")}
