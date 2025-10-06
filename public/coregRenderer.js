@@ -307,6 +307,7 @@ function ensureFormDataInSession() {
     console.log("✅ Formdata al aanwezig in sessionStorage:", Object.fromEntries(fields.map(f => [f, sessionStorage.getItem(f)])));
   }
 }
+await new Promise(resolve => setTimeout(resolve, 200));
 ensureFormDataInSession();
 
   const campaigns = await fetchCampaigns();
