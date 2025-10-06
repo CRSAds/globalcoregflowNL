@@ -98,7 +98,7 @@
 .coreg-answers {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
 }
 
 .btn-answer,
