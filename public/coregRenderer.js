@@ -186,8 +186,8 @@ function renderMultistep(campaign, isFinal) {
         <button class="flow-next sponsor-next next-step-campaign-${campaign.id}-step2"
                 data-answer="yes"
                 data-campaign="${campaign.id}"
-                data-cid="${campaign.cid}"
-                data-sid="${campaign.sid}">
+                data-cid="${ans.cid || campaign.cid || ''}"
+                data-sid="${ans.sid || campaign.sid || ''}">
           Ja, graag
         </button>
         <button class="flow-next skip-next btn-skip"
@@ -532,8 +532,8 @@ console.log("✅ coregReady event verstuurd naar initFlow-lite.js");
         const campId = btn.dataset.campaign;
         const cid    = btn.dataset.cid;
         const sid    = btn.dataset.sid;
-        const answer = btn.dataset.answer;
-
+        const answer = btn.dataset.answer || "yes";
+        
         if (campId) {
           sessionStorage.setItem(`coreg_answer_${campId}`, answer);
           if (answer === "yes") {
@@ -562,6 +562,17 @@ console.log("✅ coregReady event verstuurd naar initFlow-lite.js");
 
   window.sendAllTMLeads = sendAllTMLeads;
 }
+
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "submit-long-form") {
+    if (typeof window.handleLongFormSubmit === "function") {
+      console.log("🧩 Heractiveer long form submit handler via coreg flow");
+      window.handleLongFormSubmit(e);
+    } else {
+      console.warn("⚠️ handleLongFormSubmit niet gevonden — controleer formSubmit.js");
+    }
+  }
+});
 
 // ======================================
 // ✅ Afbeeldingen herladen bij scroll (lazyload fix)
