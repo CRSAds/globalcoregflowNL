@@ -9,6 +9,13 @@ if (typeof window.API_COREG === "undefined") {
 }
 const API_COREG = window.API_COREG;
 
+function getImageUrl(image) {
+  if (!image) return "https://via.placeholder.com/600x200?text=Geen+afbeelding";
+  return image.id
+    ? `https://cms.core.909play.com/assets/${image.id}`
+    : image.url || "https://via.placeholder.com/600x200?text=Geen+afbeelding";
+}
+
 // === Logging helper ===
 function logCoregSystemCheck() {
   console.groupCollapsed("🧩 Global CoregFlow System Check");
@@ -276,6 +283,12 @@ async function initCoregFlow() {
 
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
+
+  // 🔔 coregReady event sturen zodat initFlow-lite kan starten
+document.dispatchEvent(new CustomEvent("coregReady", {
+  detail: { campaigns }
+}));
+console.log("✅ coregReady event verstuurd naar initFlow-lite.js");
 
   // Eén wit kader met progressbar bovenin
   container.innerHTML = `
