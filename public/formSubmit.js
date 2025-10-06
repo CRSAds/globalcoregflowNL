@@ -98,3 +98,31 @@ async function fetchLead(payload) {
 // Globaal beschikbaar
 window.buildPayload = buildPayload;
 window.fetchLead = fetchLead;
+
+// =======================================
+// Live form tracking: short + long form
+// =======================================
+document.addEventListener("DOMContentLoaded", () => {
+  const shortForm = document.querySelector("#lead-form");
+  const longForm = document.querySelector("#long-form");
+
+  const attachListeners = (form) => {
+    if (!form) return;
+    form.querySelectorAll("input").forEach(input => {
+      const name = input.name || input.id;
+      if (!name) return;
+
+      const save = () => {
+        if (input.type === "radio" && !input.checked) return;
+        sessionStorage.setItem(name, input.value.trim());
+      };
+
+      input.addEventListener("input", save);
+      input.addEventListener("change", save);
+    });
+  };
+
+  attachListeners(shortForm);
+  attachListeners(longForm);
+  console.log("🧠 Live form tracking actief (short + long form).");
+});
