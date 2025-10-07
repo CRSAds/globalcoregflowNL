@@ -1,12 +1,12 @@
 // coregRenderer.js
-// Dynamische Coreg renderer – 100% Directus-driven
+// Dynamische Coreg renderer – volledig Directus-driven, inclusief multistep fix en skip logic
 
 if (typeof window.API_COREG === "undefined") {
   window.API_COREG = "https://globalcoregflow-nl.vercel.app/api/coreg.js";
 }
 const API_COREG = window.API_COREG;
 
-// ============ Hulp: afbeelding-url ============
+// ============ Helper: afbeelding-url ============
 function getImageUrl(image) {
   if (!image) return "https://via.placeholder.com/600x200?text=Geen+afbeelding";
   return image.id
@@ -31,8 +31,9 @@ async function fetchCampaigns() {
 // ============ Lead versturen ============
 async function sendLeadToDatabowl(payload) {
   try {
-    const result = await window.fetchLead(payload);
-    console.log("✅ Lead verstuurd:", payload);
+    // unieke suffix voorkomt dubbele blokkeert
+    const result = await window.fetchLead({ ...payload, unique: crypto.randomUUID() });
+    console.log("✅ Lead verstuurd:", { cid: payload.cid, sid: payload.sid, answer: payload.f_2014_coreg_answer });
     return result;
   } catch (e) {
     console.error("❌ Lead fout:", e);
@@ -41,8 +42,8 @@ async function sendLeadToDatabowl(payload) {
 
 // ============ Payload helper ============
 function buildCoregPayload(campaign, answerValue) {
-  const cid = answerValue?.cid || campaign.cid;
-  const sid = answerValue?.sid || campaign.sid;
+  const cid = answerValue?.cid ?? campaign.cid;
+  const sid = answerValue?.sid ?? campaign.sid;
 
   const payload = window.buildPayload({
     cid,
@@ -60,6 +61,7 @@ function renderCampaignBlock(campaign, steps) {
   const visible = steps && campaign.step > 1 ? "none" : "block";
   const isFinal = campaign.isFinal ? "final-coreg" : "";
 
+  // === DROPDOWN ===
   if (style === "dropdown") {
     return `
       <div class="coreg-section ${isFinal}" id="campaign-${campaign.id}" style="display:${visible}">
@@ -79,7 +81,8 @@ function renderCampaignBlock(campaign, steps) {
       </div>`;
   }
 
-  // default → buttons
+  // === BUTTONS ===
+  const hasNo = answers.some(a => a.answer_value?.toLowerCase() === "no");
   return `
     <div class="coreg-section ${isFinal}" id="campaign-${campaign.id}" style="display:${visible}">
       <img src="${getImageUrl(campaign.image)}" class="coreg-image" alt="${campaign.title}" />
@@ -94,9 +97,10 @@ function renderCampaignBlock(campaign, steps) {
                   data-sid="${opt.has_own_campaign ? opt.sid : campaign.sid}">
             ${opt.label}
           </button>`).join("")}
+        ${!hasNo ? `
         <button class="flow-next btn-skip" data-answer="no" data-campaign="${campaign.id}">
           Nee, geen interesse
-        </button>
+        </button>` : ""}
       </div>
     </div>`;
 }
@@ -109,7 +113,7 @@ async function initCoregFlow() {
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
 
-  // Sorteren op order en step (voor multi-step flows)
+  // Sorteren op order en step
   const ordered = [...campaigns].sort((a, b) => (a.order || 0) - (b.order || 0));
   const grouped = {};
 
@@ -121,7 +125,7 @@ async function initCoregFlow() {
     }
   }
 
-  // Bouw UI
+  // UI container
   container.innerHTML = `
     <div class="coreg-inner">
       <div class="ld-progress-wrap mb-25">
@@ -138,11 +142,10 @@ async function initCoregFlow() {
 
   const sectionsContainer = container.querySelector("#coreg-sections");
 
-  // Maak per campagne render
+  // Render campagnes
   ordered.forEach((camp, idx) => {
     const isFinal = idx === ordered.length - 1;
     camp.isFinal = isFinal;
-
     if (camp.has_coreg_flow && grouped[camp.cid]) {
       grouped[camp.cid].forEach(step => {
         sectionsContainer.innerHTML += renderCampaignBlock(step, true);
@@ -195,42 +198,61 @@ async function initCoregFlow() {
 
   // ========== Event Listeners ==========
   sections.forEach(section => {
-    // Dropdowns
+    // === DROPDOWN ===
     const dropdown = section.querySelector(".coreg-dropdown");
     if (dropdown) {
       dropdown.addEventListener("change", e => {
         const opt = e.target.selectedOptions[0];
         if (!opt || !opt.value) return;
         const camp = campaigns.find(c => c.id == dropdown.dataset.campaign);
-        const answerValue = {
-          answer_value: opt.value,
-          cid: opt.dataset.cid,
-          sid: opt.dataset.sid
-        };
+        const cid = opt.dataset.cid;
+        const sid = opt.dataset.sid;
+        const answerValue = { answer_value: opt.value, cid, sid };
+
+        // multistep check
+        if (camp.has_coreg_flow) {
+          const group = grouped[camp.cid];
+          const isLastStep = camp.step === group[group.length - 1].step;
+          if (!isLastStep) {
+            sessionStorage.setItem(`pending_coreg_${camp.cid}`, JSON.stringify(answerValue));
+            showNextSection(section);
+            return;
+          }
+        }
+
         const payload = buildCoregPayload(camp, answerValue);
         sendLeadToDatabowl(payload);
         showNextSection(section);
       });
     }
 
-    // Skip links
-    const skip = section.querySelector(".skip-link");
-    if (skip) {
-      skip.addEventListener("click", e => {
+    // === SKIP ===
+    section.querySelectorAll(".btn-skip, .skip-link").forEach(btn => {
+      btn.addEventListener("click", e => {
         e.preventDefault();
         showNextSection(section);
       });
-    }
+    });
 
-    // Buttons
+    // === BUTTONS ===
     section.querySelectorAll(".btn-answer").forEach(btn => {
       btn.addEventListener("click", () => {
         const camp = campaigns.find(c => c.id == btn.dataset.campaign);
-        const answerValue = {
-          answer_value: btn.dataset.answer,
-          cid: btn.dataset.cid,
-          sid: btn.dataset.sid
-        };
+        const cid = btn.dataset.cid;
+        const sid = btn.dataset.sid;
+        const answerValue = { answer_value: btn.dataset.answer, cid, sid };
+
+        // multistep check
+        if (camp.has_coreg_flow) {
+          const group = grouped[camp.cid];
+          const isLastStep = camp.step === group[group.length - 1].step;
+          if (!isLastStep) {
+            sessionStorage.setItem(`pending_coreg_${camp.cid}`, JSON.stringify(answerValue));
+            showNextSection(section);
+            return;
+          }
+        }
+
         const payload = buildCoregPayload(camp, answerValue);
         sendLeadToDatabowl(payload);
         showNextSection(section);
