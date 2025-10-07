@@ -86,12 +86,14 @@ async function fetchLead(payload) {
     return { skipped: true };
   }
 
-  try {
-    const response = await fetch("/api/lead", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+const response = await fetch("https://globalcoregflow-nl.vercel.app/api/lead", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-cache"
+  },
+  body: JSON.stringify(payload)
+});
 
     let result = {};
     try {
