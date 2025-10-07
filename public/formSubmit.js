@@ -87,7 +87,7 @@ async function fetchLead(payload) {
   }
 
   try {
-    const response = await fetch("/api/lead", {
+    const response = await fetch("/api/lead.js", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
