@@ -1,5 +1,5 @@
 // /api/lead.js
-// Unified Databowl forwarder voor short form, EM/TM coregs en cosponsors (elk met eigen cid/sid)
+// ✅ Volledig werkende Databowl forwarder voor alle leadtypes (short form, EM/TM coregs, co-sponsors)
 
 let recentIps = new Map();
 
@@ -10,7 +10,10 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cache-Control");
 
   if (req.method === "OPTIONS") return res.status(200).end();
+
+  // Alleen POST toegestaan
   if (req.method !== "POST") {
+    console.warn("❌ Method not allowed:", req.method);
     return res.status(405).json({ success: false, message: "Method Not Allowed" });
   }
 
@@ -45,7 +48,12 @@ export default async function handler(req, res) {
     // ===== Validatie basis =====
     if (!cid || !sid) {
       console.error("❌ Campagnegegevens ontbreken (cid/sid)", { cid, sid });
-      return res.status(400).json({ success: false, message: "Campagnegegevens ontbreken", cid, sid });
+      return res.status(400).json({
+        success: false,
+        message: "Campagnegegevens ontbreken",
+        cid,
+        sid
+      });
     }
 
     // ===== IP & optindate =====
@@ -61,7 +69,9 @@ export default async function handler(req, res) {
     const lastTime = recentIps.get(ipKey);
     if (lastTime && now - lastTime < 60000) {
       console.warn("⛔️ Geblokkeerd (duplicate binnen 60s):", ipKey);
-      return res.status(200).json({ success: false, blocked: true, reason: "duplicate_ip" });
+      return res
+        .status(200)
+        .json({ success: false, blocked: true, reason: "duplicate_ip" });
     }
     recentIps.set(ipKey, now);
 
@@ -77,7 +87,9 @@ export default async function handler(req, res) {
     const isSuspicious = suspiciousPatterns.some((p) => p.test(emailLower));
     if (isSuspicious) {
       console.warn("⛔️ Verdacht e-mailadres, lead geblokkeerd:", email);
-      return res.status(200).json({ success: false, blocked: true, reason: "suspicious_email" });
+      return res
+        .status(200)
+        .json({ success: false, blocked: true, reason: "suspicious_email" });
     }
 
     // ===== Transaction id =====
@@ -108,16 +120,22 @@ export default async function handler(req, res) {
       sub2: sub2 || ""
     });
 
-    if (typeof f_2014_coreg_answer !== "undefined") {
+    // Optionele coreg velden
+    if (f_2014_coreg_answer !== undefined) {
       params.set("f_2014_coreg_answer", f_2014_coreg_answer || "");
     }
-    if (typeof f_2575_coreg_answer_dropdown !== "undefined") {
+    if (f_2575_coreg_answer_dropdown !== undefined) {
       params.set("f_2575_coreg_answer_dropdown", f_2575_coreg_answer_dropdown || "");
     }
 
-    // ===== LOGGING PATCH START =====
-    console.log("🚀 Verstuur lead naar Databowl:", { cid, sid, email, firstname, lastname, f_2014_coreg_answer });
-    // ===== LOGGING PATCH END =====
+    console.log("🚀 Lead wordt verstuurd naar Databowl:", {
+      cid,
+      sid,
+      firstname,
+      lastname,
+      email,
+      coreg_answer: f_2014_coreg_answer
+    });
 
     // ===== Doorsturen naar Databowl =====
     const dbRes = await fetch("https://crsadvertising.databowl.com/api/v1/lead", {
@@ -129,9 +147,9 @@ export default async function handler(req, res) {
       body: params.toString()
     });
 
-    // ===== LOGGING PATCH 2 =====
+    // ===== Response verwerken =====
     const text = await dbRes.text();
-    console.log("📩 Databowl raw response:", text);
+    console.log("📩 Databowl raw response:", text || "(leeg)");
 
     let dbResult = {};
     try {
@@ -141,7 +159,7 @@ export default async function handler(req, res) {
       dbResult = { raw: text || "no-json-body", status: dbRes.status };
     }
 
-    console.log("✅ API LEAD klaar – status:", dbRes.status);
+    console.log("✅ Lead succesvol verwerkt – HTTP status:", dbRes.status);
 
     return res.status(200).json({
       success: true,
@@ -149,7 +167,9 @@ export default async function handler(req, res) {
       result: dbResult
     });
   } catch (error) {
-    console.error("❌ Fout bij verzenden naar Databowl:", error);
-    return res.status(500).json({ success: false, message: "Interne fout bij verzenden" });
+    console.error("❌ Interne fout bij verzenden naar Databowl:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Interne fout bij verzenden", error: String(error) });
   }
 }
