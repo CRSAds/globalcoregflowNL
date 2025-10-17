@@ -86,6 +86,7 @@ async function fetchLead(payload) {
     return { skipped: true };
   }
 
+try {
 const response = await fetch("https://globalcoregflow-nl.vercel.app/api/lead", {
   method: "POST",
   headers: {
