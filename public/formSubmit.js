@@ -1,4 +1,4 @@
-// formSubmit.js — volledig afgestemd op dynamische coregRenderer.js
+// formSubmit.js — volledig afgestemd op dynamische coregRenderer.js + longform submit
 
 window.submittedCampaigns = window.submittedCampaigns || new Set();
 
@@ -56,7 +56,6 @@ function buildPayload(campaign = {}) {
   };
 
   // ===== Coreg antwoorden ophalen =====
-  // key = coreg_answer_<campaign.id>
   if (campaign.coregAnswerKey) {
     payload.f_2014_coreg_answer = sessionStorage.getItem(campaign.coregAnswerKey) || "";
   }
@@ -86,15 +85,15 @@ async function fetchLead(payload) {
     return { skipped: true };
   }
 
-try {
-const response = await fetch("https://globalcoregflow-nl.vercel.app/api/lead.js", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Cache-Control": "no-cache"
-  },
-  body: JSON.stringify(payload)
-});
+  try {
+    const response = await fetch("https://globalcoregflow-nl.vercel.app/api/lead.js", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache"
+      },
+      body: JSON.stringify(payload)
+    });
 
     let result = {};
     try {
@@ -144,4 +143,66 @@ document.addEventListener("DOMContentLoaded", () => {
   attachListeners(shortForm);
   attachListeners(longForm);
   console.log("🧠 Live form tracking actief (short + long form).");
+});
+
+// =======================================
+// Long Form submit handler
+// =======================================
+document.addEventListener("DOMContentLoaded", () => {
+  const longFormBtn = document.getElementById("submit-long-form");
+  const longForm = document.getElementById("long-form");
+
+  if (!longFormBtn || !longForm) {
+    console.warn("⚠️ Long form niet gevonden, submit-handler niet geactiveerd");
+    return;
+  }
+
+  longFormBtn.addEventListener("click", async () => {
+    console.log("📤 Long form verzonden → aanvullende gegevens verzamelen...");
+
+    // velden uitlezen
+    const postcode = document.getElementById("postcode")?.value.trim() || "";
+    const straat = document.getElementById("straat")?.value.trim() || "";
+    const huisnummer = document.getElementById("huisnummer")?.value.trim() || "";
+    const woonplaats = document.getElementById("woonplaats")?.value.trim() || "";
+    const telefoon = document.getElementById("telefoon")?.value.trim() || "";
+
+    if (!postcode || !straat || !huisnummer || !woonplaats || !telefoon) {
+      alert("Vul alle verplichte velden in voordat je doorgaat.");
+      return;
+    }
+
+    // sla op in sessionStorage
+    sessionStorage.setItem("postcode", postcode);
+    sessionStorage.setItem("straat", straat);
+    sessionStorage.setItem("huisnummer", huisnummer);
+    sessionStorage.setItem("woonplaats", woonplaats);
+    sessionStorage.setItem("telefoon", telefoon);
+
+    const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+    if (!pending.length) {
+      console.warn("⚠️ Geen longform-campagnes gevonden om te versturen");
+      return;
+    }
+
+    // stuur elke longform-campagne
+    for (const campaign of pending) {
+      console.log("🚀 Verstuur longform-lead voor:", campaign);
+      const payload = window.buildPayload(campaign);
+      await window.fetchLead(payload);
+    }
+
+    console.log("✅ Alle longform-leads verzonden");
+    alert("Je gegevens zijn succesvol verzonden! Dank je wel.");
+    sessionStorage.removeItem("longFormCampaigns");
+
+    // door naar volgende sectie
+    const current = longForm.closest(".flow-section");
+    const next = current?.nextElementSibling;
+    if (next) {
+      current.style.display = "none";
+      next.style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  });
 });
