@@ -95,18 +95,18 @@ function initFlowLite() {
 
     // 🔍 ⬇️ Voeg DEZE CHECK toe vóór "Volgende sectie tonen"
     if (next && next.id === "long-form-section") {
-      const hasTM = sessionStorage.getItem("hasPositiveTM") === "true";
-      if (!hasTM) {
-        console.log("🚫 Geen positieve TM-antwoorden → long form overslaan");
-        // zoek de eerstvolgende sectie na het long form
-        next = next.nextElementSibling;
-        while (next && next.classList.contains("ivr-section") && status === "online") {
-          next = next.nextElementSibling;
-        }
-      } else {
-        console.log("✅ Positieve TM-antwoord gevonden → long form tonen");
-      }
+  const showLongForm = sessionStorage.getItem("requiresLongForm") === "true";
+  if (!showLongForm) {
+    console.log("🚫 Geen longform-campagnes positief beantwoord → long form overslaan");
+    // zoek de eerstvolgende sectie na het long form
+    next = next.nextElementSibling;
+    while (next && next.classList.contains("ivr-section") && status === "online") {
+      next = next.nextElementSibling;
     }
+  } else {
+    console.log("✅ Positieve longform-campagne gevonden → long form tonen");
+  }
+}
 
     // Volgende sectie tonen
     if (next) {
