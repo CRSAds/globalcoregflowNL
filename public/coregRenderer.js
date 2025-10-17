@@ -289,9 +289,9 @@ sections.forEach(section => {
         const currentCid = String(camp.cid ?? "");
         const hasMoreSteps = sections.slice(idx + 1).some(s => String(s.dataset.cid || "") === currentCid);
 
-        if (camp.tmcosponsor) {
-          sessionStorage.setItem("hasPositiveTM", "true");
-          console.log("📞 TM-sponsor positief beantwoord:", camp.cid);
+        if (camp.requiresLongForm) {
+        sessionStorage.setItem("requiresLongForm", "true");
+        console.log("📋 Longform-sponsor positief beantwoord:", camp.cid);
         }
 
         if (hasMoreSteps) {
