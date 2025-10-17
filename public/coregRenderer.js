@@ -67,7 +67,7 @@ function renderCampaignBlock(campaign, steps) {
 
   if (style === "dropdown") {
     return `
-      <div class="coreg-section ${isFinal}" id="campaign-${campaign.id}" style="display:${visible}">
+    <div class="coreg-section ${isFinal}" id="campaign-${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}" style="display:${visible}">
         <img src="${getImageUrl(campaign.image)}" class="coreg-image" alt="${campaign.title}" />
         <h3 class="coreg-title">${campaign.title}</h3>
         <p class="coreg-description">${campaign.description || ""}</p>
@@ -86,7 +86,7 @@ function renderCampaignBlock(campaign, steps) {
 
   // default → buttons
   return `
-    <div class="coreg-section ${isFinal}" id="campaign-${campaign.id}" style="display:${visible}">
+    <div class="coreg-section ${isFinal}" id="campaign-${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}" style="display:${visible}">
       <img src="${getImageUrl(campaign.image)}" class="coreg-image" alt="${campaign.title}" />
       <h3 class="coreg-title">${campaign.title}</h3>
       <p class="coreg-description">${campaign.description || ""}</p>
