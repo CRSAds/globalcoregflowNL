@@ -336,4 +336,5 @@ sections.forEach(section => {
   });
 });
 
+} 
 window.addEventListener("DOMContentLoaded", initCoregFlow);
