@@ -46,14 +46,21 @@ function buildPayload(campaign = {}) {
     sub2: sessionStorage.getItem("sub2") || ""
   };
 
-  if (campaign.coregAnswerKey) {
+if (campaign.coregAnswerKey) {
     payload.f_2014_coreg_answer = sessionStorage.getItem(campaign.coregAnswerKey) || "";
   }
 
-  const dropdownKeys = Object.keys(sessionStorage).filter(k => k.startsWith("dropdown_answer_"));
-  if (dropdownKeys.length > 0) {
-    const latest = dropdownKeys[dropdownKeys.length - 1];
-    payload.f_2575_coreg_answer_dropdown = sessionStorage.getItem(latest);
+  // ✅ Dropdownwaarde toevoegen (alleen als nog niet gezet)
+  if (!payload.f_2575_coreg_answer_dropdown) {
+    const dropdownKeys = Object.keys(sessionStorage).filter(k => k.startsWith("dropdown_answer_"));
+    if (dropdownKeys.length > 0) {
+      const latest = dropdownKeys[dropdownKeys.length - 1];
+      const dropdownValue = sessionStorage.getItem(latest);
+      if (dropdownValue) {
+        payload.f_2575_coreg_answer_dropdown = dropdownValue;
+        console.log("🔽 Dropdownwaarde toegevoegd aan payload:", dropdownValue);
+      }
+    }
   }
 
   console.log("📦 Payload opgebouwd:", payload);
