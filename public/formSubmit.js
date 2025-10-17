@@ -72,6 +72,8 @@ if (!payload.f_2575_coreg_answer_dropdown) {
 console.log("📦 Payload opgebouwd:", payload);
 return payload;
 
+}
+
 // --- Lead versturen ---
 async function fetchLead(payload) {
   const key = `${payload.cid}_${payload.sid}`;
