@@ -1,22 +1,17 @@
-// /api/lead.js
-// ✅ Volledig werkende Databowl forwarder met dynamische CORS (voor Swipe Pages + externe domeinen)
+// /api/lead.js — CORS fix voor alle externe domeinen
 
 let recentIps = new Map();
 
 export default async function handler(req, res) {
-  // === Dynamische CORS ===
-  const origin = req.headers.origin || "*";
-  res.setHeader("Access-Control-Allow-Origin", origin);
+  // === Universele CORS headers ===
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cache-Control");
-  res.setHeader("Vary", "Origin"); // voorkomt caching van CORS-headers door Vercel
 
-  // Preflight (OPTIONS) direct toestaan
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  // === Preflight ===
+  if (req.method === "OPTIONS") return res.status(200).end();
 
-  // Alleen POST toegestaan
+  // === Alleen POST toegestaan ===
   if (req.method !== "POST") {
     console.warn("❌ Method not allowed:", req.method);
     return res.status(405).json({ success: false, message: "Method Not Allowed" });
