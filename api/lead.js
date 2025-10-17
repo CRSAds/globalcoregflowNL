@@ -1,6 +1,8 @@
 // /api/lead.js
 // ✅ Universele CORS fix – laat ALLE origins toe, werkt op Vercel & SwipePages
 
+export const config = { runtime: "nodejs" };
+
 let recentIps = new Map();
 
 export default async function handler(req, res) {
