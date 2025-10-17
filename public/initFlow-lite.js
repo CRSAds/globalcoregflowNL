@@ -9,6 +9,7 @@
 // 4️⃣ Slaat IVR-secties over bij status=online
 // 5️⃣ Houdt CoregFlow (#coreg-container) altijd zichtbaar
 // 6️⃣ Forceert image load voor zichtbare secties
+// 7️⃣ Gaat automatisch verder na long form submit
 // =============================================================
 
 window.addEventListener("DOMContentLoaded", initFlowLite);
@@ -18,7 +19,7 @@ function initFlowLite() {
 
   // Wacht op coregReady event voordat flow start
   document.addEventListener("coregReady", (e) => {
-  console.log("✅ coregReady ontvangen:", e.detail.campaigns?.length, "campagnes");
+    console.log("✅ coregReady ontvangen:", e.detail.campaigns?.length, "campagnes");
   });
 
   const params = new URLSearchParams(window.location.search);
@@ -27,9 +28,7 @@ function initFlowLite() {
   // ============================================================
   // 1️⃣ Selectie van secties
   // ============================================================
-  const allSections = Array.from(
-    document.querySelectorAll(".flow-section, .ivr-section")
-  );
+  const allSections = Array.from(document.querySelectorAll(".flow-section, .ivr-section"));
   console.log("📦 Swipe-secties gevonden:", allSections.length);
 
   // Coreg-container apart houden — deze mag niet verborgen worden
@@ -45,9 +44,7 @@ function initFlowLite() {
   // ============================================================
   // 2️⃣ Eerste sectie tonen (niet-IVR)
   // ============================================================
-  const firstVisible = allSections.find(
-    el => !el.classList.contains("ivr-section")
-  );
+  const firstVisible = allSections.find(el => !el.classList.contains("ivr-section"));
   if (firstVisible) {
     firstVisible.style.display = "block";
     reloadImages(firstVisible);
@@ -62,16 +59,12 @@ function initFlowLite() {
   if (status === "online") {
     console.log("🌐 Status = ONLINE → IVR-secties overslaan + footeronline tonen");
 
-    // IVR verbergen
     document.querySelectorAll(".ivr-section").forEach(el => (el.style.display = "none"));
-
-    // Footer configuratie
     document.querySelectorAll(".footeronline").forEach(el => (el.style.display = "block"));
     document.querySelectorAll(".footerlive").forEach(el => (el.style.display = "none"));
   } else if (status === "live") {
     console.log("📺 Status = LIVE → IVR actief + footerlive tonen");
 
-    // Footer configuratie
     document.querySelectorAll(".footeronline").forEach(el => (el.style.display = "none"));
     document.querySelectorAll(".footerlive").forEach(el => (el.style.display = "block"));
   }
@@ -81,47 +74,75 @@ function initFlowLite() {
   // ============================================================
   const flowButtons = document.querySelectorAll(".flow-next");
   flowButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    const current = btn.closest(".flow-section, .ivr-section");
-    if (!current) return;
+    btn.addEventListener("click", () => {
+      const current = btn.closest(".flow-section, .ivr-section");
+      if (!current) return;
 
-    current.style.display = "none";
-    let next = current.nextElementSibling;
+      current.style.display = "none";
+      let next = current.nextElementSibling;
 
-    // Bij status=online → IVR-secties overslaan
-    while (next && next.classList.contains("ivr-section") && status === "online") {
-      next = next.nextElementSibling;
-    }
+      // Bij status=online → IVR-secties overslaan
+      while (next && next.classList.contains("ivr-section") && status === "online") {
+        next = next.nextElementSibling;
+      }
 
-    // 🔍 ⬇️ Voeg DEZE CHECK toe vóór "Volgende sectie tonen"
-    if (next && next.id === "long-form-section") {
-  const showLongForm = sessionStorage.getItem("requiresLongForm") === "true";
-  if (!showLongForm) {
-    console.log("🚫 Geen longform-campagnes positief beantwoord → long form overslaan");
-    // zoek de eerstvolgende sectie na het long form
-    next = next.nextElementSibling;
-    while (next && next.classList.contains("ivr-section") && status === "online") {
-      next = next.nextElementSibling;
-    }
-  } else {
-    console.log("✅ Positieve longform-campagne gevonden → long form tonen");
-  }
-}
+      // 🔍 Check of de volgende sectie het long form is
+      if (next && next.id === "long-form-section") {
+        const showLongForm = sessionStorage.getItem("requiresLongForm") === "true";
+        if (!showLongForm) {
+          console.log("🚫 Geen longform-campagnes positief beantwoord → long form overslaan");
+          // zoek de eerstvolgende sectie na het long form
+          next = next.nextElementSibling;
+          while (next && next.classList.contains("ivr-section") && status === "online") {
+            next = next.nextElementSibling;
+          }
+        } else {
+          console.log("✅ Positieve longform-campagne gevonden → long form tonen");
+        }
+      }
 
-    // Volgende sectie tonen
-    if (next) {
-      next.style.display = "block";
-      reloadImages(next);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      console.log("➡️ Volgende sectie getoond:", next.className);
-    } else {
-      console.log("🏁 Einde van de flow bereikt");
-    }
+      // Volgende sectie tonen
+      if (next) {
+        next.style.display = "block";
+        reloadImages(next);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        console.log("➡️ Volgende sectie getoond:", next.className);
+      } else {
+        console.log("🏁 Einde van de flow bereikt");
+      }
+    });
   });
-});
 
   // ============================================================
-  // 5️⃣ System Check Log (voor debugging)
+  // 5️⃣ Automatische doorgang na long form submit
+  // ============================================================
+  const longFormBtn = document.getElementById("submit-long-form");
+  if (longFormBtn) {
+    longFormBtn.addEventListener("click", () => {
+      setTimeout(() => {
+        const current = document.getElementById("long-form-section");
+        if (!current) return;
+
+        let next = current.nextElementSibling;
+        while (next && next.classList.contains("ivr-section") && status === "online") {
+          next = next.nextElementSibling;
+        }
+
+        if (next) {
+          console.log("✅ Long form voltooid → door naar volgende sectie");
+          current.style.display = "none";
+          next.style.display = "block";
+          reloadImages(next);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+          console.log("🏁 Einde van de flow bereikt na long form");
+        }
+      }, 500); // kleine delay zodat fetchLead kan afronden
+    });
+  }
+
+  // ============================================================
+  // 6️⃣ System Check Log (debug)
   // ============================================================
   console.groupCollapsed("✅ Global CoregFlow System Check");
   console.log("formSubmit.js geladen:", !!window.buildPayload);
@@ -131,15 +152,12 @@ function initFlowLite() {
   console.log("IVR aanwezig:", document.querySelectorAll(".ivr-section").length);
   console.log("Memory script actief:", typeof window.memoryGame !== "undefined");
 
-    // === Extra check: Directus Coreg data ===
   if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
-    console.log(
-      `📊 Coreg campagnes geladen uit Directus: ${window.allCampaigns.length}`
-    );
+    console.log(`📊 Coreg campagnes geladen uit Directus: ${window.allCampaigns.length}`);
   } else {
     console.warn("⚠️ Coreg campagnes nog niet geladen of onbekend (window.allCampaigns ontbreekt)");
   }
-  
+
   console.groupEnd();
 }
 
@@ -149,20 +167,15 @@ function initFlowLite() {
 function reloadImages(section) {
   if (!section) return;
 
-  // 1️⃣ Forceren dat images met data-src of base64 worden geladen
   const imgs = section.querySelectorAll("img[data-src], img[src*='data:image']");
   imgs.forEach(img => {
     const newSrc = img.getAttribute("data-src") || img.src;
-    if (newSrc && !img.src.includes(newSrc)) {
-      img.src = newSrc;
-    }
+    if (newSrc && !img.src.includes(newSrc)) img.src = newSrc;
   });
 
-  // 2️⃣ Trigger mini scroll om Swipe Pages lazyload te activeren
   window.scrollBy(0, 1);
   setTimeout(() => window.scrollBy(0, -1), 150);
 
-  // 3️⃣ Fallback: IntersectionObserver om nieuwe secties af te dwingen
   const visibleImages = section.querySelectorAll("img");
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
@@ -174,6 +187,5 @@ function reloadImages(section) {
   }, { threshold: 0.1 });
 
   visibleImages.forEach(img => observer.observe(img));
-
   console.log("🖼️ Afbeeldingen geforceerd geladen in sectie:", section.className);
 }
