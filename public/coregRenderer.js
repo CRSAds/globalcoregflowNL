@@ -224,16 +224,30 @@ sections.forEach(section => {
       // Bepaal of dit de laatste stap is voor deze sponsor (zelfde cid)
       const idx = sections.indexOf(section);
       const currentCid = String(camp.cid ?? "");
-      const hasMoreSteps = sections.slice(idx + 1).some(s => String(s.dataset.cid || "") === currentCid);
+      const hasMoreSteps = sections
+        .slice(idx + 1)
+        .some(s => String(s.dataset.cid || "") === currentCid);
 
       if (hasMoreSteps) {
         console.log("⏭️ Multistep actief (dropdown) → nog NIET posten, door naar volgende stap");
         showNextSection(section);
       } else {
-        const payload = buildCoregPayload(camp, answerValue);
-        console.log("🚦 POST naar /api/lead gestart (dropdown laatste stap):", payload);
-        sendLeadToDatabowl(payload);
-        showNextSection(section);
+        if (camp.requiresLongForm) {
+          // 🧩 Longform campagne → nog NIET posten, eerst formulier laten invullen
+          console.log("🕓 Longform campagne gedetecteerd → wacht op formulier voor verzending:", camp.cid);
+          const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+          if (!pending.find(p => p.cid === camp.cid && p.sid === camp.sid)) {
+            pending.push({ cid: camp.cid, sid: camp.sid });
+            sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
+          }
+          showNextSection(section);
+        } else {
+          // 📤 Geen longform → direct verzenden
+          const payload = buildCoregPayload(camp, answerValue);
+          console.log("🚦 POST naar /api/lead gestart (laatste stap):", payload);
+          sendLeadToDatabowl(payload);
+          showNextSection(section);
+        }
       }
     });
   }
@@ -284,10 +298,22 @@ sections.forEach(section => {
           console.log("⏭️ Multistep actief → nog NIET posten, door naar volgende stap");
           showNextSection(section);
         } else {
-          const payload = buildCoregPayload(camp, answerValue);
-          console.log("🚦 POST naar /api/lead gestart (laatste stap):", payload);
-          sendLeadToDatabowl(payload);
-          showNextSection(section);
+          if (camp.requiresLongForm) {
+            // 🧩 Longform campagne → nog NIET posten, eerst formulier laten invullen
+            console.log("🕓 Longform campagne gedetecteerd → wacht op formulier voor verzending:", camp.cid);
+            const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+            if (!pending.find(p => p.cid === camp.cid && p.sid === camp.sid)) {
+              pending.push({ cid: camp.cid, sid: camp.sid });
+              sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
+            }
+            showNextSection(section);
+          } else {
+            // 📤 Geen longform → direct verzenden
+            const payload = buildCoregPayload(camp, answerValue);
+            console.log("🚦 POST naar /api/lead gestart (laatste stap):", payload);
+            sendLeadToDatabowl(payload);
+            showNextSection(section);
+          }
         }
       } else {
         // Negatief → geen lead posten, alle vervolgstappen van dezelfde sponsor overslaan
@@ -309,7 +335,5 @@ sections.forEach(section => {
     });
   });
 });
-  
-}
 
 window.addEventListener("DOMContentLoaded", initCoregFlow);
