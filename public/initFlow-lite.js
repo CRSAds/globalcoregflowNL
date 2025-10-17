@@ -81,29 +81,44 @@ function initFlowLite() {
   // ============================================================
   const flowButtons = document.querySelectorAll(".flow-next");
   flowButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const current = btn.closest(".flow-section, .ivr-section");
-      if (!current) return;
+  btn.addEventListener("click", () => {
+    const current = btn.closest(".flow-section, .ivr-section");
+    if (!current) return;
 
-      current.style.display = "none";
-      let next = current.nextElementSibling;
+    current.style.display = "none";
+    let next = current.nextElementSibling;
 
-      // Bij status=online → IVR-secties overslaan
-      while (next && next.classList.contains("ivr-section") && status === "online") {
+    // Bij status=online → IVR-secties overslaan
+    while (next && next.classList.contains("ivr-section") && status === "online") {
+      next = next.nextElementSibling;
+    }
+
+    // 🔍 ⬇️ Voeg DEZE CHECK toe vóór "Volgende sectie tonen"
+    if (next && next.id === "long-form-section") {
+      const hasTM = sessionStorage.getItem("hasPositiveTM") === "true";
+      if (!hasTM) {
+        console.log("🚫 Geen positieve TM-antwoorden → long form overslaan");
+        // zoek de eerstvolgende sectie na het long form
         next = next.nextElementSibling;
-      }
-
-      // Volgende sectie tonen
-      if (next) {
-        next.style.display = "block";
-        reloadImages(next);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        console.log("➡️ Volgende sectie getoond:", next.className);
+        while (next && next.classList.contains("ivr-section") && status === "online") {
+          next = next.nextElementSibling;
+        }
       } else {
-        console.log("🏁 Einde van de flow bereikt");
+        console.log("✅ Positieve TM-antwoord gevonden → long form tonen");
       }
-    });
+    }
+
+    // Volgende sectie tonen
+    if (next) {
+      next.style.display = "block";
+      reloadImages(next);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      console.log("➡️ Volgende sectie getoond:", next.className);
+    } else {
+      console.log("🏁 Einde van de flow bereikt");
+    }
   });
+});
 
   // ============================================================
   // 5️⃣ System Check Log (voor debugging)
