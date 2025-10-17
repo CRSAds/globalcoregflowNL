@@ -1,15 +1,20 @@
 // /api/lead.js
-// ✅ Volledig werkende Databowl forwarder voor alle leadtypes (short form, EM/TM coregs, co-sponsors)
+// ✅ Volledig werkende Databowl forwarder met dynamische CORS (voor Swipe Pages + externe domeinen)
 
 let recentIps = new Map();
 
 export default async function handler(req, res) {
-  // === CORS ===
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // === Dynamische CORS ===
+  const origin = req.headers.origin || "*";
+  res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cache-Control");
+  res.setHeader("Vary", "Origin"); // voorkomt caching van CORS-headers door Vercel
 
-  if (req.method === "OPTIONS") return res.status(200).end();
+  // Preflight (OPTIONS) direct toestaan
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
 
   // Alleen POST toegestaan
   if (req.method !== "POST") {
