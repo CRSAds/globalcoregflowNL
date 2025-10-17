@@ -233,8 +233,8 @@ async function initCoregFlow() {
       });
     }
 
-    // Buttons
-    section.querySelectorAll(".btn-answer").forEach(btn => {
+    // ✅ Buttons (positief/negatief gedrag)
+    section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
       btn.addEventListener("click", () => {
         const camp = campaigns.find(c => c.id == btn.dataset.campaign);
         const answerValue = {
@@ -243,10 +243,37 @@ async function initCoregFlow() {
           sid: btn.dataset.sid
         };
         console.log("🟢 Button klik →", answerValue);
-        const payload = buildCoregPayload(camp, answerValue);
-        console.log("🚦 POST naar /api/lead gestart:", payload);
-        sendLeadToDatabowl(payload);
-        showNextSection(section);
+
+        // 🔍 Positief of negatief bepalen
+        const labelText = btn.textContent.toLowerCase();
+        const answerVal = (btn.dataset.answer || "").toLowerCase();
+        const isPositive =
+          labelText.includes("ja") ||
+          labelText.includes("graag") ||
+          answerVal === "yes" ||
+          answerVal === "ja";
+
+        if (isPositive) {
+          // ✅ Positief antwoord → lead versturen + doorgaan
+          const payload = buildCoregPayload(camp, answerValue);
+          console.log("🚦 POST naar /api/lead gestart:", payload);
+          sendLeadToDatabowl(payload);
+          showNextSection(section);
+        } else {
+          // ❌ Negatief antwoord → geen lead, sla multistep over
+          console.log("⏭️ Negatief antwoord → volgende sponsorvraag tonen");
+          const idx = sections.indexOf(section);
+          const next = sections.find(
+            (s, i) => i > idx && s.dataset.cid !== camp.cid
+          );
+          if (next) {
+            section.style.display = "none";
+            next.style.display = "block";
+            updateProgressBar(sections.indexOf(next));
+          } else {
+            handleFinalCoreg();
+          }
+        }
       });
     });
   });
