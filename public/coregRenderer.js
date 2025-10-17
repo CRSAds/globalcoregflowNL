@@ -99,8 +99,12 @@ function renderCampaignBlock(campaign, steps) {
                   data-sid="${opt.has_own_campaign ? opt.sid : campaign.sid}">
             ${opt.label}
           </button>`).join("")}
-        <button class="flow-next btn-skip" data-answer="no" data-campaign="${campaign.id}">
-          Nee, geen interesse
+        <button class="flow-next btn-skip"
+          data-answer="no"
+          data-campaign="${campaign.id}"
+          data-cid="${campaign.cid}"
+          data-sid="${campaign.sid}">
+        Nee, geen interesse
         </button>
       </div>
     </div>`;
