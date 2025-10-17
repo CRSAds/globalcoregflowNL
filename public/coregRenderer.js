@@ -17,7 +17,7 @@ function getImageUrl(image) {
 async function fetchCampaigns() {
   try {
     const res = await fetch(
-    "https://cms.core.909play.com/items/coreg_campaigns?filter[is_live][_eq]=true&sort=sort",
+    "https://globalcoregflow-nl.vercel.app/api/coreg.js",
   { cache: "no-store" }
   );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
