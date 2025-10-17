@@ -47,25 +47,30 @@ function buildPayload(campaign = {}) {
   };
 
 if (campaign.coregAnswerKey) {
-    payload.f_2014_coreg_answer = sessionStorage.getItem(campaign.coregAnswerKey) || "";
-  }
+  payload.f_2014_coreg_answer = sessionStorage.getItem(campaign.coregAnswerKey) || "";
+}
 
-  // ✅ Dropdownwaarde toevoegen (alleen als nog niet gezet)
-  if (!payload.f_2575_coreg_answer_dropdown) {
+// ✅ Dropdownwaarde meenemen — ook als die direct in sessionStorage staat
+if (!payload.f_2575_coreg_answer_dropdown) {
+  const directValue = sessionStorage.getItem("f_2575_coreg_answer_dropdown");
+  if (directValue) {
+    payload.f_2575_coreg_answer_dropdown = directValue;
+    console.log("🔽 Dropdownwaarde toegevoegd aan payload (direct):", directValue);
+  } else {
     const dropdownKeys = Object.keys(sessionStorage).filter(k => k.startsWith("dropdown_answer_"));
     if (dropdownKeys.length > 0) {
       const latest = dropdownKeys[dropdownKeys.length - 1];
       const dropdownValue = sessionStorage.getItem(latest);
       if (dropdownValue) {
         payload.f_2575_coreg_answer_dropdown = dropdownValue;
-        console.log("🔽 Dropdownwaarde toegevoegd aan payload:", dropdownValue);
+        console.log("🔽 Dropdownwaarde toegevoegd aan payload (fallback):", dropdownValue);
       }
     }
   }
-
-  console.log("📦 Payload opgebouwd:", payload);
-  return payload;
 }
+
+console.log("📦 Payload opgebouwd:", payload);
+return payload;
 
 // --- Lead versturen ---
 async function fetchLead(payload) {
