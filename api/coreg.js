@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   try {
     // ===== Directus endpoint =====
-    const url = `${process.env.DIRECTUS_URL}/items/coreg_campaigns?fields=*,image.id,image.filename_download,coreg_answers.*,coreg_dropdown_options.*&sort=order`;
+    const url = `${process.env.DIRECTUS_URL}/items/coreg_campaigns?filter[is_live][_eq]=true&fields=*,image.id,image.filename_download,coreg_answers.*,coreg_dropdown_options.*&sort=order`;
 
     const r = await fetch(url, {
       headers: {
@@ -29,11 +29,9 @@ export default async function handler(req, res) {
 
     // ===== Normalisatie stap =====
     campaigns = campaigns.map((camp) => {
-      // zorg dat cid/sid altijd bestaan op campagneniveau
       const normalizedCid = camp.cid || camp.campaign_id || null;
       const normalizedSid = camp.sid || camp.source_id || null;
 
-      // Normaliseer answers (buttons, ja/nee, etc.)
       const answers = (camp.coreg_answers || []).map((ans) => ({
         id: ans.id,
         label: ans.label || "",
@@ -47,7 +45,6 @@ export default async function handler(req, res) {
           : normalizedSid
       }));
 
-      // Normaliseer dropdown-opties
       const dropdowns = (camp.coreg_dropdown_options || []).map((opt) => ({
         id: opt.id,
         label: opt.label || "",
