@@ -221,6 +221,10 @@ sections.forEach(section => {
       };
       console.log("🟢 Dropdown keuze →", answerValue);
 
+        // Sla dropdownwaarde op voor Databowl-veld
+  sessionStorage.setItem("f_2575_coreg_answer_dropdown", opt.value);
+  console.log("💾 Dropdown opgeslagen in sessionStorage:", opt.value);
+
       // Bepaal of dit de laatste stap is voor deze sponsor (zelfde cid)
       const idx = sections.indexOf(section);
       const currentCid = String(camp.cid ?? "");
