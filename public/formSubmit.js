@@ -87,7 +87,7 @@ async function fetchLead(payload) {
   }
 
 try {
-const response = await fetch("https://globalcoregflow-nl.vercel.app/api/lead", {
+const response = await fetch("https://globalcoregflow-nl.vercel.app/api/lead.js", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
