@@ -135,7 +135,6 @@ document.addEventListener("longFormSubmitted", () => {
     console.log("🏁 Einde van de flow bereikt na long form");
   }
 });
-  }
 
   // ============================================================
   // 6️⃣ System Check Log (debug)
