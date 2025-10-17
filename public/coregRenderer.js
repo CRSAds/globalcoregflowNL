@@ -262,6 +262,11 @@ async function initCoregFlow() {
           const payload = buildCoregPayload(camp, answerValue);
           console.log("🚦 POST naar /api/lead gestart:", payload);
           sendLeadToDatabowl(payload);
+
+        if (camp.tmcosponsor) {
+          sessionStorage.setItem("hasPositiveTM", "true");
+          console.log("📞 TM-sponsor positief beantwoord:", camp.cid);
+        }
           showNextSection(section);
         } else {
           // ✅ Negatief antwoord → geen lead + ALLE vervolgstappen met dezelfde sponsor overslaan
