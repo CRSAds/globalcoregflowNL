@@ -114,31 +114,27 @@ function initFlowLite() {
   });
 
   // ============================================================
-  // 5️⃣ Automatische doorgang na long form submit
-  // ============================================================
-  const longFormBtn = document.getElementById("submit-long-form");
-  if (longFormBtn) {
-    longFormBtn.addEventListener("click", () => {
-      setTimeout(() => {
-        const current = document.getElementById("long-form-section");
-        if (!current) return;
+// 5️⃣ Automatische doorgang na long form submit
+// ============================================================
+document.addEventListener("longFormSubmitted", () => {
+  console.log("✅ Long form voltooid → door naar volgende sectie");
+  const current = document.getElementById("long-form-section");
+  if (!current) return;
 
-        let next = current.nextElementSibling;
-        while (next && next.classList.contains("ivr-section") && status === "online") {
-          next = next.nextElementSibling;
-        }
+  let next = current.nextElementSibling;
+  while (next && next.classList.contains("ivr-section") && status === "online") {
+    next = next.nextElementSibling;
+  }
 
-        if (next) {
-          console.log("✅ Long form voltooid → door naar volgende sectie");
-          current.style.display = "none";
-          next.style.display = "block";
-          reloadImages(next);
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        } else {
-          console.log("🏁 Einde van de flow bereikt na long form");
-        }
-      }, 500); // kleine delay zodat fetchLead kan afronden
-    });
+  if (next) {
+    current.style.display = "none";
+    next.style.display = "block";
+    reloadImages(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } else {
+    console.log("🏁 Einde van de flow bereikt na long form");
+  }
+});
   }
 
   // ============================================================
