@@ -1,20 +1,24 @@
-// /api/lead.js — CORS fix voor alle externe domeinen
+// /api/lead.js
+// ✅ Universele CORS fix – laat ALLE origins toe, werkt op Vercel & SwipePages
 
 let recentIps = new Map();
 
 export default async function handler(req, res) {
-  // === Universele CORS headers ===
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cache-Control");
+  // ---- Zet headers direct ----
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization');
 
-  // === Preflight ===
-  if (req.method === "OPTIONS") return res.status(200).end();
+  // ---- Preflight check ----
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
 
-  // === Alleen POST toegestaan ===
-  if (req.method !== "POST") {
-    console.warn("❌ Method not allowed:", req.method);
-    return res.status(405).json({ success: false, message: "Method Not Allowed" });
+  // ---- Alleen POST toegestaan ----
+  if (req.method !== 'POST') {
+    res.status(405).json({ success: false, message: 'Method Not Allowed' });
+    return;
   }
 
   try {
