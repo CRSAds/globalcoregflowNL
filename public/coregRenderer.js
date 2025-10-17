@@ -264,19 +264,24 @@ async function initCoregFlow() {
           sendLeadToDatabowl(payload);
           showNextSection(section);
         } else {
-          // ❌ Negatief antwoord → geen lead, sla multistep over
-          console.log("⏭️ Negatief antwoord → volgende sponsorvraag tonen");
-          const idx = sections.indexOf(section);
-          const next = sections.find(
-            (s, i) => i > idx && s.dataset.cid !== camp.cid
-          );
-          if (next) {
+          // ✅ Negatief antwoord → geen lead + ALLE vervolgstappen met dezelfde sponsor overslaan
+            console.log("⏭️ Negatief antwoord → vervolgstappen van dezelfde sponsor overslaan");
+            const idx = sections.indexOf(section);
+            const currentCid = String(camp.cid ?? "");
+
+            // loop vooruit totdat CID verandert
+            let j = idx + 1;
+            while (j < sections.length && String(sections[j].dataset.cid || "") === currentCid) {
+              j++;
+            }
+            
             section.style.display = "none";
-            next.style.display = "block";
-            updateProgressBar(sections.indexOf(next));
-          } else {
-            handleFinalCoreg();
-          }
+            if (j < sections.length) {
+              sections[j].style.display = "block";
+              updateProgressBar(j);
+            } else {
+              handleFinalCoreg();
+            }
         }
       });
     });
