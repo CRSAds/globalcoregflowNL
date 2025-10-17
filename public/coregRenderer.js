@@ -205,92 +205,111 @@ async function initCoregFlow() {
     }
   }
 
-  // ========== Event Listeners ==========
-  sections.forEach(section => {
-    // Dropdowns
-    const dropdown = section.querySelector(".coreg-dropdown");
-    if (dropdown) {
-      dropdown.addEventListener("change", e => {
-        const opt = e.target.selectedOptions[0];
-        if (!opt || !opt.value) return;
-        const camp = campaigns.find(c => c.id == dropdown.dataset.campaign);
-        const answerValue = {
-          answer_value: opt.value,
-          cid: opt.dataset.cid,
-          sid: opt.dataset.sid
-        };
-        console.log("🟢 Dropdown keuze →", answerValue);
+// ========== Event Listeners ==========
+sections.forEach(section => {
+  // Dropdowns
+  const dropdown = section.querySelector(".coreg-dropdown");
+  if (dropdown) {
+    dropdown.addEventListener("change", e => {
+      const opt = e.target.selectedOptions[0];
+      if (!opt || !opt.value) return;
+      const camp = campaigns.find(c => c.id == dropdown.dataset.campaign);
+      const answerValue = {
+        answer_value: opt.value,
+        cid: opt.dataset.cid,
+        sid: opt.dataset.sid
+      };
+      console.log("🟢 Dropdown keuze →", answerValue);
+
+      // Bepaal of dit de laatste stap is voor deze sponsor (zelfde cid)
+      const idx = sections.indexOf(section);
+      const currentCid = String(camp.cid ?? "");
+      const hasMoreSteps = sections.slice(idx + 1).some(s => String(s.dataset.cid || "") === currentCid);
+
+      if (hasMoreSteps) {
+        console.log("⏭️ Multistep actief (dropdown) → nog NIET posten, door naar volgende stap");
+        showNextSection(section);
+      } else {
         const payload = buildCoregPayload(camp, answerValue);
-        console.log("🚦 POST naar /api/lead gestart:", payload);
+        console.log("🚦 POST naar /api/lead gestart (dropdown laatste stap):", payload);
         sendLeadToDatabowl(payload);
         showNextSection(section);
-      });
-    }
+      }
+    });
+  }
 
-    // Skip links
-    const skip = section.querySelector(".skip-link");
-    if (skip) {
-      skip.addEventListener("click", e => {
-        e.preventDefault();
-        console.log("⏭️ Skip link gebruikt bij:", skip.dataset.campaign);
-        showNextSection(section);
-      });
-    }
+  // Skip links
+  const skip = section.querySelector(".skip-link");
+  if (skip) {
+    skip.addEventListener("click", e => {
+      e.preventDefault();
+      console.log("⏭️ Skip link gebruikt bij:", skip.dataset.campaign);
+      showNextSection(section);
+    });
+  }
 
-    // ✅ Buttons (positief/negatief gedrag)
-    section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const camp = campaigns.find(c => c.id == btn.dataset.campaign);
-        const answerValue = {
-          answer_value: btn.dataset.answer,
-          cid: btn.dataset.cid,
-          sid: btn.dataset.sid
-        };
-        console.log("🟢 Button klik →", answerValue);
+  // Buttons (positief/negatief + multistep)
+  section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const camp = campaigns.find(c => c.id == btn.dataset.campaign);
+      const answerValue = {
+        answer_value: btn.dataset.answer,
+        cid: btn.dataset.cid,
+        sid: btn.dataset.sid
+      };
+      console.log("🟢 Button klik →", answerValue);
 
-        // 🔍 Positief of negatief bepalen
-        const labelText = btn.textContent.toLowerCase();
-        const answerVal = (btn.dataset.answer || "").toLowerCase();
-        const isPositive =
-          labelText.includes("ja") ||
-          labelText.includes("graag") ||
-          answerVal === "yes" ||
-          answerVal === "ja";
+      // Negatief als: expliciete skip-knop of tekst bevat nee/geen interesse/sla over of answer_value === "no"
+      const labelText = btn.textContent.toLowerCase();
+      const answerVal = (btn.dataset.answer || "").toLowerCase();
+      const isNegative =
+        btn.classList.contains("btn-skip") ||
+        /(^|\s)(nee|geen interesse|sla over)(\s|$)/i.test(labelText) ||
+        answerVal === "no";
 
-        if (isPositive) {
-          // ✅ Positief antwoord → lead versturen + doorgaan
-          const payload = buildCoregPayload(camp, answerValue);
-          console.log("🚦 POST naar /api/lead gestart:", payload);
-          sendLeadToDatabowl(payload);
+      const isPositive = !isNegative; // alles wat geen 'nee' is, is positief (dus ook Volkskrant/AD/etc.)
+
+      if (isPositive) {
+        // Multistep: alleen posten bij de laatste stap van dezelfde sponsor
+        const idx = sections.indexOf(section);
+        const currentCid = String(camp.cid ?? "");
+        const hasMoreSteps = sections.slice(idx + 1).some(s => String(s.dataset.cid || "") === currentCid);
 
         if (camp.tmcosponsor) {
           sessionStorage.setItem("hasPositiveTM", "true");
           console.log("📞 TM-sponsor positief beantwoord:", camp.cid);
         }
+
+        if (hasMoreSteps) {
+          console.log("⏭️ Multistep actief → nog NIET posten, door naar volgende stap");
           showNextSection(section);
         } else {
-          // ✅ Negatief antwoord → geen lead + ALLE vervolgstappen met dezelfde sponsor overslaan
-            console.log("⏭️ Negatief antwoord → vervolgstappen van dezelfde sponsor overslaan");
-            const idx = sections.indexOf(section);
-            const currentCid = String(camp.cid ?? "");
-
-            // loop vooruit totdat CID verandert
-            let j = idx + 1;
-            while (j < sections.length && String(sections[j].dataset.cid || "") === currentCid) {
-              j++;
-            }
-            
-            section.style.display = "none";
-            if (j < sections.length) {
-              sections[j].style.display = "block";
-              updateProgressBar(j);
-            } else {
-              handleFinalCoreg();
-            }
+          const payload = buildCoregPayload(camp, answerValue);
+          console.log("🚦 POST naar /api/lead gestart (laatste stap):", payload);
+          sendLeadToDatabowl(payload);
+          showNextSection(section);
         }
-      });
+      } else {
+        // Negatief → geen lead posten, alle vervolgstappen van dezelfde sponsor overslaan
+        console.log("⏭️ Negatief antwoord → vervolgstappen van dezelfde sponsor overslaan");
+        const idx = sections.indexOf(section);
+        const currentCid = String(camp.cid ?? "");
+        let j = idx + 1;
+        while (j < sections.length && String(sections[j].dataset.cid || "") === currentCid) {
+          j++;
+        }
+        section.style.display = "none";
+        if (j < sections.length) {
+          sections[j].style.display = "block";
+          updateProgressBar(j);
+        } else {
+          handleFinalCoreg();
+        }
+      }
     });
   });
+});
+  
 }
 
 window.addEventListener("DOMContentLoaded", initCoregFlow);
