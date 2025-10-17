@@ -16,7 +16,10 @@ function getImageUrl(image) {
 // ============ Fetch campagnes ============
 async function fetchCampaigns() {
   try {
-    const res = await fetch(API_COREG);
+    const res = await fetch(
+    "https://cms.core.909play.com/items/coreg_campaigns?filter[is_live][_eq]=true&sort=sort",
+  { cache: "no-store" }
+  );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     console.log("📦 Directus campagnes:", json.data?.length);
