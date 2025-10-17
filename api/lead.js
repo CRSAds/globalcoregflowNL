@@ -126,12 +126,14 @@ export default async function handler(req, res) {
       sub2: sub2 || ""
     });
 
-    // Optionele coreg velden
-    if (f_2014_coreg_answer !== undefined) {
-      params.set("f_2014_coreg_answer", f_2014_coreg_answer || "");
+    // ===== Optionele coreg velden (alleen meesturen als gevuld) =====
+    if (f_2014_coreg_answer && f_2014_coreg_answer.trim() !== "") {
+      params.set("f_2014_coreg_answer", f_2014_coreg_answer.trim());
     }
-    if (f_2575_coreg_answer_dropdown !== undefined) {
-      params.set("f_2575_coreg_answer_dropdown", f_2575_coreg_answer_dropdown || "");
+
+    if (f_2575_coreg_answer_dropdown && f_2575_coreg_answer_dropdown.trim() !== "") {
+      params.set("f_2575_coreg_answer_dropdown", f_2575_coreg_answer_dropdown.trim());
+      console.log("🔽 f_2575_coreg_answer_dropdown toegevoegd:", f_2575_coreg_answer_dropdown);
     }
 
     console.log("🚀 Lead wordt verstuurd naar Databowl:", {
@@ -140,7 +142,8 @@ export default async function handler(req, res) {
       firstname,
       lastname,
       email,
-      coreg_answer: f_2014_coreg_answer
+      coreg_answer: f_2014_coreg_answer,
+      dropdown: f_2575_coreg_answer_dropdown
     });
 
     // ===== Doorsturen naar Databowl =====
