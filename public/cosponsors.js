@@ -12,7 +12,6 @@
         <div id="sponsor-list" class="sponsor-list">Laden...</div>
       </div>
     </div>
-    <button id="open-sponsor-popup" class="popup-trigger">Bekijk alle partners</button>
   `;
 
   document.addEventListener("DOMContentLoaded", async () => {
