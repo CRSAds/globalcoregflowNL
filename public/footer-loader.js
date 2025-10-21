@@ -1,11 +1,10 @@
 // /public/footer-loader.js
-// ✅ Dynamische footer + popup met logo, icoontjes en subtiele styling voor Swipe Pages
+// ✅ Dynamische footer + popup met logo, icoontjes, en fixed overlay zoals co-sponsor popup
 
 (function () {
   console.log("🦶 footer-loader.js gestart");
 
   document.addEventListener("DOMContentLoaded", async () => {
-    // === Basis-elementen ===
     const footerContainer = document.getElementById("dynamic-footer");
     const popup = document.getElementById("footer-popup");
     const popupContent = document.getElementById("footer-popup-content");
@@ -16,17 +15,23 @@
       return;
     }
 
-    // === URL parameter check ===
+    // === Status bepalen ===
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status") || "online";
     const footerName = status === "live" ? "Premium Advertising" : "Online Acties";
     console.log(`🌐 Footer geladen voor status=${status} → ${footerName}`);
 
     // === Popup gedrag ===
-    closePopup.addEventListener("click", () => (popup.style.display = "none"));
-    document.querySelector(".footer-overlay")?.addEventListener("click", () => (popup.style.display = "none"));
+    closePopup.addEventListener("click", () => {
+      popup.style.display = "none";
+      document.body.style.overflow = "auto";
+    });
+    document.querySelector(".footer-overlay")?.addEventListener("click", () => {
+      popup.style.display = "none";
+      document.body.style.overflow = "auto";
+    });
 
-    // === STYLING ===
+    // === Styling (inclusief popup fix) ===
     const style = document.createElement("style");
     style.textContent = `
       #dynamic-footer {
@@ -80,7 +85,6 @@
         font-size: 13px;
         transition: opacity 0.2s ease;
       }
-
       .footer-link:hover {
         opacity: 0.7;
       }
@@ -89,36 +93,36 @@
         content: "🔒";
         font-size: 14px;
       }
-
       .icon-shield::before {
         content: "🛡️";
         font-size: 14px;
       }
 
-      /* === Popup Styling === */
+      /* === Popup (volledige overlay) === */
       .footer-popup {
         position: fixed;
         inset: 0;
-        display: flex;
-        justify-content: center;
+        display: none;
         align-items: center;
-        z-index: 999999;
+        justify-content: center;
+        z-index: 9999999;
       }
       .footer-overlay {
         position: fixed;
         inset: 0;
         background: rgba(0,0,0,0.6);
         backdrop-filter: blur(3px);
-        z-index: 999998;
+        z-index: 9999998;
       }
       .footer-content {
+        position: relative;
         background: #fff;
         padding: 40px;
         max-width: 850px;
         max-height: 85vh;
         overflow-y: auto;
         border-radius: 12px;
-        z-index: 1000000;
+        z-index: 10000000;
         font-family: 'Inter', sans-serif;
         font-size: 14px;
         color: #333;
@@ -133,7 +137,7 @@
         border: none;
         background: none;
         cursor: pointer;
-        z-index: 1000001;
+        z-index: 10000001;
       }
       #close-footer-popup:hover { color: #000; }
 
@@ -160,7 +164,7 @@
     `;
     document.head.appendChild(style);
 
-    // === Data ophalen van Directus via Vercel API ===
+    // === Data ophalen van Directus ===
     try {
       const res = await fetch("https://globalcoregflow-nl.vercel.app/api/footers.js");
       const { data } = await res.json();
@@ -171,11 +175,17 @@
         return;
       }
 
-      const logoUrl = footer.logo
-        ? `https://cms.core.909play.com/assets/${footer.logo}`
-        : "https://via.placeholder.com/150x40?text=Footer+Logo";
+      // ✅ Betere logo fallback + URL-validatie
+      let logoUrl = "";
+      if (footer.logo && footer.logo.startsWith("http")) {
+        logoUrl = footer.logo;
+      } else if (footer.logo) {
+        logoUrl = `https://cms.core.909play.com/assets/${footer.logo}`;
+      } else {
+        logoUrl = "https://via.placeholder.com/150x40?text=Logo";
+      }
 
-      // === Footer opbouwen ===
+      // === HTML Footer renderen ===
       footerContainer.innerHTML = `
         <div class="footer-inner">
           <img src="${logoUrl}" alt="${footer.name}" class="footer-logo" />
@@ -193,14 +203,19 @@
       `;
 
       // === Popup gedrag ===
-      document.getElementById("open-terms").addEventListener("click", () => {
+      const openTerms = document.getElementById("open-terms");
+      const openPrivacy = document.getElementById("open-privacy");
+
+      openTerms.addEventListener("click", () => {
         popupContent.innerHTML = footer.terms_content || "<p>Geen voorwaarden beschikbaar.</p>";
         popup.style.display = "flex";
+        document.body.style.overflow = "hidden";
       });
 
-      document.getElementById("open-privacy").addEventListener("click", () => {
+      openPrivacy.addEventListener("click", () => {
         popupContent.innerHTML = footer.privacy_content || "<p>Geen privacyverklaring beschikbaar.</p>";
         popup.style.display = "flex";
+        document.body.style.overflow = "hidden";
       });
 
       console.log(`✅ Footer geladen: ${footerName}`);
