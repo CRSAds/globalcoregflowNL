@@ -18,7 +18,6 @@
     document.querySelector(".footer-overlay")?.addEventListener("click", () => (popup.style.display = "none"));
 
     // === Styling ===
-    const style = document.createElement("style");
 const style = document.createElement("style");
 style.textContent = `
   /* Algemene styling */
