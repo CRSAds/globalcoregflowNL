@@ -60,12 +60,7 @@
       .sponsor-item { border-bottom: 1px solid #ddd; padding-bottom: 15px; display: flex; align-items: flex-start; gap: 15px; }
       .sponsor-item img { width: 80px; height: auto; flex-shrink: 0; }
       .sponsor-item h4 { margin: 0 0 5px 0; }
-      #open-sponsor-popup {
-        background: #4f46e5; color: #fff;
-        padding: 10px 20px; border: none;
-        border-radius: 6px; cursor: pointer;
-        font-weight: 600;
-      }
+ 
       #close-popup {
         position: absolute; top: 10px; right: 15px;
         font-size: 24px; background: none; border: none; cursor: pointer;
