@@ -105,8 +105,11 @@
         z-index: 9999;
       }
       .footer-popup-overlay {
-        position: absolute; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.6);
+        position: fixed; /* ipv absolute */
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(3px);
+    z-index: 999998;
       }
       .footer-popup-content {
         position: relative;
