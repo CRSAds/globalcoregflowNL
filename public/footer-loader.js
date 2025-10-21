@@ -19,7 +19,9 @@
 
     // === Styling ===
     const style = document.createElement("style");
+const style = document.createElement("style");
 style.textContent = `
+  /* Algemene styling */
   #dynamic-footer {
     text-align: center;
     font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
@@ -28,11 +30,12 @@ style.textContent = `
     color: #444;
     font-size: 13px;
     line-height: 1.6;
+    position: relative;
+    z-index: 1;
   }
 
-  /* iets bredere container */
   #dynamic-footer .footer-inner {
-    max-width: 880px;
+    max-width: 900px; /* iets breder */
     margin: 0 auto;
     padding: 0 10px;
   }
@@ -40,15 +43,13 @@ style.textContent = `
   #dynamic-footer h4 {
     font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
     color: #222;
     margin-bottom: 6px;
     text-transform: uppercase;
   }
 
-  #dynamic-footer p {
-    margin-bottom: 8px;
-  }
+  #dynamic-footer p { margin-bottom: 8px; }
 
   #dynamic-footer button {
     background: none;
@@ -61,18 +62,17 @@ style.textContent = `
     font-size: 13px;
     transition: color 0.2s ease;
   }
+  #dynamic-footer button:hover { color: #2b48a2; }
 
-  #dynamic-footer button:hover {
-    color: #2b48a2;
-  }
-
-  /* Popup volledig schermvullend, body scroll blokkeren */
+  /* === Popup Styling === */
   .footer-popup {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    display: flex; align-items: center; justify-content: center;
-    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999; /* 🔥 boven alles in Swipe Pages */
     overflow: hidden;
   }
 
@@ -81,19 +81,20 @@ style.textContent = `
     top: 0; left: 0;
     width: 100%; height: 100%;
     background: rgba(0,0,0,0.65);
-    backdrop-filter: blur(2px);
-    z-index: 99998;
+    backdrop-filter: blur(3px);
+    z-index: 999998;
   }
 
   .footer-content {
     position: relative;
     background: #fff;
     padding: 40px 45px;
-    max-width: 800px;
+    max-width: 850px;
+    width: 90%;
     max-height: 85vh;
     overflow-y: auto;
     border-radius: 12px;
-    z-index: 100000;
+    z-index: 1000000;
     text-align: left;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
@@ -112,10 +113,7 @@ style.textContent = `
     color: #3a5bcc;
     text-decoration: underline;
   }
-
-  .footer-content a:hover {
-    color: #2b48a2;
-  }
+  .footer-content a:hover { color: #2b48a2; }
 
   #close-footer-popup {
     position: absolute;
@@ -125,12 +123,9 @@ style.textContent = `
     font-size: 22px;
     cursor: pointer;
     color: #666;
-    z-index: 100001;
+    z-index: 1000001;
   }
-
-  #close-footer-popup:hover {
-    color: #000;
-  }
+  #close-footer-popup:hover { color: #000; }
 
   /* 📱 Mobiel: tekst links en justified */
   @media (max-width: 768px) {
@@ -142,8 +137,9 @@ style.textContent = `
       text-align: justify;
     }
     .footer-content {
-      width: 90%;
+      width: 94%;
       padding: 25px;
+      max-height: 88vh;
     }
   }
 `;
