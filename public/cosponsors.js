@@ -76,7 +76,7 @@
 
     // Data ophalen van Directus via Vercel API
     try {
-      const res = await fetch("https://globalcoregflow-nl.vercel.app/api/sponsors.js");
+      const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
       const json = await res.json();
 
       sponsorList.innerHTML = "";
