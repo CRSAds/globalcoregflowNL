@@ -1,5 +1,5 @@
 // /api/footers.js
-// ✅ Haalt alle footers, algemene voorwaarden & privacy policies op uit Directus
+// ✅ Haalt alle footers, algemene voorwaarden, privacy policies + logo op uit Directus
 // Endpoint: https://globalcoregflow-nl.vercel.app/api/footers.js
 
 export const config = { runtime: "nodejs" };
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   try {
     // ===== Directus endpoint =====
-    const url = `${process.env.DIRECTUS_URL}/items/footers?fields=name,text,terms_content,privacy_content`;
+    const url = `${process.env.DIRECTUS_URL}/items/footers?fields=name,text,terms_content,privacy_content,logo.id,logo.filename_download`;
 
     const response = await fetch(url, {
       headers: {
@@ -37,7 +37,8 @@ export default async function handler(req, res) {
       name: f.name || "",
       text: f.text || "",
       terms_content: f.terms_content || "",
-      privacy_content: f.privacy_content || ""
+      privacy_content: f.privacy_content || "",
+      logo: f.logo || null // ✅ logo-object rechtstreeks meenemen
     }));
 
     console.log(`✅ ${data.length} footers geladen uit Directus`);
