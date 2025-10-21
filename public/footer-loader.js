@@ -13,7 +13,7 @@
     // === URL parameter check ===
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status") || "online";
-    const footerName = status === "live" ? "Premium International" : "Online Acties";
+    const footerName = status === "live" ? "Premium Advertising" : "Online Acties";
     console.log(`🌐 Footer geladen voor status=${status} → ${footerName}`);
 
     // Popup sluiten
