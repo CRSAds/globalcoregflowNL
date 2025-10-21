@@ -1,52 +1,51 @@
 // /public/footer-loader.js
-// ✅ Dynamische footer + popup met volledige overlay fix (zoals co-sponsor) en Directus logo
+// ✅ Dynamische footer + popup met fix gebaseerd op co-sponsor popup (volledige overlay)
+// ✅ Laadt data vanuit Directus (via /api/footers.js)
 
 (function () {
   console.log("🦶 footer-loader.js gestart");
 
   document.addEventListener("DOMContentLoaded", async () => {
     const footerContainer = document.getElementById("dynamic-footer");
-
     if (!footerContainer) {
       console.warn("⚠️ Geen #dynamic-footer element gevonden");
       return;
     }
 
-    // === Status bepalen ===
+    // Status bepalen → welke footer tonen
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status") || "online";
     const footerName = status === "live" ? "Premium Advertising" : "Online Acties";
     console.log(`🌐 Footer geladen voor status=${status} → ${footerName}`);
 
-    // === Popup HTML direct in body injecteren ===
+    // === Popup HTML (gebaseerd op co-sponsor versie) ===
     const popupHTML = `
       <div id="footer-popup" class="footer-popup" style="display:none;">
-        <div class="footer-overlay"></div>
-        <div class="footer-content">
+        <div class="footer-popup-overlay"></div>
+        <div class="footer-popup-content">
           <button id="close-footer-popup">×</button>
-          <div id="footer-popup-content">Laden...</div>
+          <div id="footer-popup-body">Laden...</div>
         </div>
       </div>
     `;
-    document.body.insertAdjacentHTML("beforeend", popupHTML);
+
+    // Voeg popup toe aan body
+    const popupContainer = document.createElement("div");
+    popupContainer.innerHTML = popupHTML;
+    document.body.appendChild(popupContainer);
 
     const popup = document.getElementById("footer-popup");
-    const popupContent = document.getElementById("footer-popup-content");
+    const popupBody = document.getElementById("footer-popup-body");
     const closePopup = document.getElementById("close-footer-popup");
 
-    closePopup.addEventListener("click", () => {
-      popup.style.display = "none";
-      document.body.style.overflow = "auto";
-    });
+    // Popup gedrag
+    closePopup.addEventListener("click", () => (popup.style.display = "none"));
+    document.querySelector(".footer-popup-overlay")?.addEventListener("click", () => (popup.style.display = "none"));
 
-    document.querySelector(".footer-overlay").addEventListener("click", () => {
-      popup.style.display = "none";
-      document.body.style.overflow = "auto";
-    });
-
-    // === Styling (volledige overlay fix) ===
+    // === Styling ===
     const style = document.createElement("style");
     style.textContent = `
+      /* === Footer zelf === */
       #dynamic-footer {
         text-align: center;
         font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
@@ -62,15 +61,12 @@
         max-width: 900px;
         margin: 0 auto;
         padding: 0 15px;
-        text-align: center;
       }
-
       .footer-logo {
         width: 140px;
         height: auto;
         margin-bottom: 10px;
       }
-
       .footer-separator {
         height: 1px;
         border: none;
@@ -78,14 +74,12 @@
         margin: 15px auto 20px;
         width: 100%;
       }
-
       .footer-links {
         display: flex;
         justify-content: center;
         gap: 18px;
         margin-top: 10px;
       }
-
       .footer-link {
         background: none;
         color: inherit;
@@ -98,60 +92,34 @@
         font-size: 13px;
         transition: opacity 0.2s ease;
       }
+      .footer-link:hover { opacity: 0.7; }
+      .icon-lock::before { content: "🔒"; font-size: 14px; }
+      .icon-shield::before { content: "🛡️"; font-size: 14px; }
 
-      .footer-link:hover {
-        opacity: 0.7;
-      }
-
-      .icon-lock::before {
-        content: "🔒";
-        font-size: 14px;
-      }
-      .icon-shield::before {
-        content: "🛡️";
-        font-size: 14px;
-      }
-
-      /* === Popup (volledige fix zoals co-sponsor) === */
+      /* === Popup (exact van co-sponsor.js) === */
       .footer-popup {
         position: fixed;
-        inset: 0;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        z-index: 2147483647 !important; /* hoogste prioriteit */
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+        z-index: 9999;
       }
-      .footer-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.65);
-        backdrop-filter: blur(3px);
-        z-index: 2147483646;
+      .footer-popup-overlay {
+        position: absolute; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6);
       }
-      .footer-content {
+      .footer-popup-content {
         position: relative;
-        background: #fff;
-        padding: 40px;
-        max-width: 850px;
-        max-height: 85vh;
-        overflow-y: auto;
-        border-radius: 12px;
-        z-index: 2147483648;
+        background: white;
+        max-width: 700px; width: 90%;
+        padding: 30px; border-radius: 10px;
+        z-index: 10000;
+        overflow-y: auto; max-height: 80vh;
         font-family: 'Inter', sans-serif;
-        font-size: 14px;
-        color: #333;
-        line-height: 1.7;
-        box-shadow: 0 8px 28px rgba(0,0,0,0.25);
       }
       #close-footer-popup {
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        font-size: 22px;
-        border: none;
-        background: none;
-        cursor: pointer;
-        z-index: 2147483649;
+        position: absolute; top: 10px; right: 15px;
+        font-size: 24px; background: none; border: none; cursor: pointer;
       }
       #close-footer-popup:hover { color: #000; }
 
@@ -161,15 +129,8 @@
           text-align: left;
           padding: 20px;
         }
-        #dynamic-footer p {
-          text-align: justify;
-        }
-        .footer-links {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 8px;
-        }
-        .footer-content {
+        #dynamic-footer p { text-align: justify; }
+        .footer-popup-content {
           width: 94vw;
           max-height: 88vh;
           padding: 25px;
@@ -182,19 +143,18 @@
     try {
       const res = await fetch("https://globalcoregflow-nl.vercel.app/api/footers.js");
       const { data } = await res.json();
-      const footer = data.find(f => f.name === footerName);
 
+      const footer = data.find(f => f.name === footerName);
       if (!footer) {
         console.warn(`⚠️ Geen footer gevonden met naam: ${footerName}`);
         return;
       }
 
-      // ✅ Logo direct via Directus asset
       const logoUrl = footer.logo?.id
         ? `https://cms.core.909play.com/assets/${footer.logo.id}`
         : "https://via.placeholder.com/150x40?text=Logo";
 
-      // === HTML Footer renderen ===
+      // Footer renderen
       footerContainer.innerHTML = `
         <div class="footer-inner">
           <img src="${logoUrl}" alt="${footer.name}" class="footer-logo" />
@@ -211,17 +171,15 @@
         </div>
       `;
 
-      // === Popup gedrag ===
+      // Popup gedrag (voorwaarden/privacy)
       document.getElementById("open-terms").addEventListener("click", () => {
-        popupContent.innerHTML = footer.terms_content || "<p>Geen voorwaarden beschikbaar.</p>";
+        popupBody.innerHTML = footer.terms_content || "<p>Geen voorwaarden beschikbaar.</p>";
         popup.style.display = "flex";
-        document.body.style.overflow = "hidden";
       });
 
       document.getElementById("open-privacy").addEventListener("click", () => {
-        popupContent.innerHTML = footer.privacy_content || "<p>Geen privacyverklaring beschikbaar.</p>";
+        popupBody.innerHTML = footer.privacy_content || "<p>Geen privacyverklaring beschikbaar.</p>";
         popup.style.display = "flex";
-        document.body.style.overflow = "hidden";
       });
 
       console.log(`✅ Footer geladen: ${footerName}`);
