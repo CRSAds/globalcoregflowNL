@@ -86,64 +86,45 @@
       }
 
       /* === Popup Styling === */
-      .footer-popup {
-        position: fixed;
-        inset: 0;
-        width: 100vw;
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2147483647 !important;
-        overflow: hidden;
-      }
-      .footer-overlay {
-        position: fixed;
-        inset: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0,0,0,0.65);
-        backdrop-filter: blur(3px);
-        z-index: 2147483646 !important;
-      }
-      .footer-content {
-        position: relative;
-        background: #fff;
-        width: min(92vw, 850px);
-        max-height: 85vh;
-        overflow-y: auto;
-        border-radius: 12px;
-        padding: 24px clamp(18px, 3vw, 40px);
-        box-shadow: 0 8px 28px rgba(0,0,0,0.25);
-        z-index: 2147483647 !important;
-        text-align: left;
-        font-family: 'Inter', sans-serif;
-        font-size: 14px;
-        color: #333;
-        line-height: 1.7;
-      }
-      .footer-content h1, .footer-content h2, .footer-content h3 {
-        font-size: 18px;
-        margin-top: 0;
-        color: #222;
-      }
-      .footer-content a {
-        color: #3a5bcc;
-        text-decoration: underline;
-      }
-      .footer-content a:hover {
-        color: #2b48a2;
-      }
-      #close-footer-popup {
-        position: absolute;
-        top: 8px; right: 14px;
-        background: none;
-        border: none;
-        font-size: 22px;
-        cursor: pointer;
-        color: #666;
-        z-index: 2147483648;
-      }
+  .footer-popup {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999999;
+  }
+  .footer-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(3px);
+    z-index: 999998;
+  }
+  .footer-content {
+    background: #fff;
+    padding: 40px;
+    max-width: 850px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 12px;
+    z-index: 1000000;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.7;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+  }
+  #close-footer-popup {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 22px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    z-index: 1000001;
+  }
       #close-footer-popup:hover { color: #000; }
 
       /* 📱 Mobiel */
