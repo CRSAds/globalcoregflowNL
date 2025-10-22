@@ -45,11 +45,10 @@
     // === Styling ===
     const style = document.createElement("style");
     style.textContent = `
-      /* === Footer zelf === */
       #dynamic-footer {
         text-align: center;
         font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-        padding: 25px 10px;
+        padding: 15px 5px;
         background: transparent;
         color: #444;
         font-size: 13px;
@@ -60,70 +59,74 @@
       #dynamic-footer .footer-inner {
         max-width: 900px;
         margin: 0 auto;
-        padding: 0 15px;
+        padding: 0 10px;
       }
-      .footer-logo {
-        width: 140px;
-        height: auto;
-        margin-bottom: 10px;
-      }
-      .footer-separator {
-        height: 1px;
-        border: none;
-        background: linear-gradient(to right, rgba(0,0,0,0.25), rgba(0,0,0,0));
-        margin: 15px auto 20px;
-        width: 100%;
-      }
-      .footer-links {
-        display: flex;
-        justify-content: center;
-        gap: 18px;
-        margin-top: 10px;
-      }
-      .footer-link {
-        background: none;
-        color: inherit;
-        border: none;
+      #dynamic-footer h4 {
+        font-size: 14px;
         font-weight: 600;
+        letter-spacing: 0.4px;
+        color: #222;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+      }
+      #dynamic-footer p {
+        margin-bottom: 8px;
+      }
+      #dynamic-footer button {
+        background: none;
+        color: #4863c4;
+        border: none;
+        font-weight: 500;
         cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 6px;
+        text-decoration: underline;
+        margin: 0 4px;
         font-size: 13px;
-        transition: opacity 0.2s ease;
+        transition: color 0.2s ease;
       }
-      .footer-link:hover { opacity: 0.7; }
-      .icon-lock::before { content: "🔒"; font-size: 14px; }
-      .icon-shield::before { content: "🛡️"; font-size: 14px; }
+      #dynamic-footer button:hover {
+        color: #2b48a2;
+      }
 
-      /* === Popup (exact van co-sponsor.js) === */
-      .footer-popup {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        display: flex; align-items: center; justify-content: center;
-        z-index: 9999;
-      }
-      .footer-popup-overlay {
-        position: fixed; /* ipv absolute */
+      /* === Popup Styling === */
+  .footer-popup {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999999;
+  }
+  .footer-overlay {
+    position: absolute;
     inset: 0;
     background: rgba(0,0,0,0.6);
     backdrop-filter: blur(3px);
     z-index: 999998;
-      }
-      .footer-popup-content {
-        position: relative;
-        background: white;
-        max-width: 700px; width: 90%;
-        padding: 30px; border-radius: 10px;
-        z-index: 10000;
-        overflow-y: auto; max-height: 80vh;
-        font-family: 'Inter', sans-serif;
-      }
-      #close-footer-popup {
-        position: absolute; top: 10px; right: 15px;
-        font-size: 24px; background: none; border: none; cursor: pointer;
-      }
+  }
+  .footer-content {
+    background: #fff;
+    padding: 40px;
+    max-width: 850px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 12px;
+    z-index: 1000000;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.7;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+  }
+  #close-footer-popup {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 22px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    z-index: 1000001;
+  }
       #close-footer-popup:hover { color: #000; }
 
       /* 📱 Mobiel */
@@ -132,8 +135,10 @@
           text-align: left;
           padding: 20px;
         }
-        #dynamic-footer p { text-align: justify; }
-        .footer-popup-content {
+        #dynamic-footer p {
+          text-align: justify;
+        }
+        .footer-content {
           width: 94vw;
           max-height: 88vh;
           padding: 25px;
