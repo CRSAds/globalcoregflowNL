@@ -1,16 +1,23 @@
 // /api/footers.js
+// ✅ Haalt footers, voorwaarden, privacy en iconen op uit Directus
+
 export const config = { runtime: "nodejs" };
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
+    // ➕ logo + icon_terms + icon_privacy toegevoegd aan fields
     const url = `${process.env.DIRECTUS_URL}/items/footers?fields=name,text,terms_content,privacy_content,logo.id,icon_terms.id,icon_privacy.id`;
+
     const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` }
+      headers: {
+        Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}`
+      }
     });
 
     if (!response.ok) {
