@@ -1,32 +1,19 @@
 // =============================================================
-// formSubmit.js — shortform + co-sponsors + longform fix
+// formSubmit.js — unified versie voor shortform, co-sponsors en coreg
 // =============================================================
 
 window.submittedCampaigns = window.submittedCampaigns || new Set();
 
-// =============================================================
-// 🔹 1. Trackingvelden uit URL opslaan
-// =============================================================
+// --- Trackingvelden uit URL opslaan ---
 document.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
   ["t_id", "aff_id", "sub_id", "sub2", "offer_id"].forEach(key => {
     const val = urlParams.get(key);
     if (val) sessionStorage.setItem(key, val);
   });
-
-  // 🔹 Sponsoropt-in knop opslaan
-  const acceptBtn = document.getElementById("accept-sponsors-btn");
-  if (acceptBtn) {
-    acceptBtn.addEventListener("click", () => {
-      sessionStorage.setItem("sponsorsAccepted", "true");
-      console.log("✅ Sponsors akkoord bevestigd → co-sponsors worden actief na shortform submit");
-    });
-  }
 });
 
-// =============================================================
-// 🔹 2. Payload bouwen
-// =============================================================
+// --- Payload bouwen ---
 function buildPayload(campaign = {}) {
   const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
   const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
@@ -57,55 +44,43 @@ function buildPayload(campaign = {}) {
     f_1684_sub_id: sessionStorage.getItem("sub_id") || "",
     f_1685_aff_id: sessionStorage.getItem("aff_id") || "",
     f_1687_offer_id: sessionStorage.getItem("offer_id") || "",
-    sub2: sessionStorage.getItem("sub2") || ""
+    sub2: sessionStorage.getItem("sub2") || "",
+    is_shortform: campaign.is_shortform || false
   };
 
-  // Coreg answers meenemen
+  // coreg antwoorden
   if (campaign.coregAnswerKey) {
     payload.f_2014_coreg_answer = sessionStorage.getItem(campaign.coregAnswerKey) || "";
   }
 
-  // Dropdownwaarde meenemen
-  if (!payload.f_2575_coreg_answer_dropdown) {
-    const directValue = sessionStorage.getItem("f_2575_coreg_answer_dropdown");
-    if (directValue) {
-      payload.f_2575_coreg_answer_dropdown = directValue;
-      console.log("🔽 Dropdownwaarde toegevoegd aan payload (direct):", directValue);
-    } else {
-      const dropdownKeys = Object.keys(sessionStorage).filter(k => k.startsWith("dropdown_answer_"));
-      if (dropdownKeys.length > 0) {
-        const latest = dropdownKeys[dropdownKeys.length - 1];
-        const dropdownValue = sessionStorage.getItem(latest);
-        if (dropdownValue) {
-          payload.f_2575_coreg_answer_dropdown = dropdownValue;
-          console.log("🔽 Dropdownwaarde toegevoegd aan payload (fallback):", dropdownValue);
-        }
-      }
-    }
+  // dropdownwaarde (shortform of coreg)
+  const dropdownKeys = Object.keys(sessionStorage).filter(k => k.startsWith("dropdown_answer_"));
+  if (dropdownKeys.length > 0) {
+    const latest = dropdownKeys[dropdownKeys.length - 1];
+    const dropdownValue = sessionStorage.getItem(latest);
+    if (dropdownValue) payload.f_2575_coreg_answer_dropdown = dropdownValue;
   }
 
   console.log("📦 Payload opgebouwd:", payload);
   return payload;
 }
 
-// =============================================================
-// 🔹 3. Lead versturen
-// =============================================================
+// --- Lead versturen ---
 async function fetchLead(payload) {
   const key = `${payload.cid}_${payload.sid}`;
   if (window.submittedCampaigns.has(key)) {
-    console.log("⚠️ Lead al eerder verstuurd:", key);
+    console.log("✅ Lead al verzonden:", key);
     return { skipped: true };
   }
 
   try {
-    const res = await fetch("https://globalcoregflow-nl.vercel.app/api/lead.js", {
+    const response = await fetch("/api/lead.js", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
       body: JSON.stringify(payload)
     });
 
-    const text = await res.text();
+    const text = await response.text();
     let result = {};
     try {
       result = text ? JSON.parse(text) : {};
@@ -113,7 +88,7 @@ async function fetchLead(payload) {
       result = { raw: text };
     }
 
-    console.log(`✅ Lead verstuurd naar Databowl (cid:${payload.cid})`, result);
+    console.log("✅ API antwoord:", result);
     window.submittedCampaigns.add(key);
     return result;
   } catch (err) {
@@ -122,52 +97,16 @@ async function fetchLead(payload) {
   }
 }
 
-// =============================================================
-// 🔹 4. Shortform Submit
-// =============================================================
-document.addEventListener("DOMContentLoaded", () => {
-  const shortForm = document.getElementById("lead-form");
-  if (!shortForm) return;
+// Globaal beschikbaar
+window.buildPayload = buildPayload;
+window.fetchLead = fetchLead;
 
-  shortForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    console.log("📝 Shortform verstuurd → start leadverwerking");
-
-    // Lead naar campagne 925
-    const payload = buildPayload({ cid: 925, sid: 34 });
-    await fetchLead(payload);
-
-    const sponsorsAccepted = sessionStorage.getItem("sponsorsAccepted") === "true";
-
-    if (sponsorsAccepted) {
-      console.log("📢 Bezoeker accepteerde sponsors → co-sponsor leads verzenden");
-      try {
-        const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
-        const { data } = await res.json();
-        const activeSponsors = data.filter(s => s.is_live && s.cid && s.sid);
-
-        for (const s of activeSponsors) {
-          const sponsorPayload = buildPayload({ cid: s.cid, sid: s.sid });
-          await fetchLead(sponsorPayload);
-          console.log(`📨 Co-sponsor lead verstuurd naar ${s.title}`);
-        }
-      } catch (err) {
-        console.error("❌ Fout bij ophalen/versturen co-sponsors:", err);
-      }
-    } else {
-      console.log("⚠️ Sponsors niet geaccepteerd → alleen hoofdlead (925) verzonden");
-    }
-  });
-});
-
-// =============================================================
-// 🔹 5. Live form tracking (short + long)
-// =============================================================
+// --- Live form tracking ---
 document.addEventListener("DOMContentLoaded", () => {
   const shortForm = document.querySelector("#lead-form");
   const longForm = document.querySelector("#long-form");
 
-  const attach = form => {
+  const attachListeners = (form) => {
     if (!form) return;
     form.querySelectorAll("input").forEach(input => {
       const name = input.name || input.id;
@@ -181,13 +120,69 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  attach(shortForm);
-  attach(longForm);
+  attachListeners(shortForm);
+  attachListeners(longForm);
   console.log("🧠 Live form tracking actief (short + long form)");
 });
 
 // =============================================================
-// 🔹 6. Longform Submit Handler
+// 🚀 Shortform submit handler (hoofdlead + co-sponsors)
+// =============================================================
+document.addEventListener("DOMContentLoaded", () => {
+  const shortForm = document.querySelector("#lead-form");
+  const submitBtn = document.querySelector("#submit-short-form");
+
+  if (!shortForm || !submitBtn) return;
+
+  submitBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    console.log("🟢 Shortform verzonden...");
+
+    // Opslaan van shortform velden
+    shortForm.querySelectorAll("input").forEach(input => {
+      const name = input.name || input.id;
+      if (name && input.value.trim()) sessionStorage.setItem(name, input.value.trim());
+    });
+
+    // Bouw hoofdlead-payload (campagne 925)
+    const basePayload = buildPayload({ cid: "925", sid: "34", is_shortform: true });
+    await fetchLead(basePayload);
+    console.log("✅ Shortform hoofdlead (925) verzonden");
+
+    // Check of voorwaarden geaccepteerd zijn
+    const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
+    if (!accepted) {
+      console.log("⚠️ Voorwaarden niet geaccepteerd → alleen 925 verzonden");
+      return;
+    }
+
+    // Haal co-sponsors op vanuit API
+    try {
+      const res = await fetch("/api/cosponsors.js");
+      const json = await res.json();
+
+      if (json.data && json.data.length > 0) {
+        console.log(`📡 Verstuur naar ${json.data.length} co-sponsors...`);
+        for (const sponsor of json.data) {
+          if (!sponsor.cid || !sponsor.sid) continue;
+          const sponsorPayload = buildPayload({
+            cid: sponsor.cid,
+            sid: sponsor.sid,
+            is_shortform: true
+          });
+          await fetchLead(sponsorPayload);
+        }
+      } else {
+        console.log("ℹ️ Geen actieve co-sponsors gevonden.");
+      }
+    } catch (err) {
+      console.error("❌ Fout bij ophalen/versturen co-sponsors:", err);
+    }
+  });
+});
+
+// =============================================================
+// Longform submit handler (coreg longform)
 // =============================================================
 document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("submit-long-form");
@@ -219,8 +214,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     for (const camp of pending) {
-      const payload = buildPayload(camp);
-      await fetchLead(payload);
+      const payload = window.buildPayload(camp);
+      await window.fetchLead(payload);
     }
 
     console.log("✅ Longform-leads verzonden");
@@ -228,5 +223,18 @@ document.addEventListener("DOMContentLoaded", () => {
     submitting = false;
 
     document.dispatchEvent(new Event("longFormSubmitted"));
+  });
+});
+
+// =============================================================
+// 📩 Voorwaarden (sponsoroptin) tracking
+// =============================================================
+document.addEventListener("DOMContentLoaded", () => {
+  const acceptBtn = document.getElementById("accept-sponsors-btn");
+  if (!acceptBtn) return;
+
+  acceptBtn.addEventListener("click", () => {
+    sessionStorage.setItem("sponsorsAccepted", "true");
+    console.log("✅ Sponsors akkoord: true");
   });
 });
