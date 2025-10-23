@@ -129,6 +129,65 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("🧠 Live form tracking actief (short + long form)");
 });
 
+// =============================================================
+// 🟢 Shortform-lead naar campagne 925 + Co-sponsors
+// =============================================================
+document.addEventListener("DOMContentLoaded", () => {
+  const shortForm = document.getElementById("lead-form");
+  const acceptBtn = document.getElementById("accept-sponsors-btn");
+
+  // 1️⃣ SHORTFORM versturen bij submit
+  if (shortForm) {
+    shortForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      console.log("📤 Shortform verzonden → campagne 925");
+
+      // Basispayload bouwen
+      const payload = window.buildPayload({ cid: 925, sid: 34 });
+      await window.fetchLead(payload);
+
+      // Sla shortformdata tijdelijk op voor co-sponsors
+      sessionStorage.setItem("lastShortformPayload", JSON.stringify(payload));
+
+      console.log("✅ Shortform lead verstuurd naar campagne 925");
+    });
+  }
+
+  // 2️⃣ CO-SPONSORS activeren bij opt-in
+  if (acceptBtn) {
+    acceptBtn.addEventListener("click", async () => {
+      console.log("✅ Algemene sponsoropt-in bevestigd → laad co-sponsors");
+
+      try {
+        const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
+        const { data } = await res.json();
+        const coSponsors = (data || []).filter(s => s.is_live);
+
+        const basePayload = JSON.parse(sessionStorage.getItem("lastShortformPayload") || "{}");
+        if (!basePayload.cid) {
+          console.warn("⚠️ Geen opgeslagen shortform-payload gevonden");
+          return;
+        }
+
+        for (const sponsor of coSponsors) {
+          const sponsorPayload = {
+            ...basePayload,
+            cid: sponsor.cid,
+            sid: sponsor.sid,
+          };
+
+          console.log(`📨 Verstuur lead naar co-sponsor: ${sponsor.title}`, sponsorPayload);
+          await window.fetchLead(sponsorPayload);
+        }
+
+        console.log("✅ Alle co-sponsor leads verzonden");
+      } catch (err) {
+        console.error("❌ Fout bij laden/versturen co-sponsors:", err);
+      }
+    });
+  }
+});
+
 // --- Long Form submit handler ---
 document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("submit-long-form");
