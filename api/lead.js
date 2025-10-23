@@ -156,6 +156,8 @@ export default async function handler(req, res) {
     });
 
     const text = await dbRes.text();
+    console.log("📬 Databowl HTTP status:", dbRes.status);
+    console.log("📩 Databowl raw body:", text || "(leeg)");
     console.log("📩 Databowl raw response:", text || "(leeg)");
 
     let dbResult = {};
