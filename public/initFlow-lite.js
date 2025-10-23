@@ -12,21 +12,19 @@
 // 7️⃣ Gaat automatisch verder na long form submit
 // =============================================================
 
-window.addEventListener("DOMContentLoaded", initFlowLite);
-
 // =============================================================
-// 🚫 Toegangscontrole: controleer statusparameter
+// 🚫 Toegangscontrole: controleer statusparameter (early block)
 // =============================================================
-document.addEventListener("DOMContentLoaded", () => {
+(() => {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");
 
-  // Alleen toegestaan: ?status=online of ?status=live
   if (status !== "online" && status !== "live") {
-    console.warn("🚫 Geen geldige statusparameter gevonden — toegang geweigerd.");
+    console.warn("🚫 Geen geldige statusparameter gevonden — toegang geweigerd (pre-init).");
 
-    // Volledige HTML vervangen (voorkomt zichtbare footers of Swipe-secties)
-    document.documentElement.innerHTML = `
+    // Volledige HTML vervangen vóórdat andere scripts of footers laden
+    document.open();
+    document.write(`
       <head>
         <meta charset="UTF-8">
         <title>Pagina niet bereikbaar</title>
@@ -64,12 +62,15 @@ document.addEventListener("DOMContentLoaded", () => {
           Controleer of je de juiste link hebt of probeer het later opnieuw.</p>
         </div>
       </body>
-    `;
+    `);
+    document.close();
 
-    // Stop verdere scriptuitvoering
-    throw new Error("Toegang geweigerd — ongeldige statusparameter.");
+    // Stop alles — voorkom dat overige scripts nog worden uitgevoerd
+    throw new Error("Toegang geweigerd: ongeldige statusparameter.");
   }
-});
+})();
+
+window.addEventListener("DOMContentLoaded", initFlowLite);
 
 function initFlowLite() {
   console.log("🚀 initFlow-lite.js gestart");
