@@ -12,65 +12,61 @@
 // 7️⃣ Gaat automatisch verder na long form submit
 // =============================================================
 
+window.addEventListener("DOMContentLoaded", initFlowLite);
+
 // =============================================================
-// 🚫 Toegangscontrole: controleer statusparameter (early block)
+// 🚫 Toegangscontrole: controleer statusparameter
 // =============================================================
-(() => {
+document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");
 
   if (status !== "online" && status !== "live") {
-    console.warn("🚫 Geen geldige statusparameter gevonden — toegang geweigerd (pre-init).");
+    console.warn("🚫 Geen geldige statusparameter gevonden — toegang geweigerd.");
 
-    // Volledige HTML vervangen vóórdat andere scripts of footers laden
-    document.open();
-    document.write(`
-      <head>
-        <meta charset="UTF-8">
-        <title>Pagina niet bereikbaar</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            background: #f8f8f8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-            text-align: center;
-            color: #333;
-          }
-          h1 {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 10px;
-          }
-          p {
-            font-size: 15px;
-            line-height: 1.6;
-            color: #555;
-          }
-        </style>
-      </head>
-      <body>
-        <div>
-          <h1>Pagina niet bereikbaar</h1>
-          <p>Deze pagina is momenteel niet toegankelijk.<br>
-          Controleer of je de juiste link hebt of probeer het later opnieuw.</p>
-        </div>
-      </body>
-    `);
-    document.close();
+    // Alle bestaande Swipe-secties en footers verbergen
+    document.querySelectorAll("section, footer, .sp-section, #dynamic-footer").forEach(el => {
+      el.style.display = "none";
+    });
 
-    // Stop alles — voorkom dat overige scripts nog worden uitgevoerd
-    throw new Error("Toegang geweigerd: ongeldige statusparameter.");
+    // Vervang body-inhoud door foutmelding
+    const errorDiv = document.createElement("div");
+    errorDiv.innerHTML = `
+      <style>
+        html, body {
+          margin: 0;
+          padding: 0;
+          height: 100%;
+          overflow: hidden;
+          background: #f8f8f8;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+          text-align: center;
+          color: #333;
+        }
+        h1 {
+          font-size: 24px;
+          font-weight: 600;
+          margin-bottom: 10px;
+        }
+        p {
+          font-size: 15px;
+          line-height: 1.6;
+          color: #555;
+        }
+      </style>
+      <div>
+        <h1>Pagina niet bereikbaar</h1>
+        <p>Deze pagina is momenteel niet toegankelijk.<br>
+        Controleer of je de juiste link hebt of probeer het later opnieuw.</p>
+      </div>
+    `;
+    document.body.innerHTML = "";
+    document.body.appendChild(errorDiv);
   }
-})();
-
-window.addEventListener("DOMContentLoaded", initFlowLite);
+});
 
 function initFlowLite() {
   console.log("🚀 initFlow-lite.js gestart");
