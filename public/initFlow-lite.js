@@ -21,28 +21,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");
 
-  // Controle: alleen 'online' of 'live' toegestaan
+  // Alleen toegestaan: ?status=online of ?status=live
   if (status !== "online" && status !== "live") {
     console.warn("🚫 Geen geldige statusparameter gevonden — toegang geweigerd.");
 
-    // Volledige document reset (voorkomt zichtbare footers of Swipe-secties)
+    // Volledige HTML vervangen (voorkomt zichtbare footers of Swipe-secties)
     document.documentElement.innerHTML = `
       <head>
         <meta charset="UTF-8">
         <title>Pagina niet bereikbaar</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-          body {
+          html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background: #f8f8f8;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background: #f8f8f8;
-            color: #333;
             font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
             text-align: center;
-            margin: 0;
-            padding: 20px;
+            color: #333;
           }
           h1 {
             font-size: 24px;
@@ -54,19 +55,6 @@ document.addEventListener("DOMContentLoaded", () => {
             line-height: 1.6;
             color: #555;
           }
-          button {
-            margin-top: 15px;
-            padding: 10px 18px;
-            background: #4f46e5;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-          }
-          button:hover {
-            background: #3b37b5;
-          }
         </style>
       </head>
       <body>
@@ -74,10 +62,12 @@ document.addEventListener("DOMContentLoaded", () => {
           <h1>Pagina niet bereikbaar</h1>
           <p>Deze pagina is momenteel niet toegankelijk.<br>
           Controleer of je de juiste link hebt of probeer het later opnieuw.</p>
-          <button onclick="window.location.reload()">Probeer opnieuw</button>
         </div>
       </body>
     `;
+
+    // Stop verdere scriptuitvoering
+    throw new Error("Toegang geweigerd — ongeldige statusparameter.");
   }
 });
 
