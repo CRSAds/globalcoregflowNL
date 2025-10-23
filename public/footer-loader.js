@@ -2,6 +2,15 @@
 // ✅ Dynamische footer met Terms/Privacy popup — volledig gefixt + scroll lock + hoogste z-index
 
 (function () {
+
+  // 🚫 Blokkeer uitvoering bij ongeldige statusparameter
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("status");
+  if (status !== "online" && status !== "live") {
+    console.warn("🚫 Ongeldige statusparameter — footer-loader.js wordt niet uitgevoerd.");
+    return; // ⛔️ Stop direct, footer wordt niet geladen of ingeladen
+  }
+
   console.log("🦶 footer-loader.js gestart");
 
   // =============== HELPERS ===============
