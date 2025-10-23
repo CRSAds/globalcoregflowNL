@@ -14,6 +14,42 @@
 
 window.addEventListener("DOMContentLoaded", initFlowLite);
 
+// =============================================================
+// 🚫 Toegangscontrole: controleer statusparameter
+// =============================================================
+document.addEventListener("DOMContentLoaded", () => {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("status");
+
+  if (status !== "online" && status !== "live") {
+    document.body.innerHTML = `
+      <div style="
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        height:100vh;
+        background:#f8f8f8;
+        color:#333;
+        font-family:'Inter','Helvetica Neue',Arial,sans-serif;
+        text-align:center;
+        padding:20px;
+      ">
+        <div>
+          <h1 style="font-size:24px;font-weight:600;margin-bottom:10px;">
+            Pagina niet bereikbaar
+          </h1>
+          <p style="font-size:15px;line-height:1.6;color:#555;">
+            Deze pagina is momenteel niet toegankelijk.<br>
+            Controleer of je de juiste link hebt of probeer het later opnieuw.
+          </p>
+        </div>
+      </div>
+    `;
+    console.warn("🚫 Geen geldige statusparameter gevonden — toegang geweigerd.");
+    return; // ⛔️ Stop verdere initialisatie
+  }
+});
+
 function initFlowLite() {
   console.log("🚀 initFlow-lite.js gestart");
 
