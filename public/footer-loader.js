@@ -1,25 +1,20 @@
 // /public/footer-loader.js
-// ✅ Dynamische footer met Terms/Privacy popup (zelfde aanpak als co-sponsors)
+// ✅ Dynamische footer met Terms/Privacy popup — volledig gefixt + scroll lock + hoogste z-index
 
 (function () {
   console.log("🦶 footer-loader.js gestart");
 
-  // ---------- Helpers ----------
-  function lockBodyScroll() {
-    const scrollY = window.scrollY || document.documentElement.scrollTop;
-    document.body.dataset.scrollY = String(scrollY);
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.position = "fixed";
-    document.body.style.width = "100%";
+  // =============== HELPERS ===============
+  function lockScroll() {
+    document.documentElement.classList.add("modal-open");
+    document.body.classList.add("modal-open");
   }
-  function unlockBodyScroll() {
-    const y = parseInt(document.body.dataset.scrollY || "0", 10);
-    document.body.style.position = "";
-    document.body.style.top = "";
-    document.body.style.width = "";
-    window.scrollTo(0, y);
-    delete document.body.dataset.scrollY;
+
+  function unlockScroll() {
+    document.documentElement.classList.remove("modal-open");
+    document.body.classList.remove("modal-open");
   }
+
   function el(html) {
     const div = document.createElement("div");
     div.innerHTML = html.trim();
@@ -27,7 +22,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
-    // ---------- Popup HTML injecteren (zoals bij co-sponsors) ----------
+    // =============== POPUP INJECTEREN ===============
     const popupHTML = `
       <div id="footer-popup" class="footer-popup" style="display:none;">
         <div class="footer-overlay"></div>
@@ -42,7 +37,7 @@
     const popup = document.getElementById("footer-popup");
     const popupContent = document.getElementById("footer-popup-content");
 
-    // ---------- CSS (fullscreen + boven alles) ----------
+    // =============== CSS ===============
     const style = document.createElement("style");
     style.textContent = `
       #dynamic-footer {
@@ -57,7 +52,7 @@
         z-index: 1;
       }
       #dynamic-footer .footer-inner {
-        max-width: 980px; /* iets breder */
+        max-width: 980px;
         margin: 0 auto;
         padding: 0 10px;
       }
@@ -81,7 +76,6 @@
       }
       #dynamic-footer p { margin-bottom: 8px; }
 
-      /* knoppen (links) met iconen */
       #dynamic-footer .link-row {
         display: inline-flex;
         align-items: center;
@@ -91,10 +85,10 @@
       #dynamic-footer .soft-link {
         background: none;
         border: none;
-        font-weight: 600;            /* subtiel dikker i.p.v. felblauw */
+        font-weight: 600;
         cursor: pointer;
-        text-decoration: none;       /* geen underline */
-        color: inherit;              /* overneemt paginakleur */
+        text-decoration: none;
+        color: inherit;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -106,15 +100,15 @@
         display: inline-block;
       }
 
-      /* === Popup Styling (echte fullscreen overlay) === */
+      /* === Popup Styling (absolute top layer) === */
       .footer-popup {
         position: fixed;
         inset: 0;
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 2147483647 !important; /* 💥 hoogste mogelijke waarde */
-        isolation: isolate;              /* voorkomt mixen met Swipe containers */
+        z-index: 2147483647 !important; /* boven alles */
+        isolation: isolate;
       }
       .footer-overlay {
         position: absolute;
@@ -150,6 +144,11 @@
       }
       #close-footer-popup:hover { color: #000; }
 
+      /* Scroll lock */
+      html.modal-open, body.modal-open {
+        overflow: hidden !important;
+      }
+
       /* 📱 Mobiel */
       @media (max-width: 768px) {
         #dynamic-footer { text-align: left; padding: 20px; }
@@ -160,19 +159,18 @@
     `;
     document.head.appendChild(style);
 
-    // ---------- Bepaal welke footer we moeten tonen ----------
+    // =============== DATA OPHALEN ===============
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status") || "online";
     const footerName = status === "live" ? "Premium Advertising" : "Online Acties";
 
-    // ---------- Data ophalen ----------
     let footerData = null;
     try {
       const res = await fetch("https://globalcoregflow-nl.vercel.app/api/footers.js");
       const { data } = await res.json();
       footerData = data.find(f => f.name === footerName) || null;
       if (!footerData) {
-        console.warn(`⚠️ Geen footer gevonden met naam '${footerName}', toon niets.`);
+        console.warn(`⚠️ Geen footer gevonden met naam '${footerName}'`);
         return;
       }
     } catch (err) {
@@ -180,7 +178,7 @@
       return;
     }
 
-    // ---------- Footer container aanwezig? Zo niet, maak hem. ----------
+    // =============== FOOTER MAKEN ALS DIE NIET BESTAAT ===============
     let footerContainer = document.getElementById("dynamic-footer");
     if (!footerContainer) {
       footerContainer = document.createElement("div");
@@ -188,7 +186,7 @@
       document.body.appendChild(footerContainer);
     }
 
-    // ---------- Render footer ----------
+    // =============== FOOTER INHOUD ===============
     const termsIcon = footerData.icon_terms
       ? `<img class="icon" src="${footerData.icon_terms}" alt="" loading="lazy">`
       : `<span aria-hidden="true">🔒</span>`;
@@ -202,9 +200,7 @@
 
     footerContainer.innerHTML = `
       <div class="footer-inner">
-        <div class="brand">
-          ${logo}
-        </div>
+        <div class="brand">${logo}</div>
         <hr class="fade-rule">
         <p>${footerData.text || ""}</p>
         <div class="link-row" aria-label="Documenten">
@@ -214,27 +210,32 @@
       </div>
     `;
 
-    // ---------- Event delegation voor openen/sluiten ----------
+    // =============== POPUP GEDRAG ===============
     document.addEventListener("click", (e) => {
-      // Open Terms
       if (e.target.closest("#open-terms")) {
         e.preventDefault();
         popupContent.innerHTML = footerData.terms_content || "<p>Geen voorwaarden beschikbaar.</p>";
         popup.style.display = "flex";
-        lockBodyScroll();
+        lockScroll();
       }
-      // Open Privacy
       if (e.target.closest("#open-privacy")) {
         e.preventDefault();
         popupContent.innerHTML = footerData.privacy_content || "<p>Geen privacyverklaring beschikbaar.</p>";
         popup.style.display = "flex";
-        lockBodyScroll();
+        lockScroll();
       }
-      // Sluiten (kruisje of overlay)
       if (e.target.id === "close-footer-popup" || e.target.classList.contains("footer-overlay")) {
         popup.style.display = "none";
-        unlockBodyScroll();
+        unlockScroll();
       }
     });
+
+    // --- Verplaats popup naar body (hoisten) ---
+    const popupEl = document.getElementById("footer-popup");
+    if (popupEl && popupEl.parentElement !== document.body) {
+      document.body.appendChild(popupEl);
+    }
+
+    console.log(`✅ Footer geladen en popup actief voor: ${footerName}`);
   });
 })();
