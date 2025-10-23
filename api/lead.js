@@ -1,30 +1,33 @@
 // /api/lead.js
-// ✅ Universele CORS fix – laat ALLE origins toe, werkt op Vercel & SwipePages
+// ✅ Universele leadverwerking voor shortform, co-sponsors en coreg (short/longform)
+// ✅ Inclusief automatische herkenning + fraud & duplicate protection
 
 export const config = { runtime: "nodejs" };
 
 let recentIps = new Map();
 
 export default async function handler(req, res) {
-  // ---- Zet headers direct ----
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization');
+  // ---- CORS headers ----
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cache-Control, Authorization");
 
-  // ---- Preflight check ----
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  // ---- Alleen POST toegestaan ----
-  if (req.method !== 'POST') {
-    res.status(405).json({ success: false, message: 'Method Not Allowed' });
-    return;
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false, message: "Method Not Allowed" });
   }
 
   try {
-    // ===== Inkomende payload =====
+    // ---- Body veilig parsen ----
+    let body = req.body;
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        console.warn("⚠️ Ongeldige JSON body ontvangen:", body);
+      }
+    }
+
     const {
       cid,
       sid,
@@ -46,42 +49,36 @@ export default async function handler(req, res) {
       f_1687_offer_id,
       sub2,
       f_2014_coreg_answer,
-      f_2575_coreg_answer_dropdown
-    } = req.body || {};
+      f_2575_coreg_answer_dropdown,
+      is_shortform
+    } = body || {};
 
-    console.log("➡️ Ontvangen lead payload:", req.body);
+    console.log("➡️ Ontvangen lead payload:", body);
 
-    // ===== Validatie basis =====
+    // ---- Validatie ----
     if (!cid || !sid) {
       console.error("❌ Campagnegegevens ontbreken (cid/sid)", { cid, sid });
-      return res.status(400).json({
-        success: false,
-        message: "Campagnegegevens ontbreken",
-        cid,
-        sid
-      });
+      return res.status(400).json({ success: false, message: "Campagnegegevens ontbreken", cid, sid });
     }
 
-    // ===== IP & optindate =====
+    // ---- IP & tijd ----
     const ipaddress =
       req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
       req.socket?.remoteAddress ||
       "";
     const optindate = new Date().toISOString().split(".")[0] + "+0000";
 
-    // ===== Duplicate throttle (per IP/campaign 60s) =====
+    // ---- Duplicate throttle ----
     const ipKey = `${ipaddress}_${cid}_${sid}`;
     const now = Date.now();
     const lastTime = recentIps.get(ipKey);
     if (lastTime && now - lastTime < 60000) {
       console.warn("⛔️ Geblokkeerd (duplicate binnen 60s):", ipKey);
-      return res
-        .status(200)
-        .json({ success: false, blocked: true, reason: "duplicate_ip" });
+      return res.status(200).json({ success: false, blocked: true, reason: "duplicate_ip" });
     }
     recentIps.set(ipKey, now);
 
-    // ===== E-mail fraud heuristics =====
+    // ---- E-mail fraud check ----
     const emailLower = (email || "").toLowerCase();
     const suspiciousPatterns = [
       /(?:[a-z]{3,}@teleworm\.us)/i,
@@ -93,15 +90,21 @@ export default async function handler(req, res) {
     const isSuspicious = suspiciousPatterns.some((p) => p.test(emailLower));
     if (isSuspicious) {
       console.warn("⛔️ Verdacht e-mailadres, lead geblokkeerd:", email);
-      return res
-        .status(200)
-        .json({ success: false, blocked: true, reason: "suspicious_email" });
+      return res.status(200).json({ success: false, blocked: true, reason: "suspicious_email" });
     }
 
-    // ===== Transaction id =====
+    // ---- Transaction ID fallback ----
     const safeTId = f_1322_transaction_id || t_id || "unknown";
 
-    // ===== Mapping naar Databowl =====
+    // =====================================================
+    // 🧩 Automatische herkenning: shortform / longform
+    // =====================================================
+    const isShort =
+      String(cid) === "925" ||
+      is_shortform === true ||
+      (!postcode && !telefoon && !woonplaats); // auto-detectie bij coreg shortform
+
+    // ---- Basisvelden (altijd aanwezig) ----
     const params = new URLSearchParams({
       cid: String(cid),
       sid: String(sid),
@@ -110,12 +113,6 @@ export default async function handler(req, res) {
       f_4_lastname: lastname || "",
       f_1_email: email || "",
       f_5_dob: f_5_dob || "",
-      f_11_postcode: postcode || "",
-      f_6_address1: straat || "",
-      f_7_address2: huisnummer || "",
-      f_8_address3: "",
-      f_9_towncity: woonplaats || "",
-      f_12_phone1: telefoon || "",
       f_17_ipaddress: ipaddress,
       f_55_optindate: optindate,
       f_1322_transaction_id: safeTId,
@@ -126,27 +123,29 @@ export default async function handler(req, res) {
       sub2: sub2 || ""
     });
 
-    // ===== Optionele coreg velden (alleen meesturen als gevuld) =====
-    if (f_2014_coreg_answer && f_2014_coreg_answer.trim() !== "") {
-      params.set("f_2014_coreg_answer", f_2014_coreg_answer.trim());
+    // ---- Alleen toevoegen bij longform/coreg ----
+    if (!isShort) {
+      if (postcode) params.set("f_11_postcode", postcode);
+      if (straat) params.set("f_6_address1", straat);
+      if (huisnummer) params.set("f_7_address2", huisnummer);
+      if (woonplaats) params.set("f_9_towncity", woonplaats);
+      if (telefoon) params.set("f_12_phone1", telefoon);
+
+      if (f_2014_coreg_answer?.trim()) {
+        params.set("f_2014_coreg_answer", f_2014_coreg_answer.trim());
+      }
+      if (f_2575_coreg_answer_dropdown?.trim()) {
+        params.set("f_2575_coreg_answer_dropdown", f_2575_coreg_answer_dropdown.trim());
+      }
     }
 
-    if (f_2575_coreg_answer_dropdown && f_2575_coreg_answer_dropdown.trim() !== "") {
-      params.set("f_2575_coreg_answer_dropdown", f_2575_coreg_answer_dropdown.trim());
-      console.log("🔽 f_2575_coreg_answer_dropdown toegevoegd:", f_2575_coreg_answer_dropdown);
-    }
+    console.log(
+      `🚀 Lead wordt verstuurd naar Databowl (${isShort ? "shortform / co-sponsor" : "longform"}) → cid=${cid}, sid=${sid}`
+    );
 
-    console.log("🚀 Lead wordt verstuurd naar Databowl:", {
-      cid,
-      sid,
-      firstname,
-      lastname,
-      email,
-      coreg_answer: f_2014_coreg_answer,
-      dropdown: f_2575_coreg_answer_dropdown
-    });
-
-    // ===== Doorsturen naar Databowl =====
+    // =====================================================
+    // 🔄 Versturen naar Databowl
+    // =====================================================
     const dbRes = await fetch("https://crsadvertising.databowl.com/api/v1/lead", {
       method: "POST",
       headers: {
@@ -156,29 +155,24 @@ export default async function handler(req, res) {
       body: params.toString()
     });
 
-    // ===== Response verwerken =====
     const text = await dbRes.text();
     console.log("📩 Databowl raw response:", text || "(leeg)");
 
     let dbResult = {};
     try {
       dbResult = text ? JSON.parse(text) : {};
-    } catch (parseErr) {
-      console.warn("⚠️ Databowl gaf geen geldige JSON terug:", parseErr);
+    } catch {
       dbResult = { raw: text || "no-json-body", status: dbRes.status };
     }
 
     console.log("✅ Lead succesvol verwerkt – HTTP status:", dbRes.status);
-
-    return res.status(200).json({
-      success: true,
-      status: dbRes.status,
-      result: dbResult
-    });
+    return res.status(200).json({ success: true, status: dbRes.status, result: dbResult });
   } catch (error) {
     console.error("❌ Interne fout bij verzenden naar Databowl:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Interne fout bij verzenden", error: String(error) });
+    return res.status(500).json({
+      success: false,
+      message: "Interne fout bij verzenden",
+      error: String(error)
+    });
   }
 }
