@@ -60,11 +60,11 @@
         display: flex;
         align-items: center;
         gap: 14px;
-        justify-content: center;
+        justify-content: flex-start;
         margin-bottom: 10px;
       }
       #dynamic-footer .brand img {
-        height: 28px;
+        height: 30px;
         width: auto;
         display: block;
       }
