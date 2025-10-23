@@ -21,32 +21,63 @@ document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");
 
+  // Controle: alleen 'online' of 'live' toegestaan
   if (status !== "online" && status !== "live") {
-    document.body.innerHTML = `
-      <div style="
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        height:100vh;
-        background:#f8f8f8;
-        color:#333;
-        font-family:'Inter','Helvetica Neue',Arial,sans-serif;
-        text-align:center;
-        padding:20px;
-      ">
-        <div>
-          <h1 style="font-size:24px;font-weight:600;margin-bottom:10px;">
-            Pagina niet bereikbaar
-          </h1>
-          <p style="font-size:15px;line-height:1.6;color:#555;">
-            Deze pagina is momenteel niet toegankelijk.<br>
-            Controleer of je de juiste link hebt of probeer het later opnieuw.
-          </p>
-        </div>
-      </div>
-    `;
     console.warn("🚫 Geen geldige statusparameter gevonden — toegang geweigerd.");
-    return; // ⛔️ Stop verdere initialisatie
+
+    // Volledige document reset (voorkomt zichtbare footers of Swipe-secties)
+    document.documentElement.innerHTML = `
+      <head>
+        <meta charset="UTF-8">
+        <title>Pagina niet bereikbaar</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #f8f8f8;
+            color: #333;
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+          }
+          h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+          }
+          p {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #555;
+          }
+          button {
+            margin-top: 15px;
+            padding: 10px 18px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+          }
+          button:hover {
+            background: #3b37b5;
+          }
+        </style>
+      </head>
+      <body>
+        <div>
+          <h1>Pagina niet bereikbaar</h1>
+          <p>Deze pagina is momenteel niet toegankelijk.<br>
+          Controleer of je de juiste link hebt of probeer het later opnieuw.</p>
+          <button onclick="window.location.reload()">Probeer opnieuw</button>
+        </div>
+      </body>
+    `;
   }
 });
 
