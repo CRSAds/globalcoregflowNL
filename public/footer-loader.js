@@ -64,7 +64,7 @@
         margin-bottom: 10px;
       }
       #dynamic-footer .brand img {
-        height: 30px;
+        height: 40px;
         width: auto;
         display: block;
       }
