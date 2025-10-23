@@ -113,13 +113,14 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 2147483000; /* hoger dan Swipepages dividers */
+        z-index: 2147483647 !important; /* 💥 hoogste mogelijke waarde */
+        isolation: isolate;              /* voorkomt mixen met Swipe containers */
       }
       .footer-overlay {
         position: absolute;
         inset: 0;
         background: rgba(0,0,0,0.6);
-        z-index: 0;
+        z-index: 2147483646;
       }
       .footer-content {
         position: relative;
@@ -130,7 +131,7 @@
         max-height: 85vh;
         overflow-y: auto;
         border-radius: 12px;
-        z-index: 1;
+        z-index: 2147483647;
         font-family: 'Inter', sans-serif;
         font-size: 14px;
         color: #333;
