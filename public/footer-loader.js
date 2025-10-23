@@ -41,7 +41,7 @@
     const style = document.createElement("style");
     style.textContent = `
       #dynamic-footer {
-        text-align: center;
+        text-align: left;
         font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
         padding: 15px 5px;
         background: transparent;
@@ -78,7 +78,7 @@
 
       #dynamic-footer .link-row {
         display: inline-flex;
-        align-items: center;
+        align-items: left;
         gap: 12px;
         flex-wrap: wrap;
       }
