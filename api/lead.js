@@ -27,6 +27,7 @@ export default async function handler(req, res) {
         console.warn("⚠️ Ongeldige JSON body ontvangen:", body);
       }
     }
+    console.log("Shortform debug: ontvangen body", body);
 
     const {
       cid,
@@ -52,13 +53,15 @@ export default async function handler(req, res) {
       f_2575_coreg_answer_dropdown,
       is_shortform
     } = body || {};
+    console.log("Shortform debug: cid =", cid, "sid =", sid, "is_shortform =", is_shortform);
 
     console.log("➡️ Ontvangen lead payload:", body);
 
     // ---- Validatie ----
     if (!cid || !sid) {
+      console.log("Shortform debug: early return vanwege ontbrekende gegevens", { cid, sid, body });
       console.error("❌ Campagnegegevens ontbreken (cid/sid)", { cid, sid });
-      return res.status(400).json({ success: false, message: "Campagnegegevens ontbreken", cid, sid });
+      return res.status(400).json({ success: false, message: "Campagnegegevens ontbreken", cid, sid, body });
     }
 
     // ---- IP & tijd ----
