@@ -1,16 +1,10 @@
 // =============================================================
-// sovendus.js
-// Integreert Sovendus kortingsbanner in Swipe Pages funnel
-// -------------------------------------------------------------
-// Functies:
-// 1️⃣ Leest persoonsgegevens uit sessionStorage
-// 2️⃣ Initialiseert het Sovendus-iframe éénmalig
-// 3️⃣ Werkt samen met initFlow-lite.js (🎁 Sovendus-sectie getoond)
+// sovendus.js — Standalone versie (geen export, werkt met gewone <script>)
 // =============================================================
 
 let hasInitialized = false;
 
-export default function setupSovendus() {
+function setupSovendus() {
   if (hasInitialized) {
     console.log("⚠️ setupSovendus al uitgevoerd — overslaan");
     return;
@@ -90,23 +84,18 @@ export default function setupSovendus() {
 }
 
 // =============================================================
-// ✅ Automatische initialisatie (fallback)
-// Wordt uitgevoerd als de sectie al zichtbaar is bij pageload
+// ✅ Automatische fallback bij pageload
 // =============================================================
 document.addEventListener("DOMContentLoaded", () => {
   const section = document.getElementById("sovendus-section");
-  if (!section) {
-    console.warn("⚠️ Geen Sovendus-sectie gevonden bij pageload");
-    return;
-  }
+  if (!section) return;
 
-  // Als sectie direct zichtbaar is (bijv. bij refresh)
   const style = window.getComputedStyle(section);
-  if (style.display !== "none" && typeof window.setupSovendus === "function") {
+  if (style.display !== "none") {
     console.log("🎁 Sovendus-sectie al zichtbaar bij load → directe init");
-    window.setupSovendus();
+    setupSovendus();
   }
 });
 
-// Exporteer naar global scope voor initFlow-lite.js
+// Exporteer naar global scope
 window.setupSovendus = setupSovendus;
