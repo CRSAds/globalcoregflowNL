@@ -1,5 +1,10 @@
 // =============================================================
-// sovendus.js — Standalone versie (geen export, werkt met gewone <script>)
+// sovendus.js — Klik-actieve versie voor Swipe Pages
+// -------------------------------------------------------------
+// Functies:
+// 1️⃣ Initialiseert Sovendus zodra sectie zichtbaar wordt
+// 2️⃣ Detecteert klik op de Sovendus-container
+// 3️⃣ Gaat automatisch verder naar volgende sectie in de flow
 // =============================================================
 
 let hasInitialized = false;
@@ -22,7 +27,7 @@ function setupSovendus() {
   // Stap 1: container leegmaken (veiligheid)
   container.innerHTML = "";
 
-  // Stap 2: laadbericht (indien nog niet aanwezig)
+  // Stap 2: laadbericht
   let loadingDiv = document.getElementById("sovendus-loading");
   if (!loadingDiv) {
     loadingDiv = document.createElement("div");
@@ -74,6 +79,30 @@ function setupSovendus() {
     console.log("✅ Sovendus → flexibleIframe.js geladen");
     const loadingEl = document.getElementById("sovendus-loading");
     if (loadingEl) loadingEl.remove();
+
+    // 🎯 Klikdetectie op Sovendus-container
+    const container = document.getElementById("sovendus-container-1");
+    if (container) {
+      container.addEventListener("click", () => {
+        console.log("🎁 Sovendus-container aangeklikt → doorgaan naar volgende sectie");
+
+        const current = document.getElementById("sovendus-section");
+        if (current) {
+          let next = current.nextElementSibling;
+          while (next && next.classList.contains("ivr-section")) {
+            next = next.nextElementSibling;
+          }
+          if (next) {
+            current.style.display = "none";
+            next.style.display = "block";
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            console.log("➡️ Flow vervolgd na Sovendus");
+          } else {
+            console.log("🏁 Geen volgende sectie gevonden na Sovendus");
+          }
+        }
+      });
+    }
   };
 
   script.onerror = () => {
