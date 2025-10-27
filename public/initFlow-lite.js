@@ -196,25 +196,25 @@ function initFlowLite() {
     }
   });
 
-  // ============================================================
-  // 6️⃣ Sovendus auto-init bij bereiken van Sovendus-sectie
-  // ============================================================
-  document.addEventListener("DOMContentLoaded", () => {
+    // ============================================================
+    // 6️⃣ Sovendus auto-init bij bereiken van Sovendus-sectie
+    // ============================================================
     const sovendusSection = document.getElementById("sovendus-section");
-    if (!sovendusSection) return;
-
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && typeof window.setupSovendus === "function") {
-          console.log("🎁 Sovendus-sectie in beeld → setupSovendus()");
-          window.setupSovendus();
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.5 });
-
-    observer.observe(sovendusSection);
-  });
+    if (sovendusSection) {
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && typeof window.setupSovendus === "function") {
+            console.log("🎁 Sovendus-sectie in beeld → setupSovendus()");
+            window.setupSovendus();
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.5 });
+    
+      observer.observe(sovendusSection);
+    } else {
+      console.warn("⚠️ Geen Sovendus-sectie gevonden bij initFlowLite");
+    }
 
   // ============================================================
   // 7️⃣ System Check Log (debug)
