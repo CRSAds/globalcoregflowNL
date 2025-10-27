@@ -1,11 +1,9 @@
 // =============================================================
-// sovendus.js — Auto-advance versie (alleen timeout, geen early init)
+// sovendus.js — pure timeout-variant, alleen gestart door initFlow-lite
 // =============================================================
 
 let hasInitialized = false;
 let hasAdvanced = false;
-
-// 👉 tijd tot automatisch doorgaan (ms)
 const SOV_TIMEOUT_MS = 10000;
 
 function advanceAfterSovendus() {
@@ -13,13 +11,9 @@ function advanceAfterSovendus() {
   hasAdvanced = true;
 
   const current = document.getElementById("sovendus-section");
-  if (!current) {
-    console.warn("⚠️ Sovendus-sectie niet gevonden bij advance");
-    return;
-  }
+  if (!current) return;
 
   let next = current.nextElementSibling;
-  // sla IVR-secties over (consistent met initFlow-lite)
   while (next && next.classList.contains("ivr-section")) {
     next = next.nextElementSibling;
   }
@@ -49,21 +43,15 @@ function setupSovendus() {
     return;
   }
 
-  // container leegmaken
   container.innerHTML = "";
 
-  // laadbericht
-  let loadingDiv = document.getElementById("sovendus-loading");
-  if (!loadingDiv) {
-    loadingDiv = document.createElement("div");
-    loadingDiv.id = "sovendus-loading";
-    loadingDiv.style.textAlign = "center";
-    loadingDiv.style.padding = "16px";
-    loadingDiv.innerHTML = `<p style="font-size: 16px;">Even geduld… jouw voordeel wordt geladen!</p>`;
-    container.parentNode.insertBefore(loadingDiv, container);
-  }
+  const loadingDiv = document.createElement("div");
+  loadingDiv.id = "sovendus-loading";
+  loadingDiv.style.textAlign = "center";
+  loadingDiv.style.padding = "16px";
+  loadingDiv.innerHTML = `<p style="font-size: 16px;">Even geduld… jouw voordeel wordt geladen!</p>`;
+  container.parentNode.insertBefore(loadingDiv, container);
 
-  // data uit sessionStorage
   const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
   const gender = sessionStorage.getItem("gender") || "";
   const firstname = sessionStorage.getItem("firstname") || "";
@@ -73,7 +61,6 @@ function setupSovendus() {
 
   console.log("📦 Sovendus data:", { t_id, gender, firstname, lastname, email, timestamp });
 
-  // global consumer + iframe config
   window.sovConsumer = {
     consumerSalutation: gender,
     consumerFirstName: firstname,
@@ -94,7 +81,6 @@ function setupSovendus() {
     iframeContainerId: containerId,
   });
 
-  // extern script laden
   const script = document.createElement("script");
   script.src = "https://api.sovendus.com/sovabo/common/js/flexibleIframe.js";
   script.async = true;
@@ -103,12 +89,10 @@ function setupSovendus() {
     console.log("✅ Sovendus → flexibleIframe.js geladen");
     document.getElementById("sovendus-loading")?.remove();
 
-    // ⏱️ auto-advance na timeout (éénmalig)
+    // Start timer
     setTimeout(() => {
       const section = document.getElementById("sovendus-section");
-      if (!section) return;
-      const visible = window.getComputedStyle(section).display !== "none";
-      if (visible) {
+      if (section && window.getComputedStyle(section).display !== "none") {
         console.log(`⏰ Timeout (${SOV_TIMEOUT_MS} ms) bereikt → door naar volgende sectie`);
         advanceAfterSovendus();
       }
@@ -117,7 +101,6 @@ function setupSovendus() {
 
   script.onerror = () => {
     console.error("❌ Fout bij laden van flexibleIframe.js");
-    // bij fout toch niet blokkeren — ga na korte delay door
     setTimeout(() => {
       if (!hasAdvanced) {
         console.log("⚠️ Fallback na laadfout → door naar volgende sectie");
@@ -129,5 +112,4 @@ function setupSovendus() {
   document.body.appendChild(script);
 }
 
-// Alleen beschikbaar stellen voor initFlow-lite.js
 window.setupSovendus = setupSovendus;
