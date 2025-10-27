@@ -167,28 +167,34 @@ function initFlowLite() {
     });
   });
 
-  // ============================================================
-  // 5️⃣ Automatische doorgang na long form submit
-  // ============================================================
-  document.addEventListener("longFormSubmitted", () => {
-    console.log("✅ Long form voltooid → door naar volgende sectie");
-    const current = document.getElementById("long-form-section");
-    if (!current) return;
+// ============================================================
+// 5️⃣ Automatische doorgang na long form submit
+// ============================================================
+document.addEventListener("longFormSubmitted", () => {
+  console.log("✅ Long form voltooid → door naar volgende sectie");
 
-    let next = current.nextElementSibling;
-    while (next && next.classList.contains("ivr-section") && status === "online") {
-      next = next.nextElementSibling;
-    }
+  // zoek de huidige long-form sectie (flexibel op ID)
+  const current = document.getElementById("long-form")?.closest(".flow-section") || document.getElementById("long-form");
+  if (!current) {
+    console.warn("⚠️ Geen long-form sectie gevonden in DOM");
+    return;
+  }
 
-    if (next) {
-      current.style.display = "none";
-      next.style.display = "block";
-      reloadImages(next);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      console.log("🏁 Einde van de flow bereikt na long form");
-    }
-  });
+  let next = current.nextElementSibling;
+  while (next && next.classList.contains("ivr-section") && status === "online") {
+    next = next.nextElementSibling;
+  }
+
+  if (next) {
+    current.style.display = "none";
+    next.style.display = "block";
+    reloadImages(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    console.log("➡️ Volgende sectie getoond:", next.className);
+  } else {
+    console.log("🏁 Einde van de flow bereikt na long form");
+  }
+});
 
   // ============================================================
   // 6️⃣ System Check Log (debug)
