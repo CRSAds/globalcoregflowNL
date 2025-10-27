@@ -1,11 +1,11 @@
 // =============================================================
-// ✅ formSubmit.js — versie met tracking-fallbacks + Swipe Pages fallback trigger
+// ✅ formSubmit.js — stabiele shortform + co-sponsor verzending
 // =============================================================
 
 window.submittedCampaigns = window.submittedCampaigns || new Set();
 
 // -------------------------------------------------------------
-// 🔹 Tracking-parameters bij pageload opslaan
+// 🔹 Tracking-parameters opslaan bij pageload
 // -------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -61,7 +61,7 @@ function buildPayload(campaign = {}) {
 }
 
 // -------------------------------------------------------------
-// 🔹 Lead versturen via API
+// 🔹 Lead versturen naar Databowl via API
 // -------------------------------------------------------------
 async function fetchLead(payload) {
   const key = `${payload.cid}_${payload.sid}`;
@@ -95,7 +95,7 @@ window.buildPayload = buildPayload;
 window.fetchLead = fetchLead;
 
 // -------------------------------------------------------------
-// 🔹 Live form tracking (inputs opslaan in sessionStorage)
+// 🔹 Live form tracking (inputvelden in sessionStorage bewaren)
 // -------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const shortForm = document.querySelector("#lead-form");
@@ -118,67 +118,73 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // -------------------------------------------------------------
-// 🔹 Shortform submit (→ altijd campagne 925)
+// 🔹 Shortform submit (na geldig formulier)
 // -------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const shortForm = document.querySelector("#lead-form");
   if (!shortForm) return;
 
-  const handleShortformSubmit = async () => {
-    console.log("🟢 Shortform verzonden (925)...");
+  shortForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // ✅ Controleer of velden geldig zijn (HTML5 validation)
+    if (!shortForm.checkValidity()) {
+      console.warn("⚠️ Formulier niet volledig ingevuld");
+      shortForm.reportValidity();
+      return;
+    }
+
+    console.log("🟢 Shortform verzonden...");
+
+    // waarden opslaan
     shortForm.querySelectorAll("input").forEach(input => {
       const name = input.name || input.id;
       if (name && input.value.trim()) sessionStorage.setItem(name, input.value.trim());
     });
 
+    // hoofdlead 925
     const basePayload = buildPayload({ cid: "925", sid: "34", is_shortform: true });
     await fetchLead(basePayload);
     console.log("✅ Shortform lead verzonden naar campagne 925");
 
+    // sponsors-akkoord?
     const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
-    if (!accepted) {
-      console.log("⚠️ Voorwaarden niet geaccepteerd — alleen hoofdlead verzonden.");
-      return;
-    }
+    if (accepted) {
+      try {
+        const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
+        const json = await res.json();
 
-    try {
-      const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
-      const json = await res.json();
-
-      if (json.data && json.data.length > 0) {
-        console.log(`📡 Verstuur naar ${json.data.length} co-sponsors...`);
-        await Promise.allSettled(json.data.map(async sponsor => {
-          if (!sponsor.cid || !sponsor.sid) return;
-          const sponsorPayload = buildPayload({
-            cid: sponsor.cid,
-            sid: sponsor.sid,
-            is_shortform: true
-          });
-          await fetchLead(sponsorPayload);
-        }));
-      } else {
-        console.log("ℹ️ Geen actieve co-sponsors gevonden.");
+        if (json.data && json.data.length > 0) {
+          console.log(`📡 Verstuur naar ${json.data.length} co-sponsors...`);
+          await Promise.allSettled(json.data.map(async sponsor => {
+            if (!sponsor.cid || !sponsor.sid) return;
+            const sponsorPayload = buildPayload({
+              cid: sponsor.cid,
+              sid: sponsor.sid,
+              is_shortform: true
+            });
+            await fetchLead(sponsorPayload);
+          }));
+        } else {
+          console.log("ℹ️ Geen actieve co-sponsors gevonden.");
+        }
+      } catch (err) {
+        console.error("❌ Fout bij ophalen/versturen co-sponsors:", err);
       }
-    } catch (err) {
-      console.error("❌ Fout bij ophalen/versturen co-sponsors:", err);
+    } else {
+      console.log("⚠️ Voorwaarden niet geaccepteerd — alleen hoofdlead verzonden.");
     }
-  };
 
-  // echte form-submit
-  shortForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    await handleShortformSubmit();
-  });
-
-  // -----------------------------------------------------------
-  // 🔹 Fallback: Swipe Pages buttons (geen echte form-submit)
-  // -----------------------------------------------------------
-  document.querySelectorAll(".flow-next, #lead-form button").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      if (window.submittedCampaigns.has("925_34")) return; // voorkom dubbel
-      console.log("⚡ Fallback-trigger: flow-next button start shortform verzending");
-      await handleShortformSubmit();
-    });
+    // ---------------------------------------------------------
+    // 🔹 (Optioneel) Automatisch doorgaan naar volgende sectie
+    // ---------------------------------------------------------
+    const nextBtn = document.querySelector(".flow-next");
+    if (nextBtn) {
+      setTimeout(() => {
+        console.log("➡️ Ga verder naar volgende sectie (Swipe Pages)");
+        nextBtn.click();
+      }, 400); // kleine vertraging voor UX
+    }
   });
 });
 
