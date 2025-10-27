@@ -152,9 +152,13 @@ function initFlowLite() {
 
         // 🎁 Sovendus starten zodra sectie zichtbaar wordt
         if (next.id === "sovendus-section" && typeof window.setupSovendus === "function") {
+        if (!window.sovendusStarted) {
+          window.sovendusStarted = true;
           console.log("🎁 Sovendus-sectie getoond → setupSovendus()");
           window.setupSovendus();
         }
+      }
+
       } else {
         console.log("🏁 Einde van de flow bereikt");
       }
@@ -183,9 +187,13 @@ function initFlowLite() {
 
       // 🎁 Sovendus activeren bij tonen
       if (next.id === "sovendus-section" && typeof window.setupSovendus === "function") {
+      if (!window.sovendusStarted) {
+        window.sovendusStarted = true;
         console.log("🎁 Sovendus-sectie getoond → setupSovendus()");
         window.setupSovendus();
       }
+    }
+
     } else {
       console.log("🏁 Einde van de flow bereikt na long form");
     }
