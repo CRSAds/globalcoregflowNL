@@ -1,5 +1,5 @@
 // =============================================================
-// sovendus.js — Auto-advance variant (timeout + optional click)
+// sovendus.js — Auto-advance versie (alleen timeout, geen early init)
 // =============================================================
 
 let hasInitialized = false;
@@ -113,14 +113,6 @@ function setupSovendus() {
         advanceAfterSovendus();
       }
     }, SOV_TIMEOUT_MS);
-
-    // (optioneel) klik op container versnelt de flow wanneer het wel bubbelt
-    container.addEventListener("click", () => {
-      if (!hasAdvanced) {
-        console.log("🎁 Sovendus-container aangeklikt → direct door");
-        advanceAfterSovendus();
-      }
-    });
   };
 
   script.onerror = () => {
@@ -137,15 +129,5 @@ function setupSovendus() {
   document.body.appendChild(script);
 }
 
-// Fallback: als sectie bij pageload al zichtbaar is
-document.addEventListener("DOMContentLoaded", () => {
-  const section = document.getElementById("sovendus-section");
-  if (!section) return;
-  if (window.getComputedStyle(section).display !== "none") {
-    console.log("🎁 Sovendus-sectie al zichtbaar bij load → directe init");
-    setupSovendus();
-  }
-});
-
-// global
+// Alleen beschikbaar stellen voor initFlow-lite.js
 window.setupSovendus = setupSovendus;
