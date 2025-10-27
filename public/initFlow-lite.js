@@ -6,10 +6,10 @@
 // 1️⃣ Toont alleen de eerste zichtbare sectie bij pageload
 // 2️⃣ Werkt met ?status=online of ?status=live
 // 3️⃣ Zorgt dat footers correct getoond worden per status
-// 4️⃣ Slaat IVR-secties over bij status=online
-// 5️⃣ Houdt CoregFlow (#coreg-container) altijd zichtbaar
-// 6️⃣ Forceert image load voor zichtbare secties
-// 7️⃣ Gaat automatisch verder na long form submit
+// 4️⃣ Navigatie tussen secties (flow-next knoppen)
+// 5️⃣ Gaat automatisch verder na long form submit
+// 6️⃣ Start Sovendus automatisch wanneer sectie in beeld komt
+// 7️⃣ Systeemcheck & debuglog
 // =============================================================
 
 window.addEventListener("DOMContentLoaded", initFlowLite);
@@ -168,7 +168,36 @@ function initFlowLite() {
   });
 
   // ============================================================
-  // 5 Sovendus auto-init bij bereiken van Sovendus-sectie
+  // 5️⃣ Automatische doorgang na long form submit
+  // ============================================================
+  document.addEventListener("longFormSubmitted", () => {
+    console.log("✅ Long form voltooid → door naar volgende sectie");
+
+    // zoek de huidige long-form sectie (flexibel op ID)
+    const current = document.getElementById("long-form")?.closest(".flow-section") || document.getElementById("long-form");
+    if (!current) {
+      console.warn("⚠️ Geen long-form sectie gevonden in DOM");
+      return;
+    }
+
+    let next = current.nextElementSibling;
+    while (next && next.classList.contains("ivr-section") && status === "online") {
+      next = next.nextElementSibling;
+    }
+
+    if (next) {
+      current.style.display = "none";
+      next.style.display = "block";
+      reloadImages(next);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      console.log("➡️ Volgende sectie getoond:", next.className);
+    } else {
+      console.log("🏁 Einde van de flow bereikt na long form");
+    }
+  });
+
+  // ============================================================
+  // 6️⃣ Sovendus auto-init bij bereiken van Sovendus-sectie
   // ============================================================
   document.addEventListener("DOMContentLoaded", () => {
     const sovendusSection = document.getElementById("sovendus-section");
@@ -188,7 +217,7 @@ function initFlowLite() {
   });
 
   // ============================================================
-  // 6 System Check Log (debug)
+  // 7️⃣ System Check Log (debug)
   // ============================================================
   console.groupCollapsed("✅ Global CoregFlow System Check");
   console.log("formSubmit.js geladen:", !!window.buildPayload);
