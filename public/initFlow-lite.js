@@ -7,9 +7,9 @@
 // 2️⃣ Werkt met ?status=online of ?status=live
 // 3️⃣ Zorgt dat footers correct getoond worden per status
 // 4️⃣ Navigatie tussen secties (flow-next knoppen)
-// 5️⃣ Gaat automatisch verder na long form submit
-// 6️⃣ Start Sovendus automatisch wanneer sectie in beeld komt
-// 7️⃣ Systeemcheck & debuglog
+// 5️⃣ Automatische doorgang na long form submit
+// 6️⃣ Start Sovendus zodra de sectie zichtbaar wordt
+// 7️⃣ System Check Log
 // =============================================================
 
 window.addEventListener("DOMContentLoaded", initFlowLite);
@@ -71,11 +71,6 @@ document.addEventListener("DOMContentLoaded", () => {
 function initFlowLite() {
   console.log("🚀 initFlow-lite.js gestart");
 
-  // Wacht op coregReady event voordat flow start
-  document.addEventListener("coregReady", (e) => {
-    console.log("✅ coregReady ontvangen:", e.detail.campaigns?.length, "campagnes");
-  });
-
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status") || "online";
 
@@ -85,18 +80,16 @@ function initFlowLite() {
   const allSections = Array.from(document.querySelectorAll(".flow-section, .ivr-section"));
   console.log("📦 Swipe-secties gevonden:", allSections.length);
 
-  // Coreg-container apart houden — deze mag niet verborgen worden
   const coregContainer = document.getElementById("coreg-container");
   if (coregContainer) {
     coregContainer.style.display = "block";
     console.log("✅ coreg-container zichtbaar gehouden");
   }
 
-  // Verberg alle gewone secties bij pageload
   allSections.forEach(el => (el.style.display = "none"));
 
   // ============================================================
-  // 2️⃣ Eerste sectie tonen (niet-IVR)
+  // 2️⃣ Eerste sectie tonen
   // ============================================================
   const firstVisible = allSections.find(el => !el.classList.contains("ivr-section"));
   if (firstVisible) {
@@ -108,17 +101,15 @@ function initFlowLite() {
   }
 
   // ============================================================
-  // 3️⃣ Statusspecifiek gedrag (online vs live)
+  // 3️⃣ Statusspecifiek gedrag
   // ============================================================
   if (status === "online") {
     console.log("🌐 Status = ONLINE → IVR-secties overslaan + footeronline tonen");
-
     document.querySelectorAll(".ivr-section").forEach(el => (el.style.display = "none"));
     document.querySelectorAll(".footeronline").forEach(el => (el.style.display = "block"));
     document.querySelectorAll(".footerlive").forEach(el => (el.style.display = "none"));
   } else if (status === "live") {
     console.log("📺 Status = LIVE → IVR actief + footerlive tonen");
-
     document.querySelectorAll(".footeronline").forEach(el => (el.style.display = "none"));
     document.querySelectorAll(".footerlive").forEach(el => (el.style.display = "block"));
   }
@@ -135,17 +126,15 @@ function initFlowLite() {
       current.style.display = "none";
       let next = current.nextElementSibling;
 
-      // Bij status=online → IVR-secties overslaan
       while (next && next.classList.contains("ivr-section") && status === "online") {
         next = next.nextElementSibling;
       }
 
-      // 🔍 Check of de volgende sectie het long form is
+      // Skip longform indien niet vereist
       if (next && next.id === "long-form-section") {
         const showLongForm = sessionStorage.getItem("requiresLongForm") === "true";
         if (!showLongForm) {
           console.log("🚫 Geen longform-campagnes positief beantwoord → long form overslaan");
-          // zoek de eerstvolgende sectie na het long form
           next = next.nextElementSibling;
           while (next && next.classList.contains("ivr-section") && status === "online") {
             next = next.nextElementSibling;
@@ -155,12 +144,17 @@ function initFlowLite() {
         }
       }
 
-      // Volgende sectie tonen
       if (next) {
         next.style.display = "block";
         reloadImages(next);
         window.scrollTo({ top: 0, behavior: "smooth" });
         console.log("➡️ Volgende sectie getoond:", next.className);
+
+        // 🎁 Sovendus starten zodra sectie zichtbaar wordt
+        if (next.id === "sovendus-section" && typeof window.setupSovendus === "function") {
+          console.log("🎁 Sovendus-sectie getoond → setupSovendus()");
+          window.setupSovendus();
+        }
       } else {
         console.log("🏁 Einde van de flow bereikt");
       }
@@ -172,13 +166,8 @@ function initFlowLite() {
   // ============================================================
   document.addEventListener("longFormSubmitted", () => {
     console.log("✅ Long form voltooid → door naar volgende sectie");
-
-    // zoek de huidige long-form sectie (flexibel op ID)
     const current = document.getElementById("long-form")?.closest(".flow-section") || document.getElementById("long-form");
-    if (!current) {
-      console.warn("⚠️ Geen long-form sectie gevonden in DOM");
-      return;
-    }
+    if (!current) return;
 
     let next = current.nextElementSibling;
     while (next && next.classList.contains("ivr-section") && status === "online") {
@@ -191,76 +180,51 @@ function initFlowLite() {
       reloadImages(next);
       window.scrollTo({ top: 0, behavior: "smooth" });
       console.log("➡️ Volgende sectie getoond:", next.className);
+
+      // 🎁 Sovendus activeren bij tonen
+      if (next.id === "sovendus-section" && typeof window.setupSovendus === "function") {
+        console.log("🎁 Sovendus-sectie getoond → setupSovendus()");
+        window.setupSovendus();
+      }
     } else {
       console.log("🏁 Einde van de flow bereikt na long form");
     }
   });
 
-    // ============================================================
-    // 6️⃣ Sovendus auto-init bij bereiken van Sovendus-sectie
-    // ============================================================
-    const sovendusSection = document.getElementById("sovendus-section");
-    if (sovendusSection) {
-      const observer = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting && typeof window.setupSovendus === "function") {
-            console.log("🎁 Sovendus-sectie in beeld → setupSovendus()");
-            window.setupSovendus();
-            observer.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.5 });
-    
-      observer.observe(sovendusSection);
-    } else {
-      console.warn("⚠️ Geen Sovendus-sectie gevonden bij initFlowLite");
+  // ============================================================
+  // 6️⃣ Sovendus fallback (veiligheidsnet)
+  // ============================================================
+  setTimeout(() => {
+    if (typeof window.setupSovendus === "function" && !document.getElementById("sovendus-iframe")) {
+      console.log("⏰ Fallback: Sovendus handmatig gestart na timeout");
+      window.setupSovendus();
     }
+  }, 7000);
 
   // ============================================================
-  // 7️⃣ System Check Log (debug)
+  // 7️⃣ System Check Log
   // ============================================================
   console.groupCollapsed("✅ Global CoregFlow System Check");
   console.log("formSubmit.js geladen:", !!window.buildPayload);
   console.log("coregRenderer.js geladen:", typeof window.initCoregFlow === "function");
   console.log("progressbar-anim.js geladen:", typeof window.animateProgressBar === "function");
+  console.log("Sovendus.js geladen:", typeof window.setupSovendus === "function");
   console.log("initFlow-lite.js actief");
-  console.log("IVR aanwezig:", document.querySelectorAll(".ivr-section").length);
-  console.log("Memory script actief:", typeof window.memoryGame !== "undefined");
-
-  if (window.allCampaigns && Array.isArray(window.allCampaigns)) {
-    console.log(`📊 Coreg campagnes geladen uit Directus: ${window.allCampaigns.length}`);
-  } else {
-    console.warn("⚠️ Coreg campagnes nog niet geladen of onbekend (window.allCampaigns ontbreekt)");
-  }
-
+  console.log("IVR-secties:", document.querySelectorAll(".ivr-section").length);
   console.groupEnd();
 }
 
 // =============================================================
-// Hulpfunctie: forceer lazy images te laden + mini scroll bump
+// Hulpfunctie: forceer lazy images te laden
 // =============================================================
 function reloadImages(section) {
   if (!section) return;
-
   const imgs = section.querySelectorAll("img[data-src], img[src*='data:image']");
   imgs.forEach(img => {
     const newSrc = img.getAttribute("data-src") || img.src;
     if (newSrc && !img.src.includes(newSrc)) img.src = newSrc;
   });
-
   window.scrollBy(0, 1);
   setTimeout(() => window.scrollBy(0, -1), 150);
-
-  const visibleImages = section.querySelectorAll("img");
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting && entry.target.dataset.src) {
-        entry.target.src = entry.target.dataset.src;
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.1 });
-
-  visibleImages.forEach(img => observer.observe(img));
   console.log("🖼️ Afbeeldingen geforceerd geladen in sectie:", section.className);
 }
