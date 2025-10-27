@@ -1,13 +1,38 @@
 // =============================================================
-// sovendus.js — Klik-actieve versie voor Swipe Pages
-// -------------------------------------------------------------
-// Functies:
-// 1️⃣ Initialiseert Sovendus zodra sectie zichtbaar wordt
-// 2️⃣ Detecteert klik op de Sovendus-container
-// 3️⃣ Gaat automatisch verder naar volgende sectie in de flow
+// sovendus.js — Auto-advance variant (timeout + optional click)
 // =============================================================
 
 let hasInitialized = false;
+let hasAdvanced = false;
+
+// 👉 tijd tot automatisch doorgaan (ms)
+const SOV_TIMEOUT_MS = 10000;
+
+function advanceAfterSovendus() {
+  if (hasAdvanced) return;
+  hasAdvanced = true;
+
+  const current = document.getElementById("sovendus-section");
+  if (!current) {
+    console.warn("⚠️ Sovendus-sectie niet gevonden bij advance");
+    return;
+  }
+
+  let next = current.nextElementSibling;
+  // sla IVR-secties over (consistent met initFlow-lite)
+  while (next && next.classList.contains("ivr-section")) {
+    next = next.nextElementSibling;
+  }
+
+  if (next) {
+    current.style.display = "none";
+    next.style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    console.log("➡️ Flow vervolgd na Sovendus");
+  } else {
+    console.log("🏁 Geen volgende sectie gevonden na Sovendus");
+  }
+}
 
 function setupSovendus() {
   if (hasInitialized) {
@@ -24,10 +49,10 @@ function setupSovendus() {
     return;
   }
 
-  // Stap 1: container leegmaken (veiligheid)
+  // container leegmaken
   container.innerHTML = "";
 
-  // Stap 2: laadbericht
+  // laadbericht
   let loadingDiv = document.getElementById("sovendus-loading");
   if (!loadingDiv) {
     loadingDiv = document.createElement("div");
@@ -38,7 +63,7 @@ function setupSovendus() {
     container.parentNode.insertBefore(loadingDiv, container);
   }
 
-  // Stap 3: data ophalen uit sessionStorage
+  // data uit sessionStorage
   const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
   const gender = sessionStorage.getItem("gender") || "";
   const firstname = sessionStorage.getItem("firstname") || "";
@@ -48,7 +73,7 @@ function setupSovendus() {
 
   console.log("📦 Sovendus data:", { t_id, gender, firstname, lastname, email, timestamp });
 
-  // Stap 4: globale consumentenobject
+  // global consumer + iframe config
   window.sovConsumer = {
     consumerSalutation: gender,
     consumerFirstName: firstname,
@@ -56,7 +81,6 @@ function setupSovendus() {
     consumerEmail: email,
   };
 
-  // Stap 5: globale iframeconfiguratie
   window.sovIframes = window.sovIframes || [];
   window.sovIframes.push({
     trafficSourceNumber: "5592",
@@ -70,61 +94,58 @@ function setupSovendus() {
     iframeContainerId: containerId,
   });
 
-  // Stap 6: externe script laden
+  // extern script laden
   const script = document.createElement("script");
   script.src = "https://api.sovendus.com/sovabo/common/js/flexibleIframe.js";
   script.async = true;
 
   script.onload = () => {
     console.log("✅ Sovendus → flexibleIframe.js geladen");
-    const loadingEl = document.getElementById("sovendus-loading");
-    if (loadingEl) loadingEl.remove();
+    document.getElementById("sovendus-loading")?.remove();
 
-    // 🎯 Klikdetectie op Sovendus-container
-    const container = document.getElementById("sovendus-container-1");
-    if (container) {
-      container.addEventListener("click", () => {
-        console.log("🎁 Sovendus-container aangeklikt → doorgaan naar volgende sectie");
+    // ⏱️ auto-advance na timeout (éénmalig)
+    setTimeout(() => {
+      const section = document.getElementById("sovendus-section");
+      if (!section) return;
+      const visible = window.getComputedStyle(section).display !== "none";
+      if (visible) {
+        console.log(`⏰ Timeout (${SOV_TIMEOUT_MS} ms) bereikt → door naar volgende sectie`);
+        advanceAfterSovendus();
+      }
+    }, SOV_TIMEOUT_MS);
 
-        const current = document.getElementById("sovendus-section");
-        if (current) {
-          let next = current.nextElementSibling;
-          while (next && next.classList.contains("ivr-section")) {
-            next = next.nextElementSibling;
-          }
-          if (next) {
-            current.style.display = "none";
-            next.style.display = "block";
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            console.log("➡️ Flow vervolgd na Sovendus");
-          } else {
-            console.log("🏁 Geen volgende sectie gevonden na Sovendus");
-          }
-        }
-      });
-    }
+    // (optioneel) klik op container versnelt de flow wanneer het wel bubbelt
+    container.addEventListener("click", () => {
+      if (!hasAdvanced) {
+        console.log("🎁 Sovendus-container aangeklikt → direct door");
+        advanceAfterSovendus();
+      }
+    });
   };
 
   script.onerror = () => {
     console.error("❌ Fout bij laden van flexibleIframe.js");
+    // bij fout toch niet blokkeren — ga na korte delay door
+    setTimeout(() => {
+      if (!hasAdvanced) {
+        console.log("⚠️ Fallback na laadfout → door naar volgende sectie");
+        advanceAfterSovendus();
+      }
+    }, 2000);
   };
 
   document.body.appendChild(script);
 }
 
-// =============================================================
-// ✅ Automatische fallback bij pageload
-// =============================================================
+// Fallback: als sectie bij pageload al zichtbaar is
 document.addEventListener("DOMContentLoaded", () => {
   const section = document.getElementById("sovendus-section");
   if (!section) return;
-
-  const style = window.getComputedStyle(section);
-  if (style.display !== "none") {
+  if (window.getComputedStyle(section).display !== "none") {
     console.log("🎁 Sovendus-sectie al zichtbaar bij load → directe init");
     setupSovendus();
   }
 });
 
-// Exporteer naar global scope
+// global
 window.setupSovendus = setupSovendus;
