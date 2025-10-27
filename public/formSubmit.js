@@ -1,5 +1,5 @@
 // =============================================================
-// formSubmit.js — versie met tracking-fallbacks en shortform-garantie (campagne 925)
+// ✅ formSubmit.js — versie met tracking-fallbacks + Swipe Pages fallback trigger
 // =============================================================
 
 window.submittedCampaigns = window.submittedCampaigns || new Set();
@@ -19,17 +19,13 @@ document.addEventListener("DOMContentLoaded", () => {
 // 🔹 Payload opbouwen
 // -------------------------------------------------------------
 function buildPayload(campaign = {}) {
-  // --- Basis tracking fallbacks ---
   const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
   const aff_id = sessionStorage.getItem("aff_id") || "unknown";
   const offer_id = sessionStorage.getItem("offer_id") || "unknown";
   const sub_id = sessionStorage.getItem("sub_id") || "unknown";
   const sub2 = sessionStorage.getItem("sub2") || "unknown";
-
-  // --- Campagne-URL altijd met ?status=online ---
   const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
 
-  // --- Geboortedatum normaliseren ---
   const dob_day = sessionStorage.getItem("dob_day");
   const dob_month = sessionStorage.getItem("dob_month");
   const dob_year = sessionStorage.getItem("dob_year");
@@ -38,7 +34,6 @@ function buildPayload(campaign = {}) {
       ? `${dob_year.padStart(4, "0")}-${dob_month.padStart(2, "0")}-${dob_day.padStart(2, "0")}`
       : "";
 
-  // --- Payload samenstellen ---
   const payload = {
     cid: campaign.cid || "925",
     sid: campaign.sid || "34",
@@ -129,29 +124,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const shortForm = document.querySelector("#lead-form");
   if (!shortForm) return;
 
-  shortForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    console.log("🟢 Shortform verzonden...");
-
-    // waarden opslaan
+  const handleShortformSubmit = async () => {
+    console.log("🟢 Shortform verzonden (925)...");
     shortForm.querySelectorAll("input").forEach(input => {
       const name = input.name || input.id;
       if (name && input.value.trim()) sessionStorage.setItem(name, input.value.trim());
     });
 
-    // hoofdlead 925
     const basePayload = buildPayload({ cid: "925", sid: "34", is_shortform: true });
     await fetchLead(basePayload);
     console.log("✅ Shortform lead verzonden naar campagne 925");
 
-    // sponsors-akkoord?
     const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
     if (!accepted) {
       console.log("⚠️ Voorwaarden niet geaccepteerd — alleen hoofdlead verzonden.");
       return;
     }
 
-    // co-sponsors ophalen & posten
     try {
       const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
       const json = await res.json();
@@ -173,6 +162,23 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       console.error("❌ Fout bij ophalen/versturen co-sponsors:", err);
     }
+  };
+
+  // echte form-submit
+  shortForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await handleShortformSubmit();
+  });
+
+  // -----------------------------------------------------------
+  // 🔹 Fallback: Swipe Pages buttons (geen echte form-submit)
+  // -----------------------------------------------------------
+  document.querySelectorAll(".flow-next, #lead-form button").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (window.submittedCampaigns.has("925_34")) return; // voorkom dubbel
+      console.log("⚡ Fallback-trigger: flow-next button start shortform verzending");
+      await handleShortformSubmit();
+    });
   });
 });
 
