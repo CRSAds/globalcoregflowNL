@@ -1,20 +1,17 @@
 // /api/cosponsors.js
-// Haalt alle live co-sponsors op uit Directus en retourneert JSON
-// Wordt aangeroepen door public/cosponsors.js (de popup op Swipe Pages)
+// ✅ Uitgebreide versie: bevat nu cid/sid voor Databowl-verzending
 
 export default async function handler(req, res) {
-  // CORS headers — zodat Swipe Pages het mag ophalen
+  // --- CORS headers ---
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
-    // 🔗 Directus endpoint — haalt alleen live sponsors op
-    const url = `${process.env.DIRECTUS_URL}/items/co_sponsors?filter[is_live][_eq]=true&fields=title,description,logo,address,privacy_url&sort=title`;
+    // 🔗 Directus endpoint — alleen live co-sponsors met cid/sid
+    const url = `${process.env.DIRECTUS_URL}/items/co_sponsors?filter[is_live][_eq]=true&fields=title,description,logo,address,privacy_url,cid,sid&sort=title`;
 
     const response = await fetch(url, {
       headers: {
@@ -29,9 +26,17 @@ export default async function handler(req, res) {
     }
 
     const json = await response.json();
-    const sponsors = json.data || [];
+    const sponsors = (json.data || []).map(s => ({
+      title: s.title || "",
+      description: s.description || "",
+      logo: s.logo || null,
+      address: s.address || "",
+      privacy_url: s.privacy_url || "",
+      cid: s.cid || "",
+      sid: s.sid || ""
+    }));
 
-    console.log(`✅ ${sponsors.length} co-sponsors geladen uit Directus`);
+    console.log(`✅ ${sponsors.length} co-sponsors geladen uit Directus (incl. cid/sid)`);
     return res.status(200).json({ data: sponsors });
   } catch (error) {
     console.error("❌ Fout bij ophalen co-sponsors:", error);
