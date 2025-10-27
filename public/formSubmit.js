@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ formSubmit.js — versie met global guard (1x listeners)
+// ✅ formSubmit.js — stabiele shortform + co-sponsor verzending (zonder auto-doorklik)
 // =============================================================
 
 if (!window.formSubmitInitialized) {
@@ -58,7 +58,6 @@ if (!window.formSubmitInitialized) {
       is_shortform: campaign.is_shortform || false
     };
   }
-
   window.buildPayload = buildPayload;
 
   // -----------------------------------------------------------
@@ -91,11 +90,10 @@ if (!window.formSubmitInitialized) {
       return { success: false, error: err };
     }
   }
-
   window.fetchLead = fetchLead;
 
   // -----------------------------------------------------------
-  // 🔹 Live form tracking
+  // 🔹 Live form tracking (short + long)
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const shortForm = document.querySelector("#lead-form");
@@ -117,7 +115,7 @@ if (!window.formSubmitInitialized) {
   });
 
   // -----------------------------------------------------------
-  // 🔹 Shortform submit (na geldig formulier)
+  // 🔹 Shortform submit (ná geldige invoer) → 925 + co-sponsors
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const shortForm = document.querySelector("#lead-form");
@@ -139,21 +137,23 @@ if (!window.formSubmitInitialized) {
 
       console.log("🟢 Shortform verzonden...");
 
+      // cache velden
       shortForm.querySelectorAll("input").forEach(input => {
         const name = input.name || input.id;
         if (name && input.value.trim()) sessionStorage.setItem(name, input.value.trim());
       });
 
+      // hoofdlead
       const basePayload = buildPayload({ cid: "925", sid: "34", is_shortform: true });
       await fetchLead(basePayload);
       console.log("✅ Shortform lead verzonden naar campagne 925");
 
+      // co-sponsors (alleen als akkoord eerder is gegeven)
       const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
       if (accepted) {
         try {
           const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
           const json = await res.json();
-
           if (json.data && json.data.length > 0) {
             console.log(`📡 Verstuur naar ${json.data.length} co-sponsors...`);
             await Promise.allSettled(json.data.map(async sponsor => {
@@ -175,14 +175,9 @@ if (!window.formSubmitInitialized) {
         console.log("⚠️ Voorwaarden niet geaccepteerd — alleen hoofdlead verzonden.");
       }
 
-      // doorgaan naar volgende sectie
-      const nextBtn = document.querySelector(".flow-next");
-      if (nextBtn) {
-        setTimeout(() => {
-          console.log("➡️ Ga verder naar volgende sectie (Swipe Pages)");
-          nextBtn.click();
-        }, 400);
-      }
+      // ⚠️ Belangrijk: géén auto-click op .flow-next hier.
+      // Swipe Pages regelt de sectiewissel al via de knop-click.
+      // Ons extra “doorklikken” veroorzaakte dubbele zichtbare secties.
     });
   });
 
