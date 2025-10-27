@@ -181,6 +181,48 @@ if (!window.formSubmitInitialized) {
     });
   });
 
+  // -------------------------------------------------------------
+// 🔹 Longform submit
+// -------------------------------------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("submit-long-form");
+  const form = document.getElementById("long-form");
+  if (!btn || !form) return;
+
+  let submitting = false;
+  btn.addEventListener("click", async () => {
+    if (submitting) return;
+    submitting = true;
+
+    const fields = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
+    const values = Object.fromEntries(fields.map(id => [id, document.getElementById(id)?.value.trim() || ""]));
+
+    if (Object.values(values).some(v => !v)) {
+      alert("Vul alle verplichte velden in voordat je doorgaat.");
+      submitting = false;
+      return;
+    }
+
+    for (const [k, v] of Object.entries(values)) sessionStorage.setItem(k, v);
+    const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+    if (!pending.length) {
+      console.warn("⚠️ Geen longform-campagnes gevonden om te versturen");
+      submitting = false;
+      return;
+    }
+
+    for (const camp of pending) {
+      const payload = window.buildPayload(camp);
+      await window.fetchLead(payload);
+    }
+
+    console.log("✅ Longform-leads verzonden");
+    sessionStorage.removeItem("longFormCampaigns");
+    submitting = false;
+    document.dispatchEvent(new Event("longFormSubmitted"));
+  });
+});
+
   // -----------------------------------------------------------
   // 🔹 Sponsor akkoord tracking
   // -----------------------------------------------------------
