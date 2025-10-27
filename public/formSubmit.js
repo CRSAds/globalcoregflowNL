@@ -181,13 +181,17 @@ if (!window.formSubmitInitialized) {
     });
   });
 
-  // -------------------------------------------------------------
+// -------------------------------------------------------------
 // 🔹 Longform submit
 // -------------------------------------------------------------
-document.addEventListener("DOMContentLoaded", () => {
+function waitForLongForm() {
   const btn = document.getElementById("submit-long-form");
   const form = document.getElementById("long-form");
-  if (!btn || !form) return;
+  if (!btn || !form) {
+    setTimeout(waitForLongForm, 300);
+    return;
+  }
+  console.log("✅ Long form gevonden, listeners actief");
 
   let submitting = false;
   btn.addEventListener("click", async () => {
@@ -213,6 +217,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     for (const camp of pending) {
       const payload = window.buildPayload(camp);
+
+      // 🎯 Coreg-antwoorden toevoegen aan payload
+      if (sessionStorage.getItem("f_2014_coreg_answer")) {
+        payload.f_2014_coreg_answer = sessionStorage.getItem("f_2014_coreg_answer");
+      }
+      if (sessionStorage.getItem("f_2575_coreg_answer_dropdown")) {
+        payload.f_2575_coreg_answer_dropdown = sessionStorage.getItem("f_2575_coreg_answer_dropdown");
+      }
+
+      console.log("📨 Longform payload naar Databowl:", payload);
       await window.fetchLead(payload);
     }
 
@@ -221,7 +235,10 @@ document.addEventListener("DOMContentLoaded", () => {
     submitting = false;
     document.dispatchEvent(new Event("longFormSubmitted"));
   });
-});
+}
+
+waitForLongForm();
+
 
   // -----------------------------------------------------------
   // 🔹 Sponsor akkoord tracking
