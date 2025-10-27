@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ coregRenderer.js — versie met longform-activatie na laatste coreg-vraag
+// ✅ coregRenderer.js — stabiele versie met longform-activatie
 // =============================================================
 
 if (typeof window.API_COREG === "undefined") {
@@ -13,6 +13,61 @@ function getImageUrl(image) {
   return image.id
     ? `https://cms.core.909play.com/assets/${image.id}`
     : image.url || "https://via.placeholder.com/600x200?text=Geen+afbeelding";
+}
+
+// ============ HTML renderer voor coreg-campagnes ============
+function renderCampaignBlock(campaign, steps) {
+  const answers = campaign.coreg_answers || [];
+  const style = campaign.ui_style?.toLowerCase() || "buttons";
+  const visible = steps && campaign.step > 1 ? "none" : "block";
+  const isFinal = campaign.isFinal ? "final-coreg" : "";
+
+  if (style === "dropdown") {
+    return `
+      <div class="coreg-section ${isFinal}" id="campaign-${campaign.id}"
+           data-cid="${campaign.cid}" data-sid="${campaign.sid}"
+           style="display:${visible}">
+        <img src="${getImageUrl(campaign.image)}" class="coreg-image" alt="${campaign.title}" />
+        <h3 class="coreg-title">${campaign.title}</h3>
+        <p class="coreg-description">${campaign.description || ""}</p>
+        <select class="coreg-dropdown" data-campaign="${campaign.id}" data-cid="${campaign.cid}" data-sid="${campaign.sid}">
+          <option value="">Maak een keuze...</option>
+          ${answers.map(opt => `
+            <option value="${opt.answer_value}"
+                    data-cid="${opt.has_own_campaign ? opt.cid : campaign.cid}"
+                    data-sid="${opt.has_own_campaign ? opt.sid : campaign.sid}">
+              ${opt.label}
+            </option>`).join("")}
+        </select>
+        <a href="#" class="skip-link" data-campaign="${campaign.id}">Geen interesse, sla over</a>
+      </div>`;
+  }
+
+  // standaard: JA/NEE-knoppen
+  return `
+    <div class="coreg-section ${isFinal}" id="campaign-${campaign.id}"
+         data-cid="${campaign.cid}" data-sid="${campaign.sid}" style="display:${visible}">
+      <img src="${getImageUrl(campaign.image)}" class="coreg-image" alt="${campaign.title}" />
+      <h3 class="coreg-title">${campaign.title}</h3>
+      <p class="coreg-description">${campaign.description || ""}</p>
+      <div class="coreg-answers">
+        ${answers.map(opt => `
+          <button class="flow-next btn-answer"
+                  data-answer="${opt.answer_value || "yes"}"
+                  data-campaign="${campaign.id}"
+                  data-cid="${opt.has_own_campaign ? opt.cid : campaign.cid}"
+                  data-sid="${opt.has_own_campaign ? opt.sid : campaign.sid}">
+            ${opt.label}
+          </button>`).join("")}
+        <button class="flow-next btn-skip"
+          data-answer="no"
+          data-campaign="${campaign.id}"
+          data-cid="${campaign.cid}"
+          data-sid="${campaign.sid}">
+          Nee, geen interesse
+        </button>
+      </div>
+    </div>`;
 }
 
 // ============ Fetch campagnes ============
