@@ -24,12 +24,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (status !== "online" && status !== "live") {
     console.warn("🚫 Geen geldige statusparameter gevonden — toegang geweigerd.");
 
-    // Alle bestaande Swipe-secties en footers verbergen
     document.querySelectorAll("section, footer, .sp-section, #dynamic-footer").forEach(el => {
       el.style.display = "none";
     });
 
-    // Vervang body-inhoud door foutmelding
     const errorDiv = document.createElement("div");
     errorDiv.innerHTML = `
       <style>
@@ -46,16 +44,8 @@ document.addEventListener("DOMContentLoaded", () => {
           text-align: center;
           color: #333;
         }
-        h1 {
-          font-size: 24px;
-          font-weight: 600;
-          margin-bottom: 10px;
-        }
-        p {
-          font-size: 15px;
-          line-height: 1.6;
-          color: #555;
-        }
+        h1 { font-size: 24px; font-weight: 600; margin-bottom: 10px; }
+        p { font-size: 15px; line-height: 1.6; color: #555; }
       </style>
       <div>
         <h1>Pagina niet bereikbaar</h1>
@@ -152,13 +142,12 @@ function initFlowLite() {
 
         // 🎁 Sovendus starten zodra sectie zichtbaar wordt
         if (next.id === "sovendus-section" && typeof window.setupSovendus === "function") {
-        if (!window.sovendusStarted) {
-          window.sovendusStarted = true;
-          console.log("🎁 Sovendus-sectie getoond → setupSovendus()");
-          window.setupSovendus();
+          if (!window.sovendusStarted) {
+            window.sovendusStarted = true;
+            console.log("🎁 Sovendus-sectie getoond → setupSovendus()");
+            window.setupSovendus();
+          }
         }
-      }
-
       } else {
         console.log("🏁 Einde van de flow bereikt");
       }
@@ -187,30 +176,19 @@ function initFlowLite() {
 
       // 🎁 Sovendus activeren bij tonen
       if (next.id === "sovendus-section" && typeof window.setupSovendus === "function") {
-      if (!window.sovendusStarted) {
-        window.sovendusStarted = true;
-        console.log("🎁 Sovendus-sectie getoond → setupSovendus()");
-        window.setupSovendus();
+        if (!window.sovendusStarted) {
+          window.sovendusStarted = true;
+          console.log("🎁 Sovendus-sectie getoond → setupSovendus()");
+          window.setupSovendus();
+        }
       }
-    }
-
     } else {
       console.log("🏁 Einde van de flow bereikt na long form");
     }
   });
 
   // ============================================================
-  // 6️⃣ Sovendus fallback (veiligheidsnet)
-  // ============================================================
-  setTimeout(() => {
-    if (typeof window.setupSovendus === "function" && !document.getElementById("sovendus-iframe")) {
-      console.log("⏰ Fallback: Sovendus handmatig gestart na timeout");
-      window.setupSovendus();
-    }
-  }, 7000);
-
-  // ============================================================
-  // 7️⃣ System Check Log
+  // 6️⃣ System Check Log
   // ============================================================
   console.groupCollapsed("✅ Global CoregFlow System Check");
   console.log("formSubmit.js geladen:", !!window.buildPayload);
