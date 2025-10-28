@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ formSubmit.js — stabiele shortform + co-sponsor verzending (zonder auto-doorklik)
+// ✅ formSubmit.js — stabiele shortform + co-sponsor verzending (met enkel DOB-veld)
 // =============================================================
 
 if (!window.formSubmitInitialized) {
@@ -28,13 +28,15 @@ if (!window.formSubmitInitialized) {
     const sub2 = sessionStorage.getItem("sub2") || "unknown";
     const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
 
-    const dob_day = sessionStorage.getItem("dob_day");
-    const dob_month = sessionStorage.getItem("dob_month");
-    const dob_year = sessionStorage.getItem("dob_year");
-    const dob_iso =
-      dob_year && dob_month && dob_day
-        ? `${dob_year.padStart(4, "0")}-${dob_month.padStart(2, "0")}-${dob_day.padStart(2, "0")}`
-        : "";
+    // ✅ Nieuw: geboortedatum in 1 veld (dd/mm/jjjj)
+    const dobValue = sessionStorage.getItem("dob");
+    let dob_iso = "";
+    if (dobValue && dobValue.includes("/")) {
+      const [dd, mm, yyyy] = dobValue.split("/");
+      if (dd && mm && yyyy) {
+        dob_iso = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+      }
+    }
 
     return {
       cid: campaign.cid || "925",
@@ -112,6 +114,30 @@ if (!window.formSubmitInitialized) {
       });
     });
     console.log("🧠 Live form tracking actief (short + long)");
+
+    // ✅ Nieuw: slimme DOB input handler
+    const dobInput = document.getElementById("dob");
+    if (dobInput) {
+      dobInput.addEventListener("input", e => {
+        let value = dobInput.value.replace(/\D/g, ""); // enkel cijfers
+        if (value.length === 1 && parseInt(value) > 3) value = "0" + value;
+        if (value.length > 2 && value[2] !== "/") value = value.slice(0, 2) + "/" + value.slice(2);
+
+        const parts = value.split("/");
+        if (parts[1] && parts[1].length === 1 && parseInt(parts[1]) > 1) {
+          parts[1] = "0" + parts[1];
+          value = parts.join("/");
+        }
+
+        if (value.length > 5 && value[5] !== "/") value = value.slice(0, 5) + "/" + value.slice(5);
+        dobInput.value = value.slice(0, 10);
+        sessionStorage.setItem("dob", dobInput.value);
+      });
+
+      dobInput.addEventListener("keypress", e => {
+        if (!/[0-9]/.test(e.key)) e.preventDefault();
+      });
+    }
   });
 
   // -----------------------------------------------------------
@@ -177,68 +203,66 @@ if (!window.formSubmitInitialized) {
 
       // ⚠️ Belangrijk: géén auto-click op .flow-next hier.
       // Swipe Pages regelt de sectiewissel al via de knop-click.
-      // Ons extra “doorklikken” veroorzaakte dubbele zichtbare secties.
     });
   });
 
-// -------------------------------------------------------------
-// 🔹 Longform submit
-// -------------------------------------------------------------
-function waitForLongForm() {
-  const btn = document.getElementById("submit-long-form");
-  const form = document.getElementById("long-form");
-  if (!btn || !form) {
-    setTimeout(waitForLongForm, 300);
-    return;
+  // -------------------------------------------------------------
+  // 🔹 Longform submit
+  // -------------------------------------------------------------
+  function waitForLongForm() {
+    const btn = document.getElementById("submit-long-form");
+    const form = document.getElementById("long-form");
+    if (!btn || !form) {
+      setTimeout(waitForLongForm, 300);
+      return;
+    }
+    console.log("✅ Long form gevonden, listeners actief");
+
+    let submitting = false;
+    btn.addEventListener("click", async () => {
+      if (submitting) return;
+      submitting = true;
+
+      const fields = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
+      const values = Object.fromEntries(fields.map(id => [id, document.getElementById(id)?.value.trim() || ""]));
+
+      if (Object.values(values).some(v => !v)) {
+        alert("Vul alle verplichte velden in voordat je doorgaat.");
+        submitting = false;
+        return;
+      }
+
+      for (const [k, v] of Object.entries(values)) sessionStorage.setItem(k, v);
+      const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+      if (!pending.length) {
+        console.warn("⚠️ Geen longform-campagnes gevonden om te versturen");
+        submitting = false;
+        return;
+      }
+
+      for (const camp of pending) {
+        const payload = window.buildPayload(camp);
+
+        // 🎯 Coreg-antwoorden toevoegen aan payload
+        if (sessionStorage.getItem("f_2014_coreg_answer")) {
+          payload.f_2014_coreg_answer = sessionStorage.getItem("f_2014_coreg_answer");
+        }
+        if (sessionStorage.getItem("f_2575_coreg_answer_dropdown")) {
+          payload.f_2575_coreg_answer_dropdown = sessionStorage.getItem("f_2575_coreg_answer_dropdown");
+        }
+
+        console.log("📨 Longform payload naar Databowl:", payload);
+        await window.fetchLead(payload);
+      }
+
+      console.log("✅ Longform-leads verzonden");
+      sessionStorage.removeItem("longFormCampaigns");
+      submitting = false;
+      document.dispatchEvent(new Event("longFormSubmitted"));
+    });
   }
-  console.log("✅ Long form gevonden, listeners actief");
 
-  let submitting = false;
-  btn.addEventListener("click", async () => {
-    if (submitting) return;
-    submitting = true;
-
-    const fields = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
-    const values = Object.fromEntries(fields.map(id => [id, document.getElementById(id)?.value.trim() || ""]));
-
-    if (Object.values(values).some(v => !v)) {
-      alert("Vul alle verplichte velden in voordat je doorgaat.");
-      submitting = false;
-      return;
-    }
-
-    for (const [k, v] of Object.entries(values)) sessionStorage.setItem(k, v);
-    const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-    if (!pending.length) {
-      console.warn("⚠️ Geen longform-campagnes gevonden om te versturen");
-      submitting = false;
-      return;
-    }
-
-    for (const camp of pending) {
-      const payload = window.buildPayload(camp);
-
-      // 🎯 Coreg-antwoorden toevoegen aan payload
-      if (sessionStorage.getItem("f_2014_coreg_answer")) {
-        payload.f_2014_coreg_answer = sessionStorage.getItem("f_2014_coreg_answer");
-      }
-      if (sessionStorage.getItem("f_2575_coreg_answer_dropdown")) {
-        payload.f_2575_coreg_answer_dropdown = sessionStorage.getItem("f_2575_coreg_answer_dropdown");
-      }
-
-      console.log("📨 Longform payload naar Databowl:", payload);
-      await window.fetchLead(payload);
-    }
-
-    console.log("✅ Longform-leads verzonden");
-    sessionStorage.removeItem("longFormCampaigns");
-    submitting = false;
-    document.dispatchEvent(new Event("longFormSubmitted"));
-  });
-}
-
-waitForLongForm();
-
+  waitForLongForm();
 
   // -----------------------------------------------------------
   // 🔹 Sponsor akkoord tracking
