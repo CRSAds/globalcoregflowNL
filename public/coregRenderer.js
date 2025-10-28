@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ coregRenderer.js — stabiele versie met coreg_answer fix + juiste longform timing
+// ✅ coregRenderer.js — stabiele versie met coreg_answer + multistep + juiste longform timing
 // =============================================================
 
 if (typeof window.API_COREG === "undefined") {
@@ -96,7 +96,9 @@ async function sendLeadToDatabowl(payload) {
   }
 }
 
-// ============ Payload bouwen ============
+// ============================================================
+// ✅ buildCoregPayload met multistep support + altijd coreg_answer
+// ============================================================
 function buildCoregPayload(campaign, answerValue) {
   console.log("🧩 buildCoregPayload() → input:", { campaign, answerValue });
 
@@ -104,17 +106,26 @@ function buildCoregPayload(campaign, answerValue) {
   const sid = answerValue?.sid || campaign.sid;
   const coregAnswer = answerValue?.answer_value || answerValue || "";
 
-  // ✅ Sla ook op in sessionStorage
-  sessionStorage.setItem("f_2014_coreg_answer", coregAnswer);
+  // 🧠 Multistep support: bewaar alle antwoorden per cid
+  const key = `coreg_answers_${cid}`;
+  const prevAnswers = JSON.parse(sessionStorage.getItem(key) || "[]");
+  if (coregAnswer && !prevAnswers.includes(coregAnswer)) {
+    prevAnswers.push(coregAnswer);
+    sessionStorage.setItem(key, JSON.stringify(prevAnswers));
+  }
+
+  // Combineer alle antwoorden van dezelfde campagne
+  const combinedAnswer = prevAnswers.join(" - ") || coregAnswer;
+  sessionStorage.setItem("f_2014_coreg_answer", combinedAnswer);
 
   const payload = window.buildPayload({
     cid,
     sid,
-    is_shortform: false, // Belangrijk: hierdoor wordt f_2014_coreg_answer meegestuurd
+    is_shortform: false, // Altijd false zodat Databowl het als coreg lead behandelt
     coregAnswerKey: `coreg_answer_${campaign.id}`
   });
 
-  payload.f_2014_coreg_answer = coregAnswer;
+  payload.f_2014_coreg_answer = combinedAnswer;
   console.log("📦 buildCoregPayload() → output:", payload);
   return payload;
 }
@@ -207,7 +218,6 @@ async function initCoregFlow() {
     }
   }
 
-  // ✅ Toon long form pas na laatste coreg vraag
   function handleFinalCoreg() {
     console.log("🏁 handleFinalCoreg aangeroepen");
 
@@ -246,7 +256,6 @@ async function initCoregFlow() {
         console.log("🟢 Dropdown keuze →", answerValue);
 
         sessionStorage.setItem("f_2575_coreg_answer_dropdown", opt.value);
-        console.log("💾 Dropdown opgeslagen:", opt.value);
 
         const idx = sections.indexOf(section);
         const currentCid = String(camp.cid ?? "");
@@ -264,10 +273,9 @@ async function initCoregFlow() {
         if (hasMoreSteps) {
           showNextSection(section);
         } else {
-          if (!camp.requiresLongForm) {
-            const payload = buildCoregPayload(camp, answerValue);
-            sendLeadToDatabowl(payload);
-          }
+          const payload = buildCoregPayload(camp, answerValue);
+          sendLeadToDatabowl(payload);
+          sessionStorage.removeItem(`coreg_answers_${camp.cid}`); // 🧹 reset antwoorden
           showNextSection(section);
         }
       });
@@ -319,10 +327,9 @@ async function initCoregFlow() {
           if (hasMoreSteps) {
             showNextSection(section);
           } else {
-            if (!camp.requiresLongForm) {
-              const payload = buildCoregPayload(camp, answerValue);
-              sendLeadToDatabowl(payload);
-            }
+            const payload = buildCoregPayload(camp, answerValue);
+            sendLeadToDatabowl(payload);
+            sessionStorage.removeItem(`coreg_answers_${camp.cid}`); // 🧹 reset antwoorden
             showNextSection(section);
           }
         } else {
