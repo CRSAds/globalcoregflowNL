@@ -94,7 +94,7 @@ if (!window.formSubmitInitialized) {
   }
   window.fetchLead = fetchLead;
 
- // -----------------------------------------------------------
+// -----------------------------------------------------------
 // 🔹 Live form tracking (short + long)
 // -----------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
@@ -114,7 +114,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
   console.log("🧠 Live form tracking actief (short + long)");
-}); // 👈 deze miste!
+}); // ✅ Dit sluit het eerste blok goed af
+
 
 // ✅ Slimme DOB input handler — dd / mm / jjjj (stable caret, max 8 digits)
 document.addEventListener("DOMContentLoaded", () => {
@@ -146,7 +147,6 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const countDigitsBefore = (str, pos) => {
-    // how many digits are before caret position `pos` in the current value
     let c = 0;
     for (let i = 0; i < Math.min(pos, str.length); i++) {
       if (/\d/.test(str[i])) c++;
@@ -155,76 +155,59 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const caretFromDigitIndex = (val, targetDigitIdx) => {
-    // find the caret index in `val` that sits right after `targetDigitIdx` digits
     if (targetDigitIdx <= 0) return 0;
     let count = 0;
     for (let i = 0; i < val.length; i++) {
       if (/\d/.test(val[i])) {
         count++;
-        if (count === targetDigitIdx) {
-          return i + 1; // right after that digit
-        }
+        if (count === targetDigitIdx) return i + 1;
       }
     }
     return val.length;
   };
 
   dobInput.addEventListener("beforeinput", (e) => {
-    // Only allow numbers and editing keys; block pasted letters
-    if (e.inputType === "insertText" && !/[0-9]/.test(e.data)) {
-      e.preventDefault();
-    }
+    if (e.inputType === "insertText" && !/[0-9]/.test(e.data)) e.preventDefault();
   });
 
   dobInput.addEventListener("input", () => {
     const prevVal = dobInput._prevVal || "";
     const prevPos = dobInput._prevPos ?? dobInput.selectionStart ?? prevVal.length;
-
-    // count how many digits were before caret previously
     const prevDigitsBefore = countDigitsBefore(prevVal, prevPos);
 
-    // take digits only, max 8
     let digits = dobInput.value.replace(/\D/g, "").slice(0, 8);
 
-    // Leading zero rules
-    if (digits.length === 1 && parseInt(digits[0], 10) >= 4) {
-      digits = "0" + digits; // day 4-9 => 04-09
-    }
-    if (digits.length === 3 && parseInt(digits[2], 10) >= 2) {
-      // month first digit 2-9 => 0X
+    if (digits.length === 1 && parseInt(digits[0], 10) >= 4) digits = "0" + digits;
+    if (digits.length === 3 && parseInt(digits[2], 10) >= 2)
       digits = digits.slice(0, 2) + "0" + digits.slice(2);
-    }
 
     const formatted = formatWithSpaces(digits);
     dobInput.value = formatted;
 
-    // restore caret near where the user was typing (based on digit index)
     const newCaret = caretFromDigitIndex(formatted, Math.min(prevDigitsBefore + 1, digits.length));
     dobInput.setSelectionRange(newCaret, newCaret);
 
-    // Store for payload (without spaces): dd/mm/yyyy
     const compact = formatted.replace(/\s/g, "");
     sessionStorage.setItem("dob", compact);
     dobInput._prevVal = formatted;
     dobInput._prevPos = newCaret;
   });
 
-  // prevent non-digits via keypress (fallback)
   dobInput.addEventListener("keypress", (e) => {
     if (!/[0-9]/.test(e.key)) e.preventDefault();
   });
 
-  // track caret before change
   dobInput.addEventListener("keydown", () => {
     dobInput._prevVal = dobInput.value;
     dobInput._prevPos = dobInput.selectionStart ?? dobInput.value.length;
   });
+
   dobInput.addEventListener("click", () => {
     dobInput._prevVal = dobInput.value;
     dobInput._prevPos = dobInput.selectionStart ?? dobInput.value.length;
   });
-  });
-  }
+}); // ✅ sluit tweede blok correct af
+
 
   // -----------------------------------------------------------
   // 🔹 Shortform submit (ná geldige invoer) → 925 + co-sponsors
