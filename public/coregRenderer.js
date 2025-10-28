@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ coregRenderer.js — stabiele versie met longform-activatie
+// ✅ coregRenderer.js — stabiele versie met longform-activatie + coreg_answer fix
 // =============================================================
 
 if (typeof window.API_COREG === "undefined") {
@@ -103,9 +103,11 @@ function buildCoregPayload(campaign, answerValue) {
   const cid = answerValue?.cid || campaign.cid;
   const sid = answerValue?.sid || campaign.sid;
 
+  // ✅ Belangrijk: is_shortform = false, zodat f_2014_coreg_answer wordt meegestuurd
   const payload = window.buildPayload({
     cid,
     sid,
+    is_shortform: false,
     coregAnswerKey: `coreg_answer_${campaign.id}`
   });
 
@@ -126,15 +128,14 @@ async function initCoregFlow() {
 
   const campaigns = await fetchCampaigns();
   window.allCampaigns = campaigns;
-
   console.log("📊 Campagnes geladen:", campaigns);
 
-  // Normaliseer veldnamen (camelCase + underscore)
+  // Normaliseer veldnamen
   campaigns.forEach(c => {
     c.requiresLongForm = c.requiresLongForm || c.requires_long_form || false;
   });
 
-  // Sorteren op volgorde
+  // Sorteren en groeperen
   const ordered = [...campaigns].sort((a, b) => (a.order || 0) - (b.order || 0));
   const grouped = {};
   for (const camp of ordered) {
@@ -176,7 +177,7 @@ async function initCoregFlow() {
   const sections = Array.from(sectionsContainer.querySelectorAll(".coreg-section"));
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
-  // ============ Helpers ============
+  // ===== Helpers =====
   function updateProgressBar(sectionIdx) {
     const total = sections.length;
     const current = Math.max(1, Math.min(sectionIdx + 1, total));
@@ -205,7 +206,6 @@ async function initCoregFlow() {
 
   function handleFinalCoreg() {
     console.log("🏁 handleFinalCoreg aangeroepen");
-
     const requiresLongForm = sessionStorage.getItem("requiresLongForm") === "true";
     const btnLongform = document.getElementById("coreg-longform-btn");
     const btnFinish = document.getElementById("coreg-finish-btn");
@@ -221,9 +221,9 @@ async function initCoregFlow() {
     }
   }
 
-  // ============ Event Listeners ============
+  // ===== Event Listeners =====
   sections.forEach(section => {
-    // Dropdowns
+    // Dropdown
     const dropdown = section.querySelector(".coreg-dropdown");
     if (dropdown) {
       dropdown.addEventListener("change", e => {
@@ -268,7 +268,7 @@ async function initCoregFlow() {
       });
     }
 
-    // Skip links
+    // Skip link
     const skip = section.querySelector(".skip-link");
     if (skip) {
       skip.addEventListener("click", e => {
@@ -278,7 +278,7 @@ async function initCoregFlow() {
       });
     }
 
-    // Buttons (positief/negatief + multistep)
+    // Buttons
     section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
       btn.addEventListener("click", () => {
         const camp = campaigns.find(c => c.id == btn.dataset.campaign);
