@@ -94,26 +94,27 @@ if (!window.formSubmitInitialized) {
   }
   window.fetchLead = fetchLead;
 
-  // -----------------------------------------------------------
-  // 🔹 Live form tracking (short + long)
-  // -----------------------------------------------------------
-  document.addEventListener("DOMContentLoaded", () => {
-    const shortForm = document.querySelector("#lead-form");
-    const longForm = document.querySelector("#long-form");
-    [shortForm, longForm].forEach(form => {
-      if (!form) return;
-      form.querySelectorAll("input").forEach(input => {
-        const name = input.name || input.id;
-        if (!name) return;
-        const save = () => {
-          if (input.type === "radio" && !input.checked) return;
-          sessionStorage.setItem(name, input.value.trim());
-        };
-        input.addEventListener("input", save);
-        input.addEventListener("change", save);
-      });
+ // -----------------------------------------------------------
+// 🔹 Live form tracking (short + long)
+// -----------------------------------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  const shortForm = document.querySelector("#lead-form");
+  const longForm = document.querySelector("#long-form");
+  [shortForm, longForm].forEach(form => {
+    if (!form) return;
+    form.querySelectorAll("input").forEach(input => {
+      const name = input.name || input.id;
+      if (!name) return;
+      const save = () => {
+        if (input.type === "radio" && !input.checked) return;
+        sessionStorage.setItem(name, input.value.trim());
+      };
+      input.addEventListener("input", save);
+      input.addEventListener("change", save);
     });
-    console.log("🧠 Live form tracking actief (short + long)");
+  });
+  console.log("🧠 Live form tracking actief (short + long)");
+}); // 👈 deze miste!
 
 // ✅ Slimme DOB input handler (met vaste "/" en spaties)
 const dobInput = document.getElementById("dob");
@@ -135,7 +136,8 @@ if (dobInput) {
     // Auto leading zero voor dag
     if (digits.length === 1 && parseInt(digits[0]) > 3) digits = "0" + digits;
     // Auto leading zero voor maand
-    if (digits.length === 3 && parseInt(digits[2]) > 1) digits = digits.slice(0,2) + "0" + digits.slice(2);
+    if (digits.length === 3 && parseInt(digits[2]) > 1)
+      digits = digits.slice(0, 2) + "0" + digits.slice(2);
 
     // Bouw visueel patroon op: dd / mm / jjjj
     let formatted = "";
@@ -146,9 +148,7 @@ if (dobInput) {
       formatted += d;
     }
 
-    // Slicing corrigeert spaties bij kortere invoer
     formatted = formatted.slice(0, 14);
-
     dobInput.value = formatted;
     sessionStorage.setItem("dob", formatted.replace(/\s/g, ""));
   });
@@ -163,7 +163,6 @@ if (dobInput) {
     });
   }
 }
-
   // -----------------------------------------------------------
   // 🔹 Shortform submit (ná geldige invoer) → 925 + co-sponsors
   // -----------------------------------------------------------
