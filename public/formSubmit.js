@@ -100,6 +100,7 @@ if (!window.formSubmitInitialized) {
 document.addEventListener("DOMContentLoaded", () => {
   const shortForm = document.querySelector("#lead-form");
   const longForm = document.querySelector("#long-form");
+
   [shortForm, longForm].forEach(form => {
     if (!form) return;
     form.querySelectorAll("input").forEach(input => {
@@ -113,22 +114,23 @@ document.addEventListener("DOMContentLoaded", () => {
       input.addEventListener("change", save);
     });
   });
+
   console.log("🧠 Live form tracking actief (short + long)");
 }); // ✅ Dit sluit het eerste blok goed af
 
 
-// ✅ Slimme DOB input handler — dd / mm / jjjj (stable caret, max 8 digits)
+// ✅ Slimme DOB input handler — dd / mm / jjjj (stable caret, max 8 digits, auto-jump naar maand)
 document.addEventListener("DOMContentLoaded", () => {
   const dobInput = document.getElementById("dob");
   if (!dobInput) return;
 
-  // Just a placeholder for the visual spacing; don't prefill the value
+  // Placeholder, inputinstellingen
   dobInput.setAttribute("placeholder", "dd / mm / jjjj");
   dobInput.setAttribute("inputmode", "numeric");
   dobInput.setAttribute("maxlength", "14");
 
+  // Formatfunctie
   const formatWithSpaces = (digits) => {
-    // Build "dd / mm / jjjj" progressively
     let out = "";
     const len = digits.length;
 
@@ -166,10 +168,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return val.length;
   };
 
+  // Blokkeer niet-numerieke invoer
   dobInput.addEventListener("beforeinput", (e) => {
     if (e.inputType === "insertText" && !/[0-9]/.test(e.data)) e.preventDefault();
   });
 
+  // Input handler met caret-fix
   dobInput.addEventListener("input", () => {
     const prevVal = dobInput._prevVal || "";
     const prevPos = dobInput._prevPos ?? dobInput.selectionStart ?? prevVal.length;
@@ -177,26 +181,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let digits = dobInput.value.replace(/\D/g, "").slice(0, 8);
 
-    if (digits.length === 1 && parseInt(digits[0], 10) >= 4) digits = "0" + digits;
-    if (digits.length === 3 && parseInt(digits[2], 10) >= 2)
+    // ✅ Leading zero rules + cursorfix
+    let addedLeadingZero = false;
+    if (digits.length === 1 && parseInt(digits[0], 10) >= 4) {
+      digits = "0" + digits;
+      addedLeadingZero = true;
+    }
+    if (digits.length === 3 && parseInt(digits[2], 10) >= 2) {
       digits = digits.slice(0, 2) + "0" + digits.slice(2);
+      addedLeadingZero = true;
+    }
 
     const formatted = formatWithSpaces(digits);
     dobInput.value = formatted;
 
-    const newCaret = caretFromDigitIndex(formatted, Math.min(prevDigitsBefore + 1, digits.length));
+    // ✅ Caret berekenen en fixen bij auto-aanvulling
+    let newCaret = caretFromDigitIndex(formatted, Math.min(prevDigitsBefore + 1, digits.length));
+    if (addedLeadingZero && digits.length === 2) {
+      // Dag is automatisch aangevuld → spring naar maand
+      newCaret = formatted.indexOf("/") + 3; // na " / "
+    }
     dobInput.setSelectionRange(newCaret, newCaret);
 
+    // Opslaan in sessionStorage zonder spaties
     const compact = formatted.replace(/\s/g, "");
     sessionStorage.setItem("dob", compact);
     dobInput._prevVal = formatted;
     dobInput._prevPos = newCaret;
   });
 
+  // Blokkeer niet-numerieke invoer via keypress
   dobInput.addEventListener("keypress", (e) => {
     if (!/[0-9]/.test(e.key)) e.preventDefault();
   });
 
+  // Sla caretpositie op voor invoerwijzigingen
   dobInput.addEventListener("keydown", () => {
     dobInput._prevVal = dobInput.value;
     dobInput._prevPos = dobInput.selectionStart ?? dobInput.value.length;
@@ -207,6 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
     dobInput._prevPos = dobInput.selectionStart ?? dobInput.value.length;
   });
 }); // ✅ sluit tweede blok correct af
+
 
 
   // -----------------------------------------------------------
