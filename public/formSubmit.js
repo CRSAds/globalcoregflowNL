@@ -116,53 +116,116 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("🧠 Live form tracking actief (short + long)");
 }); // 👈 deze miste!
 
-// ✅ Slimme DOB input handler (met vaste "/" en spaties)
-const dobInput = document.getElementById("dob");
-if (dobInput) {
-  // Initieel patroon tonen
-  dobInput.value = "  /  /    ";
+// ✅ Slimme DOB input handler — dd / mm / jjjj (stable caret, max 8 digits)
+document.addEventListener("DOMContentLoaded", () => {
+  const dobInput = document.getElementById("dob");
+  if (!dobInput) return;
 
-  dobInput.addEventListener("focus", () => {
-    if (dobInput.value.trim() === "" || dobInput.value.includes("/")) {
-      dobInput.value = "  /  /    ";
-      setCursorPosition(0, dobInput);
+  // Just a placeholder for the visual spacing; don't prefill the value
+  dobInput.setAttribute("placeholder", "dd / mm / jjjj");
+  dobInput.setAttribute("inputmode", "numeric");
+  dobInput.setAttribute("maxlength", "14");
+
+  const formatWithSpaces = (digits) => {
+    // Build "dd / mm / jjjj" progressively
+    let out = "";
+    const len = digits.length;
+
+    if (len >= 1) out += digits[0];
+    if (len >= 2) out += digits[1];
+    if (len >= 2) out += " / ";
+    if (len >= 3) out += digits[2];
+    if (len >= 4) out += digits[3];
+    if (len >= 4) out += " / ";
+    if (len >= 5) out += digits[4];
+    if (len >= 6) out += digits[5];
+    if (len >= 7) out += digits[6];
+    if (len >= 8) out += digits[7];
+
+    return out;
+  };
+
+  const countDigitsBefore = (str, pos) => {
+    // how many digits are before caret position `pos` in the current value
+    let c = 0;
+    for (let i = 0; i < Math.min(pos, str.length); i++) {
+      if (/\d/.test(str[i])) c++;
+    }
+    return c;
+  };
+
+  const caretFromDigitIndex = (val, targetDigitIdx) => {
+    // find the caret index in `val` that sits right after `targetDigitIdx` digits
+    if (targetDigitIdx <= 0) return 0;
+    let count = 0;
+    for (let i = 0; i < val.length; i++) {
+      if (/\d/.test(val[i])) {
+        count++;
+        if (count === targetDigitIdx) {
+          return i + 1; // right after that digit
+        }
+      }
+    }
+    return val.length;
+  };
+
+  dobInput.addEventListener("beforeinput", (e) => {
+    // Only allow numbers and editing keys; block pasted letters
+    if (e.inputType === "insertText" && !/[0-9]/.test(e.data)) {
+      e.preventDefault();
     }
   });
 
-  dobInput.addEventListener("input", e => {
-    // Alleen cijfers behouden
+  dobInput.addEventListener("input", () => {
+    const prevVal = dobInput._prevVal || "";
+    const prevPos = dobInput._prevPos ?? dobInput.selectionStart ?? prevVal.length;
+
+    // count how many digits were before caret previously
+    const prevDigitsBefore = countDigitsBefore(prevVal, prevPos);
+
+    // take digits only, max 8
     let digits = dobInput.value.replace(/\D/g, "").slice(0, 8);
 
-    // Auto leading zero voor dag
-    if (digits.length === 1 && parseInt(digits[0]) > 3) digits = "0" + digits;
-    // Auto leading zero voor maand
-    if (digits.length === 3 && parseInt(digits[2]) > 1)
+    // Leading zero rules
+    if (digits.length === 1 && parseInt(digits[0], 10) >= 4) {
+      digits = "0" + digits; // day 4-9 => 04-09
+    }
+    if (digits.length === 3 && parseInt(digits[2], 10) >= 2) {
+      // month first digit 2-9 => 0X
       digits = digits.slice(0, 2) + "0" + digits.slice(2);
-
-    // Bouw visueel patroon op: dd / mm / jjjj
-    let formatted = "";
-    for (let i = 0; i < 8; i++) {
-      const d = digits[i] || " ";
-      if (i === 2) formatted += " / ";
-      else if (i === 4) formatted += " / ";
-      formatted += d;
     }
 
-    formatted = formatted.slice(0, 14);
+    const formatted = formatWithSpaces(digits);
     dobInput.value = formatted;
-    sessionStorage.setItem("dob", formatted.replace(/\s/g, ""));
+
+    // restore caret near where the user was typing (based on digit index)
+    const newCaret = caretFromDigitIndex(formatted, Math.min(prevDigitsBefore + 1, digits.length));
+    dobInput.setSelectionRange(newCaret, newCaret);
+
+    // Store for payload (without spaces): dd/mm/yyyy
+    const compact = formatted.replace(/\s/g, "");
+    sessionStorage.setItem("dob", compact);
+    dobInput._prevVal = formatted;
+    dobInput._prevPos = newCaret;
   });
 
-  dobInput.addEventListener("keypress", e => {
+  // prevent non-digits via keypress (fallback)
+  dobInput.addEventListener("keypress", (e) => {
     if (!/[0-9]/.test(e.key)) e.preventDefault();
   });
 
-  function setCursorPosition(pos, input) {
-    requestAnimationFrame(() => {
-      input.setSelectionRange(pos, pos);
-    });
+  // track caret before change
+  dobInput.addEventListener("keydown", () => {
+    dobInput._prevVal = dobInput.value;
+    dobInput._prevPos = dobInput.selectionStart ?? dobInput.value.length;
+  });
+  dobInput.addEventListener("click", () => {
+    dobInput._prevVal = dobInput.value;
+    dobInput._prevPos = dobInput.selectionStart ?? dobInput.value.length;
+  });
+  });
   }
-}
+
   // -----------------------------------------------------------
   // 🔹 Shortform submit (ná geldige invoer) → 925 + co-sponsors
   // -----------------------------------------------------------
