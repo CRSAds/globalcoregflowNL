@@ -1,15 +1,10 @@
 // =============================================================
-// sovendus.js — Verbeterde versie met button-detectie + timeout
-// -------------------------------------------------------------
-// Functies:
-// 1️⃣ Laadbericht tonen totdat Sovendus-iframe of button verschijnt
-// 2️⃣ Zodra button/iframe geladen → laadbericht verwijderen
-// 3️⃣ Start automatische doorgang na X seconden
+// sovendus.js — finale versie (met timeout + image reload)
 // =============================================================
 
 let hasInitialized = false;
 let hasAdvanced = false;
-const SOV_TIMEOUT_MS = 10000; // tijd tot doorgaan (ms)
+const SOV_TIMEOUT_MS = 10000; // tijd in milliseconden tot doorgang
 
 function advanceAfterSovendus() {
   if (hasAdvanced) return;
@@ -26,6 +21,12 @@ function advanceAfterSovendus() {
   if (next) {
     current.style.display = "none";
     next.style.display = "block";
+
+    // 🖼️ Forceer afbeeldingload in nieuwe sectie
+    if (typeof window.reloadImages === "function") {
+      reloadImages(next);
+    }
+
     window.scrollTo({ top: 0, behavior: "smooth" });
     console.log("➡️ Flow vervolgd na Sovendus");
   } else {
@@ -48,7 +49,7 @@ function setupSovendus() {
     return;
   }
 
-  // Plaats laadbericht (alleen als het nog niet bestaat)
+  // Plaats laadbericht
   let loadingDiv = document.getElementById("sovendus-loading");
   if (!loadingDiv) {
     loadingDiv = document.createElement("div");
@@ -98,14 +99,14 @@ function setupSovendus() {
   script.onload = () => {
     console.log("✅ Sovendus → flexibleIframe.js geladen");
 
-    // 👀 Controleer wanneer iframe geladen is (met MutationObserver)
+    // 👀 Observeer iframe om laadbericht te verwijderen
     const observer = new MutationObserver((mutations, obs) => {
       const iframe = container.querySelector("iframe");
       if (iframe) {
         console.log("🎯 Sovendus-iframe gedetecteerd → laadbericht verwijderen");
         document.getElementById("sovendus-loading")?.remove();
 
-        // ⏱️ Start timeout pas nu
+        // ⏱️ Start timeout pas nu (na iframe-detectie)
         setTimeout(() => {
           const section = document.getElementById("sovendus-section");
           if (section && window.getComputedStyle(section).display !== "none") {
@@ -117,6 +118,7 @@ function setupSovendus() {
         obs.disconnect();
       }
     });
+
     observer.observe(container, { childList: true, subtree: true });
   };
 
