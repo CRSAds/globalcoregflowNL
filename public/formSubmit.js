@@ -32,7 +32,11 @@ if (!window.formSubmitInitialized) {
     const dobValue = sessionStorage.getItem("dob");
     let dob_iso = "";
     if (dobValue && dobValue.includes("/")) {
-      const [dd, mm, yyyy] = dobValue.split("/");
+      // strip ALLE spaties uit de delen vóór formatting
+      const [rawDD, rawMM, rawYYYY] = dobValue.split("/");
+      const dd = (rawDD || "").replace(/\s/g, "");
+      const mm = (rawMM || "").replace(/\s/g, "");
+      const yyyy = (rawYYYY || "").replace(/\s/g, "");
       if (dd && mm && yyyy) {
         dob_iso = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
       }
@@ -260,9 +264,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // cache velden
       shortForm.querySelectorAll("input").forEach(input => {
-        const name = input.name || input.id;
-        if (name && input.value.trim()) sessionStorage.setItem(name, input.value.trim());
-      });
+      const name = input.name || input.id;
+      if (!name) return;
+      let val = (input.value || "").trim();
+      // Speciaal voor DOB: verwijder spaties zodat dd/mm/jjjj compact blijft
+      if (name === "dob") {
+        val = val.replace(/\s/g, ""); // "05/05/1980"
+      }
+      if (val) sessionStorage.setItem(name, val);
+    });
 
       // hoofdlead
       const basePayload = buildPayload({ cid: "925", sid: "34", is_shortform: true });
