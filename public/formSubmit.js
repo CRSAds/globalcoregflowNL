@@ -115,30 +115,54 @@ if (!window.formSubmitInitialized) {
     });
     console.log("🧠 Live form tracking actief (short + long)");
 
-    // ✅ Nieuw: slimme DOB input handler
-    const dobInput = document.getElementById("dob");
-    if (dobInput) {
-      dobInput.addEventListener("input", e => {
-        let value = dobInput.value.replace(/\D/g, ""); // enkel cijfers
-        if (value.length === 1 && parseInt(value) > 3) value = "0" + value;
-        if (value.length > 2 && value[2] !== "/") value = value.slice(0, 2) + "/" + value.slice(2);
+// ✅ Slimme DOB input handler (met vaste "/" en spaties)
+const dobInput = document.getElementById("dob");
+if (dobInput) {
+  // Initieel patroon tonen
+  dobInput.value = "  /  /    ";
 
-        const parts = value.split("/");
-        if (parts[1] && parts[1].length === 1 && parseInt(parts[1]) > 1) {
-          parts[1] = "0" + parts[1];
-          value = parts.join("/");
-        }
-
-        if (value.length > 5 && value[5] !== "/") value = value.slice(0, 5) + "/" + value.slice(5);
-        dobInput.value = value.slice(0, 10);
-        sessionStorage.setItem("dob", dobInput.value);
-      });
-
-      dobInput.addEventListener("keypress", e => {
-        if (!/[0-9]/.test(e.key)) e.preventDefault();
-      });
+  dobInput.addEventListener("focus", () => {
+    if (dobInput.value.trim() === "" || dobInput.value.includes("/")) {
+      dobInput.value = "  /  /    ";
+      setCursorPosition(0, dobInput);
     }
   });
+
+  dobInput.addEventListener("input", e => {
+    // Alleen cijfers behouden
+    let digits = dobInput.value.replace(/\D/g, "").slice(0, 8);
+
+    // Auto leading zero voor dag
+    if (digits.length === 1 && parseInt(digits[0]) > 3) digits = "0" + digits;
+    // Auto leading zero voor maand
+    if (digits.length === 3 && parseInt(digits[2]) > 1) digits = digits.slice(0,2) + "0" + digits.slice(2);
+
+    // Bouw visueel patroon op: dd / mm / jjjj
+    let formatted = "";
+    for (let i = 0; i < 8; i++) {
+      const d = digits[i] || " ";
+      if (i === 2) formatted += " / ";
+      else if (i === 4) formatted += " / ";
+      formatted += d;
+    }
+
+    // Slicing corrigeert spaties bij kortere invoer
+    formatted = formatted.slice(0, 14);
+
+    dobInput.value = formatted;
+    sessionStorage.setItem("dob", formatted.replace(/\s/g, ""));
+  });
+
+  dobInput.addEventListener("keypress", e => {
+    if (!/[0-9]/.test(e.key)) e.preventDefault();
+  });
+
+  function setCursorPosition(pos, input) {
+    requestAnimationFrame(() => {
+      input.setSelectionRange(pos, pos);
+    });
+  }
+}
 
   // -----------------------------------------------------------
   // 🔹 Shortform submit (ná geldige invoer) → 925 + co-sponsors
