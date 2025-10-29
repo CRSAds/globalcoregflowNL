@@ -262,13 +262,18 @@ async function initCoregFlow() {
         const hasMoreSteps = sections.slice(idx + 1).some(s => String(s.dataset.cid || "") === currentCid);
 
         if (camp.requiresLongForm) {
-          sessionStorage.setItem("requiresLongForm", "true");
-          const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-          if (!pending.find(p => p.cid === camp.cid && p.sid === camp.sid)) {
-            pending.push({ cid: camp.cid, sid: camp.sid });
-            sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
-          }
+        sessionStorage.setItem("requiresLongForm", "true");
+        const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+        if (!pending.find(p => p.cid === camp.cid && p.sid === camp.sid)) {
+          pending.push({ cid: camp.cid, sid: camp.sid });
+          sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
         }
+      
+        console.log("📋 Longform-sponsor positief beantwoord (dropdown):", camp.cid);
+        // ⛔ stop hier, niet direct versturen
+        showNextSection(section);
+        return;
+       }
 
         if (hasMoreSteps) {
           showNextSection(section);
