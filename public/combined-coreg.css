@@ -146,6 +146,7 @@
 
 .coreg-section .coreg-more-info * {
   font-size: 0.8rem !important;
+  margin-top: 15px !important;
   color: #777 !important;
   line-height: 1.4 !important;
 }
