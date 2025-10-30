@@ -268,12 +268,10 @@ async function initCoregFlow() {
           pending.push({ cid: camp.cid, sid: camp.sid });
           sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
         }
-      
-        console.log("📋 Longform-sponsor positief beantwoord (dropdown):", camp.cid);
-        // ⛔ stop hier, niet direct versturen
+        console.log("🕓 Longform-sponsor (buttons) — wachten met verzending:", camp.cid);
         showNextSection(section);
-        return;
-       }
+        return; // ⛔ STOP — niet direct posten
+      }
 
         if (hasMoreSteps) {
           showNextSection(section);
