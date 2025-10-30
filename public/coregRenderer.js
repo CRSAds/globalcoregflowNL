@@ -97,7 +97,7 @@ async function sendLeadToDatabowl(payload) {
 }
 
 // ============================================================
-// ✅ buildCoregPayload met multistep support + altijd coreg_answer
+// ✅ buildCoregPayload met multistep support + per-cid coreg_answer opslag
 // ============================================================
 function buildCoregPayload(campaign, answerValue) {
   console.log("🧩 buildCoregPayload() → input:", { campaign, answerValue });
@@ -116,7 +116,9 @@ function buildCoregPayload(campaign, answerValue) {
 
   // Combineer alle antwoorden van dezelfde campagne
   const combinedAnswer = prevAnswers.join(" - ") || coregAnswer;
-  sessionStorage.setItem("f_2014_coreg_answer", combinedAnswer);
+
+  // ✅ Bewaar coreg-answer per campagne voor longform-verzending
+  sessionStorage.setItem(`f_2014_coreg_answer_${cid}`, combinedAnswer);
 
   const payload = window.buildPayload({
     cid,
@@ -125,7 +127,15 @@ function buildCoregPayload(campaign, answerValue) {
     coregAnswerKey: `coreg_answer_${campaign.id}`
   });
 
+  // ✅ Voeg de gecombineerde antwoorden toe aan het payload-object
   payload.f_2014_coreg_answer = combinedAnswer;
+
+  // ✅ Bewaar dropdownwaarde ook per campagne (indien aanwezig)
+  const dropdownAnswer = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${cid}`);
+  if (dropdownAnswer) {
+    payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
+  }
+
   console.log("📦 buildCoregPayload() → output:", payload);
   return payload;
 }
@@ -255,7 +265,7 @@ async function initCoregFlow() {
         };
         console.log("🟢 Dropdown keuze →", answerValue);
 
-        sessionStorage.setItem("f_2575_coreg_answer_dropdown", opt.value);
+        sessionStorage.setItem(`f_2575_coreg_answer_dropdown_${camp.cid}`, opt.value);
 
         const idx = sections.indexOf(section);
         const currentCid = String(camp.cid ?? "");
