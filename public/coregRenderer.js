@@ -170,8 +170,9 @@ async function initCoregFlow() {
 
   // Normaliseer veldnamen
   campaigns.forEach(c => {
-    c.requiresLongForm = c.requiresLongForm || c.requires_long_form || false;
-  });
+  const lf = (c.requiresLongForm ?? c.requires_long_form ?? false);
+  c.requiresLongForm = lf === true || lf === "true";
+});
 
   // Sorteren + groeperen
   const ordered = [...campaigns].sort((a, b) => (a.order || 0) - (b.order || 0));
