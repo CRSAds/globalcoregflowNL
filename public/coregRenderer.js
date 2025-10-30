@@ -67,6 +67,7 @@ function renderCampaignBlock(campaign, steps) {
           Nee, geen interesse
         </button>
       </div>
+      ${campaign.more_info ? `<div class="coreg-more-info">${campaign.more_info}</div>` : ""}
     </div>`;
 }
 
