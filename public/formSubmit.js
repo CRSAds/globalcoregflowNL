@@ -349,9 +349,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const payload = window.buildPayload(camp);
 
         // 🎯 Coreg-antwoorden toevoegen aan payload
-        if (sessionStorage.getItem("f_2014_coreg_answer")) {
-        payload.f_2014_coreg_answer = sessionStorage.getItem(`f_2014_coreg_answer_${payload.cid}`) || "";
+        const coregAnswer = sessionStorage.getItem(`f_2014_coreg_answer_${payload.cid}`);
+        if (coregAnswer) {
+          payload.f_2014_coreg_answer = coregAnswer;
         }
+        
         const dropdownAnswer = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${payload.cid}`);
         if (dropdownAnswer) {
           payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
