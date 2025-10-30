@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   try {
     // ===== Directus endpoint =====
-    const url = `${process.env.DIRECTUS_URL}/items/coreg_campaigns?filter[is_live][_eq]=true&fields=*,image.id,image.filename_download,coreg_answers.*,coreg_dropdown_options.*&sort=order`;
+    const url = `${process.env.DIRECTUS_URL}/items/coreg_campaigns?filter[is_live][_eq]=true&fields=*,image.id,image.filename_download,coreg_answers.*,coreg_dropdown_options.*,more_info&sort=order`;
 
     const r = await fetch(url, {
       headers: {
