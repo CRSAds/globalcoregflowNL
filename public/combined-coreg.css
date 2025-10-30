@@ -144,11 +144,10 @@
   color: #222;
 }
 
-.coreg-more-info {
-  font-size: 0.4rem;
-  color: #777;
-  margin-top: 15px;
-  line-height: 1.4;
+.coreg-section .coreg-more-info * {
+  font-size: 0.8rem !important;
+  color: #777 !important;
+  line-height: 1.4 !important;
 }
 
 /* ============================================================
