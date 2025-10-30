@@ -144,6 +144,19 @@ function buildCoregPayload(campaign, answerValue) {
 async function initCoregFlow() {
   console.log("🚀 initCoregFlow gestart");
 
+  // 🧠 Helper: sla coreg-antwoorden per campagne op
+  function saveCoregAnswer(cid, answer) {
+    if (!cid || !answer) return;
+    const key = `coreg_answers_${cid}`;
+    const prev = JSON.parse(sessionStorage.getItem(key) || "[]");
+    if (!prev.includes(answer)) {
+      prev.push(answer);
+      sessionStorage.setItem(key, JSON.stringify(prev));
+    }
+    const combined = prev.join(" - ");
+    sessionStorage.setItem(`f_2014_coreg_answer_${cid}`, combined || answer);
+  }
+
   const container = document.getElementById("coreg-container");
   if (!container) {
     console.warn("⚠️ Geen #coreg-container gevonden");
@@ -327,6 +340,7 @@ async function initCoregFlow() {
         const idx = sections.indexOf(section);
         const currentCid = String(camp.cid ?? "");
         const hasMoreSteps = sections.slice(idx + 1).some(s => String(s.dataset.cid || "") === currentCid);
+          saveCoregAnswer(camp.cid, answerValue.answer_value);
       
         // ✅ Controleer zowel boolean als string
         if (camp.requiresLongForm === true || camp.requiresLongForm === "true") {
