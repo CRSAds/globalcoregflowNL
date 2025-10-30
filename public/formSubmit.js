@@ -350,10 +350,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 🎯 Coreg-antwoorden toevoegen aan payload
         if (sessionStorage.getItem("f_2014_coreg_answer")) {
-          payload.f_2014_coreg_answer = sessionStorage.getItem("f_2014_coreg_answer");
+        payload.f_2014_coreg_answer = sessionStorage.getItem(`f_2014_coreg_answer_${payload.cid}`) || "";
         }
-        if (sessionStorage.getItem("f_2575_coreg_answer_dropdown")) {
-          payload.f_2575_coreg_answer_dropdown = sessionStorage.getItem("f_2575_coreg_answer_dropdown");
+        const dropdownAnswer = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${payload.cid}`);
+        if (dropdownAnswer) {
+          payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
         }
 
         console.log("📨 Longform payload naar Databowl:", payload);
