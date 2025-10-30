@@ -314,41 +314,47 @@ async function initCoregFlow() {
         const isPositive = !isNegative;
 
         if (isPositive) {
-          const idx = sections.indexOf(section);
-          const currentCid = String(camp.cid ?? "");
-          const hasMoreSteps = sections.slice(idx + 1).some(s => String(s.dataset.cid || "") === currentCid);
-
-          if (camp.requiresLongForm) {
-            sessionStorage.setItem("requiresLongForm", "true");
-            const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-            if (!pending.find(p => p.cid === camp.cid && p.sid === camp.sid)) {
-              pending.push({ cid: camp.cid, sid: camp.sid });
-              sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
-            }
+        const idx = sections.indexOf(section);
+        const currentCid = String(camp.cid ?? "");
+        const hasMoreSteps = sections.slice(idx + 1).some(s => String(s.dataset.cid || "") === currentCid);
+      
+        // ✅ Controleer zowel boolean als string
+        if (camp.requiresLongForm === true || camp.requiresLongForm === "true") {
+          sessionStorage.setItem("requiresLongForm", "true");
+          const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+          if (!pending.find(p => p.cid === camp.cid && p.sid === camp.sid)) {
+            pending.push({ cid: camp.cid, sid: camp.sid });
+            sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
           }
-
-          if (hasMoreSteps) {
-            showNextSection(section);
-          } else {
-            const payload = buildCoregPayload(camp, answerValue);
-            sendLeadToDatabowl(payload);
-            sessionStorage.removeItem(`coreg_answers_${camp.cid}`); // 🧹 reset antwoorden
-            showNextSection(section);
-          }
-        } else {
-          console.log("⏭️ Negatief antwoord → vervolgstappen overslaan");
-          const idx = sections.indexOf(section);
-          const currentCid = String(camp.cid ?? "");
-          let j = idx + 1;
-          while (j < sections.length && String(sections[j].dataset.cid || "") === currentCid) j++;
-          section.style.display = "none";
-          if (j < sections.length) {
-            sections[j].style.display = "block";
-            updateProgressBar(j);
-          } else {
-            handleFinalCoreg();
-          }
+          console.log("🕓 Longform-sponsor (buttons) — wachten met verzending:", camp.cid);
+          showNextSection(section);
+          return; // ⛔ STOP — niet direct posten
         }
+      
+        if (hasMoreSteps) {
+          showNextSection(section);
+        } else {
+          // ✅ Alleen shortform coreg direct versturen
+          const payload = buildCoregPayload(camp, answerValue);
+          sendLeadToDatabowl(payload);
+          sessionStorage.removeItem(`coreg_answers_${camp.cid}`); // 🧹 reset antwoorden
+          showNextSection(section);
+        }
+      } else {
+        console.log("⏭️ Negatief antwoord → vervolgstappen overslaan");
+        const idx = sections.indexOf(section);
+        const currentCid = String(camp.cid ?? "");
+        let j = idx + 1;
+        while (j < sections.length && String(sections[j].dataset.cid || "") === currentCid) j++;
+        section.style.display = "none";
+        if (j < sections.length) {
+          sections[j].style.display = "block";
+          updateProgressBar(j);
+        } else {
+          handleFinalCoreg();
+        }
+      }
+
       });
     });
   });
