@@ -132,6 +132,7 @@ function buildCoregPayload(campaign, answerValue) {
 
   // ✅ Bewaar dropdownwaarde ook per campagne (indien aanwezig)
   const dropdownAnswer = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${cid}`);
+    saveCoregAnswer(camp.cid, answerValue.answer_value);
   if (dropdownAnswer) {
     payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
   }
