@@ -1,29 +1,24 @@
-// /public/footer-loader.js
-// ✅ Dynamische footer met Terms/Privacy popup — volledig gefixt + scroll lock + hoogste z-index
+// ✅ Dynamische footer met Terms/Privacy popup + actievoorwaarden — volledig geïntegreerd
 
 (function () {
-
-  // 🚫 Blokkeer uitvoering bij ongeldige statusparameter
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");
   if (status !== "online" && status !== "live") {
     console.warn("🚫 Ongeldige statusparameter — footer-loader.js wordt niet uitgevoerd.");
-    return; // ⛔️ Stop direct, footer wordt niet geladen of ingeladen
+    return;
   }
 
   console.log("🦶 footer-loader.js gestart");
 
-  // =============== HELPERS ===============
+  // === Helpers ===
   function lockScroll() {
     document.documentElement.classList.add("modal-open");
     document.body.classList.add("modal-open");
   }
-
   function unlockScroll() {
     document.documentElement.classList.remove("modal-open");
     document.body.classList.remove("modal-open");
   }
-
   function el(html) {
     const div = document.createElement("div");
     div.innerHTML = html.trim();
@@ -31,7 +26,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
-    // =============== POPUP INJECTEREN ===============
+    // === Popup injecteren ===
     const popupHTML = `
       <div id="footer-popup" class="footer-popup" style="display:none;">
         <div class="footer-overlay"></div>
@@ -46,7 +41,7 @@
     const popup = document.getElementById("footer-popup");
     const popupContent = document.getElementById("footer-popup-content");
 
-    // =============== CSS ===============
+    // === CSS ===
     const style = document.createElement("style");
     style.textContent = `
       #dynamic-footer {
@@ -109,21 +104,19 @@
         display: inline-block;
       }
 
-      /* === Popup Styling (absolute top layer) === */
       .footer-popup {
         position: fixed;
         inset: 0;
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 2147483647 !important; /* boven alles */
+        z-index: 2147483647;
         isolation: isolate;
       }
       .footer-overlay {
         position: absolute;
         inset: 0;
         background: rgba(0,0,0,0.6);
-        z-index: 2147483646;
       }
       .footer-content {
         position: relative;
@@ -153,12 +146,8 @@
       }
       #close-footer-popup:hover { color: #000; }
 
-      /* Scroll lock */
-      html.modal-open, body.modal-open {
-        overflow: hidden !important;
-      }
+      html.modal-open, body.modal-open { overflow: hidden !important; }
 
-      /* 📱 Mobiel */
       @media (max-width: 768px) {
         #dynamic-footer { text-align: left; padding: 20px; }
         #dynamic-footer p { text-align: justify; }
@@ -168,8 +157,7 @@
     `;
     document.head.appendChild(style);
 
-    // =============== DATA OPHALEN ===============
-    const params = new URLSearchParams(window.location.search);
+    // === Data ophalen ===
     const status = params.get("status") || "online";
     const footerName = status === "live" ? "Premium Advertising" : "Online Acties";
 
@@ -187,7 +175,7 @@
       return;
     }
 
-    // =============== FOOTER MAKEN ALS DIE NIET BESTAAT ===============
+    // === Footer container ===
     let footerContainer = document.getElementById("dynamic-footer");
     if (!footerContainer) {
       footerContainer = document.createElement("div");
@@ -195,14 +183,13 @@
       document.body.appendChild(footerContainer);
     }
 
-    // =============== FOOTER INHOUD ===============
+    // === Footer inhoud ===
     const termsIcon = footerData.icon_terms
-      ? `<img class="icon" src="${footerData.icon_terms}" alt="" loading="lazy">`
+      ? `<img class="icon" src="${footerData.icon_terms}" alt="">`
       : `<span aria-hidden="true">🔒</span>`;
     const privacyIcon = footerData.icon_privacy
-      ? `<img class="icon" src="${footerData.icon_privacy}" alt="" loading="lazy">`
+      ? `<img class="icon" src="${footerData.icon_privacy}" alt="">`
       : `<span aria-hidden="true">✅</span>`;
-
     const logo = footerData.logo
       ? `<img src="${footerData.logo}" alt="Logo ${footerName}" loading="lazy">`
       : "";
@@ -212,14 +199,14 @@
         <div class="brand">${logo}</div>
         <hr class="fade-rule">
         <p>${footerData.text || ""}</p>
-        <div class="link-row" aria-label="Documenten">
+        <div class="link-row">
           <button class="soft-link" id="open-terms">${termsIcon}<span>Algemene Voorwaarden</span></button>
           <button class="soft-link" id="open-privacy">${privacyIcon}<span>Privacybeleid</span></button>
         </div>
       </div>
     `;
 
-    // =============== POPUP GEDRAG ===============
+    // === Popup gedrag ===
     document.addEventListener("click", (e) => {
       if (e.target.closest("#open-terms")) {
         e.preventDefault();
@@ -239,12 +226,17 @@
       }
     });
 
-    // --- Verplaats popup naar body (hoisten) ---
-    const popupEl = document.getElementById("footer-popup");
-    if (popupEl && popupEl.parentElement !== document.body) {
-      document.body.appendChild(popupEl);
+    // === Actievoorwaarden ===
+    const actieDiv = document.getElementById("actievoorwaarden");
+    if (actieDiv && footerData.actievoorwaarden) {
+      actieDiv.innerHTML = footerData.actievoorwaarden;
+      console.log("✅ Actievoorwaarden geladen en ingevoegd.");
     }
 
-    console.log(`✅ Footer geladen en popup actief voor: ${footerName}`);
+    // Popup hoisten
+    const popupEl = document.getElementById("footer-popup");
+    if (popupEl && popupEl.parentElement !== document.body) document.body.appendChild(popupEl);
+
+    console.log(`✅ Footer + actievoorwaarden geladen voor: ${footerName}`);
   });
 })();
