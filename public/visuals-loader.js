@@ -41,12 +41,13 @@
       if (ivrEl && visual.ivr_image) ivrEl.src = visual.ivr_image;
 
       // 🌄 Achtergrond
-      const bgEl = document.getElementById("campaign-background");
-      if (bgEl && visual.background_image) {
-        bgEl.style.backgroundImage = `url('${visual.background_image}')`;
-        bgEl.style.backgroundSize = "cover";
-        bgEl.style.backgroundPosition = "center";
-      }
+      if (visual.background_image) {
+      document.body.style.backgroundImage = `url('${visual.background_image}')`;
+      document.body.style.backgroundSize = "cover";
+      document.body.style.backgroundPosition = "center";
+      document.body.style.backgroundRepeat = "no-repeat";
+      document.body.style.backgroundAttachment = "fixed"; // optioneel: laat hem meescrollen
+    }
 
       console.log("✅ Visuals succesvol geladen voor:", slug);
     } catch (err) {
