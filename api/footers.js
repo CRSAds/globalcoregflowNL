@@ -33,6 +33,7 @@ export default async function handler(req, res) {
       text: f.text || "",
       terms_content: f.terms_content || "",
       privacy_content: f.privacy_content || "",
+      actievoorwaarden: f.actievoorwaarden || "",
       logo: f.logo?.id ? `https://cms.core.909play.com/assets/${f.logo.id}` : null,
       icon_terms: f.icon_terms?.id ? `https://cms.core.909play.com/assets/${f.icon_terms.id}` : null,
       icon_privacy: f.icon_privacy?.id ? `https://cms.core.909play.com/assets/${f.icon_privacy.id}` : null
