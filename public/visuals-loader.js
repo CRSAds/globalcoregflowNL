@@ -6,7 +6,7 @@
 
   async function loadVisuals() {
     try {
-      const slug = window.CAMPAIGN_SLUG || "hotel-specials"; // 👈 of stel via inline script
+      const slug = window.CAMPAIGN_SLUG || "hotel-specials"; // 👈 centraal in body instellen
       const res = await fetch("https://globalcoregflow-nl.vercel.app/api/campaignVisuals.js");
       const { data } = await res.json();
       const visual = data.find(v => v.slug === slug);
@@ -15,18 +15,16 @@
         return;
       }
 
-      // 🏷️ Titel
-      const titleEl = document.getElementById("campaign-title");
+      // 🏷️ Titel (HTML behouden)
       const titleEl = document.getElementById("campaign-title");
       if (titleEl && visual.title) {
         titleEl.innerHTML = visual.title;
-        // Optioneel: reset marges/padding zodat Swipe Pages styling geldt
+        // Swipe Pages styling behouden
         titleEl.style.margin = "";
         titleEl.style.padding = "";
       }
 
-      // 📄 Paragraaf
-      const paragraphEl = document.getElementById("campaign-paragraph");
+      // 📄 Paragraaf (HTML behouden)
       const paragraphEl = document.getElementById("campaign-paragraph");
       if (paragraphEl && visual.paragraph) {
         paragraphEl.innerHTML = visual.paragraph;
