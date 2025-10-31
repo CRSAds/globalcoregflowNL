@@ -12,8 +12,7 @@ export default async function handler(req, res) {
 
   try {
     // ➕ logo + icon_terms + icon_privacy toegevoegd aan fields
-    const url = `${process.env.DIRECTUS_URL}/items/footers?fields=name,text,terms_content,privacy_content,logo.id,icon_terms.id,icon_privacy.id`;
-
+    const url = `${process.env.DIRECTUS_URL}/items/footers?fields=name,text,terms_content,privacy_content,actievoorwaarden,logo.id,icon_terms.id,icon_privacy.id`;
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}`
