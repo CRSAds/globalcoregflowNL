@@ -17,11 +17,22 @@
 
       // 🏷️ Titel
       const titleEl = document.getElementById("campaign-title");
-      if (titleEl && visual.title) titleEl.textContent = visual.title;
+      const titleEl = document.getElementById("campaign-title");
+      if (titleEl && visual.title) {
+        titleEl.innerHTML = visual.title;
+        // Optioneel: reset marges/padding zodat Swipe Pages styling geldt
+        titleEl.style.margin = "";
+        titleEl.style.padding = "";
+      }
 
       // 📄 Paragraaf
       const paragraphEl = document.getElementById("campaign-paragraph");
-      if (paragraphEl && visual.paragraph) paragraphEl.innerHTML = visual.paragraph;
+      const paragraphEl = document.getElementById("campaign-paragraph");
+      if (paragraphEl && visual.paragraph) {
+        paragraphEl.innerHTML = visual.paragraph;
+        paragraphEl.style.margin = "";
+        paragraphEl.style.padding = "";
+      }
 
       // 🖼️ Hero afbeelding
       const heroEl = document.getElementById("campaign-hero-image");
