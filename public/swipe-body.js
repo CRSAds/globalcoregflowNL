@@ -90,22 +90,26 @@
     }, 600);
   });
 
-  // === 3️⃣ Style-settings alleen in editor tonen ===
+  // === 3️⃣ Editor-only elementen verbergen op live ===
   window.addEventListener("load", () => {
-    const el = document.getElementById("style-settings");
-    if (!el) return;
-
-    const isEditor = window.location.hostname.includes("app.swipepages.com");
-
+    const host = window.location.hostname;
+    const isEditor = host.includes("app.swipepages.com");
+  
+    // Alle elementen die met "style-" of "dev-" beginnen verbergen buiten de editor
+    document.querySelectorAll('[id^="style-"], [id^="dev-"]').forEach(el => {
+      if (!isEditor) {
+        el.style.display = "none";
+        el.style.visibility = "hidden";
+        el.style.opacity = "0";
+        el.style.height = "0";
+        el.style.overflow = "hidden";
+      }
+    });
+  
     if (!isEditor) {
-      el.style.display = "none";
-      el.style.visibility = "hidden";
-      el.style.opacity = "0";
-      el.style.height = "0";
-      el.style.overflow = "hidden";
-      console.log("✅ #style-settings verborgen op live site");
+      console.log("✅ Alle style-/dev-elementen verborgen op live site");
     } else {
-      console.log("✏️ Swipe Pages editor gedetecteerd — #style-settings zichtbaar");
+      console.log("✏️ Editor gedetecteerd — helper-elementen zichtbaar");
     }
   });
 
