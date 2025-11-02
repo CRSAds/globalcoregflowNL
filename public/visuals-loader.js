@@ -32,18 +32,30 @@
         paragraphEl.style.padding = "";
       }
 
-      // 🖼️ Hero afbeelding
-      const heroEl = document.getElementById("campaign-hero-image");
-      if (heroEl && visual.hero_image) heroEl.src = visual.hero_image;
-
-      // 🖼️ Horizontale hero afbeelding
-      const horizontalHeroEl = document.getElementById("campaign-horizontal-hero-image");
-      if (horizontalHeroEl && visual.horizontal_hero_image) horizontalHeroEl.src = visual.horizontal_hero_image;
-
-      // ☎️ IVR afbeelding
-      const ivrEl = document.getElementById("campaign-ivr-image");
-      if (ivrEl && visual.ivr_image) ivrEl.src = visual.ivr_image;
-
+      // 🖼️ Hero afbeelding — toepassen op ALLE secties
+      const heroEls = document.querySelectorAll('[id="campaign-hero-image"]');
+      if (heroEls.length && visual.hero_image) {
+        heroEls.forEach(el => {
+          el.src = visual.hero_image;
+        });
+      }
+      
+      // 🖼️ Horizontale hero afbeelding — toepassen op ALLE secties
+      const horizontalHeroEls = document.querySelectorAll('[id="campaign-horizontal-hero-image"]');
+      if (horizontalHeroEls.length && visual.horizontal_hero_image) {
+        horizontalHeroEls.forEach(el => {
+          el.src = visual.horizontal_hero_image;
+        });
+      }
+      
+      // ☎️ IVR afbeelding — toepassen op ALLE secties
+      const ivrEls = document.querySelectorAll('[id="campaign-ivr-image"]');
+      if (ivrEls.length && visual.ivr_image) {
+        ivrEls.forEach(el => {
+          el.src = visual.ivr_image;
+        });
+      }
+      
       // 🌄 Achtergrond
       if (visual.background_image) {
       document.body.style.backgroundImage = `url('${visual.background_image}')`;
