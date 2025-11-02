@@ -59,20 +59,14 @@
         if (visual.ivr_image) el.src = visual.ivr_image;
       });
 
-      // 🌄 Achtergrond fade
-      const bgEl = document.getElementById("campaign-background");
-      if (bgEl && visual.background_image) {
-        bgEl.style.opacity = "0";
-        bgEl.style.transition = "opacity .6s ease";
-        const bgImg = new Image();
-        bgImg.onload = () => (bgEl.style.opacity = "1");
-        bgImg.onerror = () => (bgEl.style.opacity = "1");
-        bgImg.src = visual.background_image;
-        bgEl.style.backgroundImage = `url('${visual.background_image}')`;
-        bgEl.style.backgroundSize = "cover";
-        bgEl.style.backgroundPosition = "center";
-        bgEl.style.backgroundRepeat = "no-repeat";
-      }
+       // 🌄 Achtergrond
+      if (visual.background_image) {
+      document.body.style.backgroundImage = `url('${visual.background_image}')`;
+      document.body.style.backgroundSize = "cover";
+      document.body.style.backgroundPosition = "center";
+      document.body.style.backgroundRepeat = "no-repeat";
+      document.body.style.backgroundAttachment = "fixed"; // optioneel: laat hem meescrollen
+    }
 
       // === Preload & klaar-signaal ===
       function preload(url) {
