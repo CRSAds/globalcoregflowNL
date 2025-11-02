@@ -1,4 +1,4 @@
-// ✅ visuals-loader.js — rustig laden van visuals + preload-signaal naar swipe-body.js
+// ✅ visuals-loader.js — stabiele versie met preload + gegarandeerde klaar-melding
 
 (function () {
   console.log("🎨 visuals-loader.js gestart");
@@ -32,30 +32,30 @@
         paragraphEl.style.padding = "";
       }
 
-      // 🖼️ Hero afbeelding — ALLE secties
+      // 🖼️ Hero afbeelding — alle secties
       const heroEls = document.querySelectorAll('[id="campaign-hero-image"]');
       heroEls.forEach(el => {
         el.style.opacity = "0";
-        el.onload = () => (el.style.opacity = "1");
         el.style.transition = "opacity 0.6s ease";
+        el.onload = () => (el.style.opacity = "1");
         if (visual.hero_image) el.src = visual.hero_image;
       });
 
-      // 🖼️ Horizontale hero afbeelding — ALLE secties
+      // 🖼️ Horizontale hero afbeelding
       const horizontalHeroEls = document.querySelectorAll('[id="campaign-horizontal-hero-image"]');
       horizontalHeroEls.forEach(el => {
         el.style.opacity = "0";
-        el.onload = () => (el.style.opacity = "1");
         el.style.transition = "opacity 0.6s ease";
+        el.onload = () => (el.style.opacity = "1");
         if (visual.horizontal_hero_image) el.src = visual.horizontal_hero_image;
       });
 
-      // ☎️ IVR afbeelding — ALLE secties
+      // ☎️ IVR afbeelding
       const ivrEls = document.querySelectorAll('[id="campaign-ivr-image"]');
       ivrEls.forEach(el => {
         el.style.opacity = "0";
-        el.onload = () => (el.style.opacity = "1");
         el.style.transition = "opacity 0.6s ease";
+        el.onload = () => (el.style.opacity = "1");
         if (visual.ivr_image) el.src = visual.ivr_image;
       });
 
@@ -97,8 +97,10 @@
       });
 
       console.log("✅ Visuals geladen voor:", slug);
+      window.dispatchEvent(new Event("visuals:assets-ready")); // altijd signaal sturen
     } catch (err) {
       console.error("❌ Fout bij visuals-loader:", err);
+      // stuur altijd event ook bij fout
       window.dispatchEvent(new Event("visuals:assets-ready"));
     }
   }
