@@ -1,30 +1,30 @@
-// /public/visuals-loader.js
-// ✅ Dynamisch laden van hero, background, ivr, titel en paragraaf uit Directus
+// ✅ visuals-loader.js — rustig laden van visuals + preload-signaal naar swipe-body.js
 
 (function () {
   console.log("🎨 visuals-loader.js gestart");
 
   async function loadVisuals() {
     try {
-      const slug = window.CAMPAIGN_SLUG || "hotel-specials"; // 👈 centraal in body instellen
+      const slug = window.CAMPAIGN_SLUG || "hotel-specials";
       const res = await fetch("https://globalcoregflow-nl.vercel.app/api/campaignVisuals.js");
       const { data } = await res.json();
       const visual = data.find(v => v.slug === slug);
+
       if (!visual) {
         console.warn("⚠️ Geen visuals gevonden voor:", slug);
+        window.dispatchEvent(new Event("visuals:assets-ready"));
         return;
       }
 
-      // 🏷️ Titel (HTML behouden)
+      // 🏷️ Titel
       const titleEl = document.getElementById("campaign-title");
       if (titleEl && visual.title) {
         titleEl.innerHTML = visual.title;
-        // Swipe Pages styling behouden
         titleEl.style.margin = "";
         titleEl.style.padding = "";
       }
 
-      // 📄 Paragraaf (HTML behouden)
+      // 📄 Paragraaf
       const paragraphEl = document.getElementById("campaign-paragraph");
       if (paragraphEl && visual.paragraph) {
         paragraphEl.innerHTML = visual.paragraph;
@@ -32,42 +32,74 @@
         paragraphEl.style.padding = "";
       }
 
-      // 🖼️ Hero afbeelding — toepassen op ALLE secties
+      // 🖼️ Hero afbeelding — ALLE secties
       const heroEls = document.querySelectorAll('[id="campaign-hero-image"]');
-      if (heroEls.length && visual.hero_image) {
-        heroEls.forEach(el => {
-          el.src = visual.hero_image;
-        });
-      }
-      
-      // 🖼️ Horizontale hero afbeelding — toepassen op ALLE secties
-      const horizontalHeroEls = document.querySelectorAll('[id="campaign-horizontal-hero-image"]');
-      if (horizontalHeroEls.length && visual.horizontal_hero_image) {
-        horizontalHeroEls.forEach(el => {
-          el.src = visual.horizontal_hero_image;
-        });
-      }
-      
-      // ☎️ IVR afbeelding — toepassen op ALLE secties
-      const ivrEls = document.querySelectorAll('[id="campaign-ivr-image"]');
-      if (ivrEls.length && visual.ivr_image) {
-        ivrEls.forEach(el => {
-          el.src = visual.ivr_image;
-        });
-      }
-      
-      // 🌄 Achtergrond
-      if (visual.background_image) {
-      document.body.style.backgroundImage = `url('${visual.background_image}')`;
-      document.body.style.backgroundSize = "cover";
-      document.body.style.backgroundPosition = "center";
-      document.body.style.backgroundRepeat = "no-repeat";
-      document.body.style.backgroundAttachment = "fixed"; // optioneel: laat hem meescrollen
-    }
+      heroEls.forEach(el => {
+        el.style.opacity = "0";
+        el.onload = () => (el.style.opacity = "1");
+        el.style.transition = "opacity 0.6s ease";
+        if (visual.hero_image) el.src = visual.hero_image;
+      });
 
-      console.log("✅ Visuals succesvol geladen voor:", slug);
+      // 🖼️ Horizontale hero afbeelding — ALLE secties
+      const horizontalHeroEls = document.querySelectorAll('[id="campaign-horizontal-hero-image"]');
+      horizontalHeroEls.forEach(el => {
+        el.style.opacity = "0";
+        el.onload = () => (el.style.opacity = "1");
+        el.style.transition = "opacity 0.6s ease";
+        if (visual.horizontal_hero_image) el.src = visual.horizontal_hero_image;
+      });
+
+      // ☎️ IVR afbeelding — ALLE secties
+      const ivrEls = document.querySelectorAll('[id="campaign-ivr-image"]');
+      ivrEls.forEach(el => {
+        el.style.opacity = "0";
+        el.onload = () => (el.style.opacity = "1");
+        el.style.transition = "opacity 0.6s ease";
+        if (visual.ivr_image) el.src = visual.ivr_image;
+      });
+
+      // 🌄 Achtergrond fade
+      const bgEl = document.getElementById("campaign-background");
+      if (bgEl && visual.background_image) {
+        bgEl.style.opacity = "0";
+        bgEl.style.transition = "opacity .6s ease";
+        const bgImg = new Image();
+        bgImg.onload = () => (bgEl.style.opacity = "1");
+        bgImg.onerror = () => (bgEl.style.opacity = "1");
+        bgImg.src = visual.background_image;
+        bgEl.style.backgroundImage = `url('${visual.background_image}')`;
+        bgEl.style.backgroundSize = "cover";
+        bgEl.style.backgroundPosition = "center";
+        bgEl.style.backgroundRepeat = "no-repeat";
+      }
+
+      // === Preload & klaar-signaal ===
+      function preload(url) {
+        return new Promise(resolve => {
+          if (!url) return resolve();
+          const img = new Image();
+          img.onload = img.onerror = () => resolve();
+          img.src = url;
+        });
+      }
+
+      const waits = [
+        preload(visual.hero_image),
+        preload(visual.horizontal_hero_image),
+        preload(visual.ivr_image),
+        preload(visual.background_image)
+      ];
+      const timeout = new Promise(resolve => setTimeout(resolve, 1500));
+
+      Promise.race([Promise.allSettled(waits), timeout]).then(() => {
+        window.dispatchEvent(new Event("visuals:assets-ready"));
+      });
+
+      console.log("✅ Visuals geladen voor:", slug);
     } catch (err) {
       console.error("❌ Fout bij visuals-loader:", err);
+      window.dispatchEvent(new Event("visuals:assets-ready"));
     }
   }
 
