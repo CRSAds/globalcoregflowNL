@@ -33,6 +33,7 @@ export default async function handler(req, res) {
       title: v.title || "",
       paragraph: v.paragraph || "",
       hero_image: v.hero_image?.id ? `https://cms.core.909play.com/assets/${v.hero_image.id}` : null,
+      horizontal_hero_image: v.horizontal_hero_image?.id ? `https://cms.core.909play.com/assets/${v.horizontal_hero_image.id}` : null,
       background_image: v.background_image?.id ? `https://cms.core.909play.com/assets/${v.background_image.id}` : null,
       ivr_image: v.ivr_image?.id ? `https://cms.core.909play.com/assets/${v.ivr_image.id}` : null
     }));
