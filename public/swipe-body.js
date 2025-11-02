@@ -160,4 +160,10 @@
     });
   });
 
+  // === 6️⃣ Pagina tonen zodra alles klaar is ===
+  window.addEventListener("load", () => {
+    document.documentElement.classList.remove("loading");
+    document.documentElement.classList.add("loaded");
+  });
+  
 })();
