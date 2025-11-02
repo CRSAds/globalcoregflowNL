@@ -1,101 +1,61 @@
-// ✅ swipe-body.js — volledige centrale integratie voor Swipe Pages
-// ---------------------------------------------------------------
-
+// ✅ swipe-body.js — centrale integratie + loader pas weg na visuals-ready
 (function () {
   console.log("🧩 swipe-body.js gestart");
 
-  // === 1️⃣ Loader HTML + CSS injecteren ===
+  // === 1️⃣ Loader injectie + CSS (blijft hetzelfde)
   document.addEventListener("DOMContentLoaded", () => {
-    // Alleen toevoegen als hij nog niet bestaat
     if (!document.getElementById("page-loader")) {
       const loader = document.createElement("div");
       loader.id = "page-loader";
-      loader.innerHTML = `
-        <div class="loader-inner">
-          <div class="loader-spinner"></div>
-        </div>
-      `;
+      loader.innerHTML = `<div class="loader-inner"><div class="loader-spinner"></div></div>`;
       document.body.prepend(loader);
     }
-
-    // Injecteer de loader CSS
     const style = document.createElement("style");
     style.textContent = `
-      /* === Loader overlay === */
       #page-loader {
-        position: fixed;
-        inset: 0;
+        position: fixed; inset: 0;
         background: #fff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        display: flex; justify-content: center; align-items: center;
         z-index: 999999;
-        opacity: 1;
-        visibility: visible;
+        opacity: 1; visibility: visible;
         transition: opacity 1.2s ease, visibility 1.2s ease;
       }
-
-      #page-loader.fade-out {
-        opacity: 0;
-        visibility: hidden;
-      }
-
-      /* === Spinner === */
+      #page-loader.fade-out { opacity: 0; visibility: hidden; }
       .loader-spinner {
-        width: 60px;
-        height: 60px;
-        border: 5px solid #ddd;
-        border-top-color: #ff006e;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
+        width: 60px; height: 60px;
+        border: 5px solid #ddd; border-top-color: #ff006e;
+        border-radius: 50%; animation: spin 1s linear infinite;
       }
-
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-
-      .loader-inner {
-        animation: loaderPulse 1.5s ease-in-out infinite;
-      }
-
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .loader-inner { animation: loaderPulse 1.5s ease-in-out infinite; }
       @keyframes loaderPulse {
         0%,100% { transform: scale(1); opacity: 1; }
         50% { transform: scale(1.05); opacity: 0.9; }
-      }
-
-      /* === Pagina fade-in === */
-      body > :not(#page-loader) {
-        opacity: 0;
-        transition: opacity 0.8s ease-in-out;
-      }
-
-      body.page-loaded > :not(#page-loader) {
-        opacity: 1;
       }
     `;
     document.head.appendChild(style);
   });
 
-  // === 2️⃣ Loader fade-out bij load ===
-  window.addEventListener("load", () => {
-    const loader = document.getElementById("page-loader");
-    if (!loader) return;
+  // === 2️⃣ Loader verbergen pas als visuals klaar of na fallback
+  (function () {
+    let done = false;
+    function hideLoader() {
+      if (done) return;
+      done = true;
+      const loader = document.getElementById("page-loader");
+      if (loader) {
+        loader.classList.add("fade-out");
+        setTimeout(() => loader.remove(), 900);
+      }
+    }
+    window.addEventListener("visuals:assets-ready", hideLoader);
+    window.addEventListener("load", () => setTimeout(hideLoader, 1200));
+  })();
 
-    setTimeout(() => {
-      loader.classList.add("fade-out");
-      setTimeout(() => {
-        loader.remove();
-        document.body.classList.add("page-loaded");
-      }, 900);
-    }, 600);
-  });
-
-  // === 3️⃣ Editor-only elementen verbergen op live ===
+  // === 3️⃣ Verberg style-/dev-elementen op live ===
   window.addEventListener("load", () => {
     const host = window.location.hostname;
     const isEditor = host.includes("app.swipepages.com");
-  
-    // Alle elementen die met "style-" of "dev-" beginnen verbergen buiten de editor
     document.querySelectorAll('[id^="style-"], [id^="dev-"]').forEach(el => {
       if (!isEditor) {
         el.style.display = "none";
@@ -105,12 +65,7 @@
         el.style.overflow = "hidden";
       }
     });
-  
-    if (!isEditor) {
-      console.log("✅ Alle style-/dev-elementen verborgen op live site");
-    } else {
-      console.log("✏️ Editor gedetecteerd — helper-elementen zichtbaar");
-    }
+    console.log(isEditor ? "✏️ Editor gedetecteerd — helper-elementen zichtbaar" : "✅ Alle style-/dev-elementen verborgen op live site");
   });
 
   // === 4️⃣ Fonts uit style-settings overnemen ===
@@ -130,8 +85,7 @@
 
     const titleRef = getComputedFontStyle("#style-settings .typo-h1");
     const bodyRef = getComputedFontStyle("#style-settings .typo-body");
-    const termsRef =
-      getComputedFontStyle("#style-settings .typo-actievoorwaarden") || bodyRef;
+    const termsRef = getComputedFontStyle("#style-settings .typo-actievoorwaarden") || bodyRef;
 
     const titleEl = document.getElementById("campaign-title");
     const paragraphEl = document.getElementById("campaign-paragraph");
@@ -140,18 +94,14 @@
     if (titleEl && titleRef) Object.assign(titleEl.style, titleRef);
     if (paragraphEl && bodyRef) Object.assign(paragraphEl.style, bodyRef);
     if (actieEl && termsRef) Object.assign(actieEl.style, termsRef);
-
-    console.log("✅ Fontstijlen toegepast vanuit #style-settings");
   });
 
-  // === 5️⃣ Master achtergrond doorzetten ===
+  // === 5️⃣ Master background ===
   document.addEventListener("DOMContentLoaded", () => {
     const masterBgImg = document.getElementById("master-bg");
     if (!masterBgImg) return;
-
     const bgUrl = masterBgImg.src;
     if (!bgUrl) return;
-
     document.querySelectorAll(".needs-master-bg").forEach(section => {
       section.style.backgroundImage = `url('${bgUrl}')`;
       section.style.backgroundSize = "cover";
@@ -159,11 +109,4 @@
       section.style.backgroundRepeat = "no-repeat";
     });
   });
-
-  // === 6️⃣ Pagina tonen zodra alles klaar is ===
-  window.addEventListener("load", () => {
-    document.documentElement.classList.remove("loading");
-    document.documentElement.classList.add("loaded");
-  });
-  
 })();
