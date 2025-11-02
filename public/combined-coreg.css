@@ -8,6 +8,9 @@
   --ld-gray-bg: #f5f5f5;
   --ld-gray-border: #ccc;
   --ld-gray-text: #444;
+
+  /* 🎨 Dynamische campagnekleur vanuit swipe-body.js */
+  --campaign-primary: var(--ld-primary);
 }
 
 /* ============================================================
@@ -114,34 +117,41 @@
   font-weight: 600;
   font-family: "Plus Jakarta Sans", sans-serif;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease;
 }
 
-/* JA / POSITIEF */
-.btn-answer,
+/* === POSITIEVE KNOPPEN (JA / YES) koppelen aan campagnestijl === */
+.coreg-section .btn-answer[data-answer*="ja"],
+.coreg-section .btn-answer[data-answer*="yes"],
 .flow-next[data-answer="yes"] {
-  background-color: var(--ld-primary);
-  color: #fff;
+  background-color: var(--campaign-primary) !important;
+  color: #fff !important;
 }
-
-.btn-answer:hover,
+.coreg-section .btn-answer[data-answer*="ja"]:hover,
+.coreg-section .btn-answer[data-answer*="yes"]:hover,
 .flow-next[data-answer="yes"]:hover {
-  background-color: var(--ld-primary-hover);
-  color: #fff;
+  filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
-/* NEE / NEGATIEF */
-.btn-skip,
+/* === NEUTRALE / NEGATIEVE KNOPPEN === */
+.coreg-section .btn-skip,
+.coreg-section .btn-answer[data-answer*="nee"],
 .flow-next[data-answer="no"] {
-  background-color: var(--ld-gray-bg);
-  color: var(--ld-gray-text);
+  background-color: var(--ld-gray-bg) !important;
+  color: var(--ld-gray-text) !important;
   font-weight: 500;
 }
-
-.btn-skip:hover,
+.coreg-section .btn-skip:hover,
+.coreg-section .btn-answer[data-answer*="nee"]:hover,
 .flow-next[data-answer="no"]:hover {
-  background-color: #e0e0e0;
-  color: #222;
+  background-color: #e0e0e0 !important;
+  color: #222 !important;
+}
+
+/* Extra effect voor klikrespons */
+.btn-answer:active {
+  transform: scale(0.98);
 }
 
 .coreg-section .coreg-more-info * {
@@ -168,7 +178,7 @@
 }
 
 .coreg-section select:focus {
-  border-color: var(--ld-primary);
+  border-color: var(--campaign-primary);
   outline: none;
   box-shadow: 0 0 0 2px rgba(20,182,112,0.1);
 }
@@ -236,8 +246,8 @@ form {
   transition: all 0.2s ease;
 }
 .radio-container input:checked ~ .checkmark {
-  background-color: var(--ld-primary);
-  border-color: var(--ld-primary);
+  background-color: var(--campaign-primary);
+  border-color: var(--campaign-primary);
 }
 .radio-container .checkmark::after {
   content: "";
@@ -280,7 +290,7 @@ input[type="tel"] {
 input[type="text"]:focus,
 input[type="email"]:focus,
 input[type="tel"]:focus {
-  border-color: var(--ld-primary);
+  border-color: var(--campaign-primary);
   outline: none;
   box-shadow: 0 0 0 2px rgba(20,182,112,0.1);
 }
@@ -300,7 +310,7 @@ input[type="tel"]:focus {
 button[type="submit"],
 button.flow-next,
 button#submit-long-form {
-  background-color: var(--ld-primary);
+  background-color: var(--campaign-primary);
   color: #fff;
   border: none;
   padding: 12px;
