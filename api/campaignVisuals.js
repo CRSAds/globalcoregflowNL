@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   try {
     // 🔗 Directus endpoint: alleen live visuals ophalen
-    const url = `${process.env.DIRECTUS_URL}/items/campaign_layouts?filter[is_live][_eq]=true&fields=slug,title,paragraph,hero_image.id,background_image.id,ivr_image.id`;
+    const url = `${process.env.DIRECTUS_URL}/items/campaign_layouts?filter[is_live][_eq]=true&fields=slug,title,paragraph,hero_image.id,horizontal_hero_image.id,background_image.id,ivr_image.id`;
 
     const response = await fetch(url, {
       headers: {
