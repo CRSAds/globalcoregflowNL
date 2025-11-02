@@ -36,6 +36,10 @@
       const heroEl = document.getElementById("campaign-hero-image");
       if (heroEl && visual.hero_image) heroEl.src = visual.hero_image;
 
+      // 🖼️ Horizontale hero afbeelding
+      const horizontalHeroEl = document.getElementById("campaign-horizontal-hero-image");
+      if (horizontalHeroEl && visual.horizontal_hero_image) horizontalHeroEl.src = visual.horizontal_hero_image;
+
       // ☎️ IVR afbeelding
       const ivrEl = document.getElementById("campaign-ivr-image");
       if (ivrEl && visual.ivr_image) ivrEl.src = visual.ivr_image;
