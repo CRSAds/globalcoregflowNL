@@ -1,8 +1,8 @@
-// ✅ swipe-body.js — centrale integratie + loader pas weg na visuals-ready
+// ✅ swipe-body.js — loader pas weg na visuals, geen flikker, fonts & dev-elementen geregeld
 (function () {
   console.log("🧩 swipe-body.js gestart");
 
-  // === 1️⃣ Loader injectie + CSS (blijft hetzelfde)
+  // === Loader-stijl + structuur ===
   document.addEventListener("DOMContentLoaded", () => {
     if (!document.getElementById("page-loader")) {
       const loader = document.createElement("div");
@@ -10,6 +10,7 @@
       loader.innerHTML = `<div class="loader-inner"><div class="loader-spinner"></div></div>`;
       document.body.prepend(loader);
     }
+
     const style = document.createElement("style");
     style.textContent = `
       #page-loader {
@@ -18,15 +19,17 @@
         display: flex; justify-content: center; align-items: center;
         z-index: 999999;
         opacity: 1; visibility: visible;
-        transition: opacity 1.2s ease, visibility 1.2s ease;
+        transition: opacity 1s ease, visibility 1s ease;
       }
       #page-loader.fade-out { opacity: 0; visibility: hidden; }
+
       .loader-spinner {
         width: 60px; height: 60px;
         border: 5px solid #ddd; border-top-color: #ff006e;
         border-radius: 50%; animation: spin 1s linear infinite;
       }
       @keyframes spin { to { transform: rotate(360deg); } }
+
       .loader-inner { animation: loaderPulse 1.5s ease-in-out infinite; }
       @keyframes loaderPulse {
         0%,100% { transform: scale(1); opacity: 1; }
@@ -36,7 +39,7 @@
     document.head.appendChild(style);
   });
 
-  // === 2️⃣ Loader verbergen pas als visuals klaar of na fallback
+  // === Loader verbergen na visuals of fallback ===
   (function () {
     let done = false;
     function hideLoader() {
@@ -48,14 +51,26 @@
         setTimeout(() => loader.remove(), 900);
       }
     }
+
     window.addEventListener("visuals:assets-ready", hideLoader);
     window.addEventListener("load", () => setTimeout(hideLoader, 1200));
+
+    // 🚨 Nood-fallback: forceer verwijdering na 3.5s
+    setTimeout(() => {
+      const loader = document.getElementById("page-loader");
+      if (loader) {
+        console.warn("⚠️ Visuals-event niet ontvangen — forceer loader verwijdering");
+        loader.classList.add("fade-out");
+        setTimeout(() => loader.remove(), 900);
+      }
+    }, 3500);
   })();
 
-  // === 3️⃣ Verberg style-/dev-elementen op live ===
+  // === Style/dev-secties verbergen op live ===
   window.addEventListener("load", () => {
     const host = window.location.hostname;
     const isEditor = host.includes("app.swipepages.com");
+
     document.querySelectorAll('[id^="style-"], [id^="dev-"]').forEach(el => {
       if (!isEditor) {
         el.style.display = "none";
@@ -65,10 +80,10 @@
         el.style.overflow = "hidden";
       }
     });
-    console.log(isEditor ? "✏️ Editor gedetecteerd — helper-elementen zichtbaar" : "✅ Alle style-/dev-elementen verborgen op live site");
+    console.log(isEditor ? "✏️ Editor gedetecteerd — helper-secties zichtbaar" : "✅ Style/dev-secties verborgen op live site");
   });
 
-  // === 4️⃣ Fonts uit style-settings overnemen ===
+  // === Fonts uit style-settings overnemen ===
   window.addEventListener("load", () => {
     const getComputedFontStyle = (selector) => {
       const el = document.querySelector(selector);
@@ -85,7 +100,8 @@
 
     const titleRef = getComputedFontStyle("#style-settings .typo-h1");
     const bodyRef = getComputedFontStyle("#style-settings .typo-body");
-    const termsRef = getComputedFontStyle("#style-settings .typo-actievoorwaarden") || bodyRef;
+    const termsRef =
+      getComputedFontStyle("#style-settings .typo-actievoorwaarden") || bodyRef;
 
     const titleEl = document.getElementById("campaign-title");
     const paragraphEl = document.getElementById("campaign-paragraph");
@@ -94,9 +110,11 @@
     if (titleEl && titleRef) Object.assign(titleEl.style, titleRef);
     if (paragraphEl && bodyRef) Object.assign(paragraphEl.style, bodyRef);
     if (actieEl && termsRef) Object.assign(actieEl.style, termsRef);
+
+    console.log("✅ Fontstijlen toegepast vanuit style-settings");
   });
 
-  // === 5️⃣ Master background ===
+  // === Master background (zelfde logica behouden) ===
   document.addEventListener("DOMContentLoaded", () => {
     const masterBgImg = document.getElementById("master-bg");
     if (!masterBgImg) return;
