@@ -114,6 +114,20 @@
     console.log("✅ Fontstijlen toegepast vanuit style-settings");
   });
 
+  // === 🎨 Campagnekleur uitlezen uit referentieknop ===
+  window.addEventListener("load", () => {
+    const refButton = document.querySelector("#style-settings #ref-button");
+    if (refButton) {
+      const style = window.getComputedStyle(refButton);
+      const campaignColor = style.backgroundColor || "#ff6600";
+      document.documentElement.style.setProperty("--campaign-primary", campaignColor);
+      console.log("🎨 Campagnekleur gedetecteerd:", campaignColor);
+    } else {
+      document.documentElement.style.setProperty("--campaign-primary", "#ff6600");
+      console.warn("⚠️ Geen referentieknop gevonden, standaardkleur gebruikt");
+    }
+  });
+
   // === Master background (zelfde logica behouden) ===
   document.addEventListener("DOMContentLoaded", () => {
     const masterBgImg = document.getElementById("master-bg");
