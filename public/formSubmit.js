@@ -28,39 +28,45 @@ if (!window.formSubmitInitialized) {
     const sub2 = sessionStorage.getItem("sub2") || "unknown";
     const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
 
-    // ✅ Nieuw: geboortedatum in 1 veld (dd/mm/jjjj)
+    // ✅ Nieuw: geboortedatum in ISO 8601 (yyyy-mm-dd)
     const dobValue = sessionStorage.getItem("dob");
-    let dob_iso = "";
+    let dob = "";
     if (dobValue && dobValue.includes("/")) {
-      // strip ALLE spaties uit de delen vóór formatting
       const [rawDD, rawMM, rawYYYY] = dobValue.split("/");
       const dd = (rawDD || "").replace(/\s/g, "");
       const mm = (rawMM || "").replace(/\s/g, "");
       const yyyy = (rawYYYY || "").replace(/\s/g, "");
       if (dd && mm && yyyy) {
-        dob_iso = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+        dob = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
       }
     }
 
     return {
+      // vaste Databowl-campagne ID’s
       cid: campaign.cid || "925",
       sid: campaign.sid || "34",
+
+      // formulierdata
       gender: sessionStorage.getItem("gender") || "",
       firstname: sessionStorage.getItem("firstname") || "",
       lastname: sessionStorage.getItem("lastname") || "",
       email: sessionStorage.getItem("email") || "",
-      f_5_dob: dob_iso,
       postcode: sessionStorage.getItem("postcode") || "",
       straat: sessionStorage.getItem("straat") || "",
       huisnummer: sessionStorage.getItem("huisnummer") || "",
       woonplaats: sessionStorage.getItem("woonplaats") || "",
       telefoon: sessionStorage.getItem("telefoon") || "",
-      f_1322_transaction_id: t_id,
-      f_1453_campagne_url: campaignUrl,
-      f_1684_sub_id: sub_id,
-      f_1685_aff_id: aff_id,
-      f_1687_offer_id: offer_id,
+
+      // tracking & meta
+      dob,                  // 🔹 juiste key voor backend
+      t_id,                 // 🔹 juiste key
+      aff_id,               // 🔹 juiste key
+      offer_id,             // 🔹 juiste key
+      sub_id,               // 🔹 juiste key
       sub2,
+      f_1453_campagne_url: campaignUrl,
+
+      // flags
       is_shortform: campaign.is_shortform || false
     };
   }
