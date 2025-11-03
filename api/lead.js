@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ /api/lead.js — stabiele versie met coreg_answer fix (short + long)
+// ✅ /api/lead.js — stabiele versie met juiste Databowl mapping
 // =============================================================
 import querystring from "querystring";
 
@@ -38,13 +38,13 @@ export default async function handler(req, res) {
       f_2014_coreg_answer,
       f_2575_coreg_answer_dropdown,
       f_1453_campagne_url,
-      f_1322_transaction_id,
-      f_1684_sub_id,
-      f_1685_aff_id,
-      f_1687_offer_id
+      t_id,
+      offer_id,
+      aff_id,
+      sub_id
     } = body;
 
-    // ===== Detecteer shortform lead (zoals in originele werkende versie)
+    // ===== Detecteer shortform lead
     const isShort =
       String(cid) === "925" ||
       is_shortform === true ||
@@ -61,12 +61,12 @@ export default async function handler(req, res) {
     if (gender) params.set("f_2_title", gender);
     if (dob) params.set("f_5_dob", dob);
 
-    // ===== Campagne URL + tracking
+    // ===== Campagne URL + tracking (correcte veldnamen voor Databowl)
     if (f_1453_campagne_url) params.set("f_1453_campagne_url", f_1453_campagne_url);
-    if (t_id) params.set("t_id", t_id);
-    if (offer_id) params.set("offer_id", offer_id);
-    if (aff_id) params.set("aff_id", aff_id);
-    if (sub_id) params.set("sub_id", sub_id);
+    if (t_id) params.set("f_1322_transaction_id", t_id);
+    if (offer_id) params.set("f_1687_offer_id", offer_id);
+    if (aff_id) params.set("f_1685_aff_id", aff_id);
+    if (sub_id) params.set("f_1684_sub_id", sub_id);
 
     // ===== Alleen longformvelden bij longform leads
     if (!isShort) {
@@ -77,17 +77,12 @@ export default async function handler(req, res) {
       if (telefoon) params.set("f_12_phone1", telefoon);
     }
 
-    // ✅ Altijd coreg antwoorden meesturen (ook bij shortform coregs)
+    // ===== Coreg antwoorden
     if (f_2014_coreg_answer?.trim()) {
       params.set("f_2014_coreg_answer", f_2014_coreg_answer.trim());
     }
     if (f_2575_coreg_answer_dropdown?.trim()) {
       params.set("f_2575_coreg_answer_dropdown", f_2575_coreg_answer_dropdown.trim());
-    }
-
-    // ✅ Sponsor-optin alleen meesturen bij akkoord
-    if (f_2047_EM_CO_sponsors?.trim()) {
-      params.set("f_2047_EM_CO_sponsors", f_2047_EM_CO_sponsors.trim());
     }
 
     // ===== Databowl endpoint
@@ -101,6 +96,7 @@ export default async function handler(req, res) {
     });
 
     const text = await resp.text();
+
     if (!resp.ok) {
       console.error("❌ Databowl error:", text);
       return res.status(resp.status).json({ success: false, error: text });
@@ -108,6 +104,7 @@ export default async function handler(req, res) {
 
     console.log("✅ Lead succesvol naar Databowl:", text);
     res.status(200).json({ success: true, response: text });
+
   } catch (err) {
     console.error("💥 Lead API fout:", err);
     res.status(500).json({ success: false, error: err.message });
