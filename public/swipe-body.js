@@ -114,28 +114,11 @@
     console.log("✅ Fontstijlen toegepast vanuit style-settings");
   });
 
-    // === 🎨 Campagnekleur detecteren uit tekstkleur van #ref-color ===
+    // === 🎨 Campagnekleur: vaste fallback (geen detectie meer) ===
 window.addEventListener("load", () => {
-  const refColorEl = document.querySelector("#style-settings #ref-color");
-  let picked = null;
-
-  if (refColorEl) {
-    const style = getComputedStyle(refColorEl);
-    const textColor = style.color;
-    if (textColor && textColor !== "rgba(0, 0, 0, 0)" && textColor !== "transparent") {
-      picked = textColor.trim();
-      console.log("🎨 Campagnekleur ingesteld via #ref-color:", picked);
-    }
-  }
-
-  if (!picked) {
-    // Fallback naar standaard LD-kleur
-    picked = getComputedStyle(document.documentElement).getPropertyValue("--ld-primary").trim() || "#14B670";
-    console.warn("⚠️ Geen geldige kleur gevonden bij #ref-color — gebruik fallback:", picked);
-  }
-
-  // Stel primaire campagnekleur in
-  document.documentElement.style.setProperty("--campaign-primary", picked);
+  const fallback = "#14B670"; // standaard groene campagnetint
+  document.documentElement.style.setProperty("--campaign-primary", fallback);
+  console.log("🎨 Campagnekleur standaard ingesteld:", fallback);
 });
 
   // === Master background (zelfde logica behouden) ===
