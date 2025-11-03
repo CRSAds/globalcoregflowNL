@@ -23,11 +23,10 @@ export default async function handler(req, res) {
       f_2014_coreg_answer,
       f_2575_coreg_answer_dropdown,
       f_1453_campagne_url,
-      f_2047_EM_CO_sponsors,
-      t_id,
-      offer_id,
-      aff_id,
-      sub_id
+      f_1322_transaction_id,
+      f_1684_sub_id,
+      f_1685_aff_id,
+      f_1687_offer_id
     } = body;
 
     // ===== Detecteer shortform lead (zoals in originele werkende versie)
