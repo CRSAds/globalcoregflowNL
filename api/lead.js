@@ -6,6 +6,16 @@ import querystring from "querystring";
 export default async function handler(req, res) {
   try {
     const body = req.body || {};
+    // ====== CORS HEADERS ======
+    if (req.method === "OPTIONS") {
+      return res.status(200).setHeader("Access-Control-Allow-Origin", "*")
+        .setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+        .setHeader("Access-Control-Allow-Headers", "Content-Type")
+        .end();
+    }
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     const {
       cid,
       sid,
