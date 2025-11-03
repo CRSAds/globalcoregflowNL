@@ -114,102 +114,27 @@
     console.log("✅ Fontstijlen toegepast vanuit style-settings");
   });
 
-    // === 🎨 Campagnekleur detecteren (compatibel met Swipe Pages knoppen / pseudo's) ===
+    // === 🎨 Campagnekleur detecteren uit tekstkleur van #ref-color ===
 window.addEventListener("load", () => {
-  const scope = document.querySelector("#style-settings");
-  if (!scope) {
-    console.warn("⚠️ #style-settings niet gevonden — gebruik fallbackkleur");
-    document.documentElement.style.setProperty("--campaign-primary", "#14B670");
-    return;
-  }
-
-  // Kandidaten: id, typische Swipe classes, en algemene ankers/knoppen binnen de sectie
-  const candidates = [
-    "#ref-button",
-    ".tatsu-btn",
-    "a.tatsu-shortcode",
-    ".tatsu-module a",
-    "button",
-    "a"
-  ]
-    .map(sel => scope.querySelector(sel))
-    .filter(Boolean);
-
-  // Helper: is een bruikbare, niet-transparante kleur?
-  const isValid = v =>
-    v &&
-    v !== "transparent" &&
-    v !== "rgba(0, 0, 0, 0)" &&
-    v.trim() !== "";
-
-  // Helper: haal kleur uit element (inclusief pseudo's en veelvoorkomende children)
-  const getColorFromEl = el => {
-    if (!el) return null;
-    const order = [
-      el,
-      el.querySelector(".default"),
-      el.querySelector("span"),
-      el.querySelector("div")
-    ].filter(Boolean);
-
-    for (const node of order) {
-      const cs = getComputedStyle(node);
-
-      // 1) directe background-color
-      const bg = cs.backgroundColor;
-      if (isValid(bg)) return bg;
-
-      // 2) CSS variabelen die Swipe vaak gebruikt
-      const varBg = cs.getPropertyValue("--tatsu-bg-color") || cs.getPropertyValue("--button-background");
-      if (isValid(varBg)) return varBg.trim();
-
-      // 3) gradient -> pak eerste kleur
-      const bgImg = cs.backgroundImage;
-      if (bgImg && bgImg !== "none") {
-        // zoek eerste rgba()/rgb()/#hex
-        const m =
-          bgImg.match(/rgba?\([^)]*\)/i) ||
-          bgImg.match(/#[0-9a-f]{3,8}/i);
-        if (m && isValid(m[0])) return m[0];
-      }
-
-      // 4) pseudo-elementen
-      for (const pseudo of ["::before", "::after"]) {
-        const ps = getComputedStyle(node, pseudo);
-        if (!ps) continue;
-
-        const pbg = ps.backgroundColor;
-        if (isValid(pbg)) return pbg;
-
-        const pVar = ps.getPropertyValue("--tatsu-bg-color");
-        if (isValid(pVar)) return pVar.trim();
-
-        const pImg = ps.backgroundImage;
-        if (pImg && pImg !== "none") {
-          const mm =
-            pImg.match(/rgba?\([^)]*\)/i) ||
-            pImg.match(/#[0-9a-f]{3,8}/i);
-          if (mm && isValid(mm[0])) return mm[0];
-        }
-      }
-    }
-    return null;
-  };
-
+  const refColorEl = document.querySelector("#style-settings #ref-color");
   let picked = null;
-  for (const el of candidates) {
-    picked = getColorFromEl(el);
-    if (picked) break;
+
+  if (refColorEl) {
+    const style = getComputedStyle(refColorEl);
+    const textColor = style.color;
+    if (textColor && textColor !== "rgba(0, 0, 0, 0)" && textColor !== "transparent") {
+      picked = textColor.trim();
+      console.log("🎨 Campagnekleur ingesteld via #ref-color:", picked);
+    }
   }
 
   if (!picked) {
-    // laatste redmiddel: eigen var of default
+    // Fallback naar standaard LD-kleur
     picked = getComputedStyle(document.documentElement).getPropertyValue("--ld-primary").trim() || "#14B670";
-    console.warn("⚠️ Geen knopkleur gevonden — fallback gebruikt:", picked);
-  } else {
-    console.log("🎨 Campagnekleur gevonden:", picked);
+    console.warn("⚠️ Geen geldige kleur gevonden bij #ref-color — gebruik fallback:", picked);
   }
 
+  // Stel primaire campagnekleur in
   document.documentElement.style.setProperty("--campaign-primary", picked);
 });
 
