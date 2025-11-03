@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       lastname,
       email,
       gender,
-      f_5_dob,
+      dob,
       postcode,
       straat,
       huisnummer,
