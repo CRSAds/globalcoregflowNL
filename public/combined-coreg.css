@@ -112,7 +112,7 @@
   margin: 4px 0 !important;  /* compacte witruimte tussen knoppen */
   padding: 14px 18px;
   border: none;
-  border-radius: 999px;
+  border-radius: 10px;
   font-size: 1rem;
   font-weight: 600;
   font-family: "Plus Jakarta Sans", sans-serif;
