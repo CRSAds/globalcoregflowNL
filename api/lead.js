@@ -4,21 +4,23 @@
 import querystring from "querystring";
 
 export default async function handler(req, res) {
+  // ✅ Universele CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control');
+
+  // ✅ Preflight (OPTIONS) meteen afsluiten
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // ✅ Alleen POST requests toestaan
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
+  }
+
   try {
     const body = req.body || {};
-    // ====== CORS HEADERS ======
-    if (req.method === "OPTIONS") {
-    return res.status(200)
-      .setHeader("Access-Control-Allow-Origin", "*")
-      .setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-      .setHeader("Access-Control-Allow-Headers", "Content-Type, Cache-Control")
-      .end();
-  }
-  
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cache-Control");
-    
     const {
       cid,
       sid,
@@ -26,7 +28,7 @@ export default async function handler(req, res) {
       lastname,
       email,
       gender,
-      dob,
+      f_5_dob,
       postcode,
       straat,
       huisnummer,
