@@ -118,8 +118,9 @@
   window.addEventListener("load", () => {
     // Zoek eerst specifiek de referentieknop, anders de eerste Tatsu-button
     const refButton =
-      document.querySelector("#style-settings #ref-button") ||
-      document.querySelector("#style-settings .tatsu-btn");
+  document.querySelector("#style-settings #ref-button") ||
+  document.querySelector("#style-settings .tatsu-btn") ||
+  document.querySelector("#style-settings a.tatsu-shortcode");
 
     if (!refButton) {
       console.warn("⚠️ Geen referentieknop gevonden — gebruik standaardkleur");
