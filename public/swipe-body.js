@@ -114,17 +114,36 @@
     console.log("✅ Fontstijlen toegepast vanuit style-settings");
   });
 
-  // === 🎨 Campagnekleur uitlezen uit referentieknop ===
+    // === 🎨 Campagnekleur detecteren uit voorbeeldknop in #style-settings ===
   window.addEventListener("load", () => {
-    const refButton = document.querySelector("#style-settings #ref-button");
-    if (refButton) {
-      const style = window.getComputedStyle(refButton);
-      const campaignColor = style.backgroundColor || "#ff6600";
-      document.documentElement.style.setProperty("--campaign-primary", campaignColor);
-      console.log("🎨 Campagnekleur gedetecteerd:", campaignColor);
+    // Zoek eerst specifiek de referentieknop, anders de eerste Tatsu-button
+    const refButton =
+      document.querySelector("#style-settings #ref-button") ||
+      document.querySelector("#style-settings .tatsu-btn");
+
+    if (!refButton) {
+      console.warn("⚠️ Geen referentieknop gevonden — gebruik standaardkleur");
+      document.documentElement.style.setProperty(
+        "--campaign-primary",
+        getComputedStyle(document.body).getPropertyValue("--ld-primary") || "#14B670"
+      );
+      return;
+    }
+
+    // Lees de achtergrondkleur uit die Swipe Pages heeft toegepast
+    const style = window.getComputedStyle(refButton);
+    const bgColor =
+      style.backgroundColor || style.getPropertyValue("background-color");
+
+    if (bgColor && bgColor !== "rgba(0, 0, 0, 0)" && bgColor !== "transparent") {
+      document.documentElement.style.setProperty("--campaign-primary", bgColor);
+      console.log("🎨 Campagnekleur ingesteld op:", bgColor);
     } else {
-      document.documentElement.style.setProperty("--campaign-primary", "#ff6600");
-      console.warn("⚠️ Geen referentieknop gevonden, standaardkleur gebruikt");
+      console.warn("⚠️ Geen geldige kleur gevonden — gebruik fallback");
+      document.documentElement.style.setProperty(
+        "--campaign-primary",
+        getComputedStyle(document.body).getPropertyValue("--ld-primary") || "#14B670"
+      );
     }
   });
 
