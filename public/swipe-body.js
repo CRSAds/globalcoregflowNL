@@ -114,46 +114,103 @@
     console.log("✅ Fontstijlen toegepast vanuit style-settings");
   });
 
-    // === 🎨 Campagnekleur detecteren uit voorbeeldknop in #style-settings (Swipe Pages compatibel) ===
+    // === 🎨 Campagnekleur detecteren (compatibel met Swipe Pages knoppen / pseudo's) ===
 window.addEventListener("load", () => {
-  // Zoek in de style-settings sectie naar een knop van welk type dan ook
-  const refButton =
-    document.querySelector("#style-settings #ref-button") ||
-    document.querySelector("#style-settings .tatsu-btn") ||
-    document.querySelector("#style-settings a.tatsu-shortcode") ||
-    document.querySelector("#style-settings .tatsu-module a") ||
-    document.querySelector("#style-settings button");
-
-  if (!refButton) {
-    console.warn("⚠️ Geen referentieknop gevonden — gebruik standaardkleur");
-    document.documentElement.style.setProperty(
-      "--campaign-primary",
-      getComputedStyle(document.body).getPropertyValue("--ld-primary") || "#14B670"
-    );
+  const scope = document.querySelector("#style-settings");
+  if (!scope) {
+    console.warn("⚠️ #style-settings niet gevonden — gebruik fallbackkleur");
+    document.documentElement.style.setProperty("--campaign-primary", "#14B670");
     return;
   }
 
-  // 1️⃣ Probeer achtergrondkleur te lezen
-  const style = window.getComputedStyle(refButton);
-  let bgColor =
-    style.backgroundColor || style.getPropertyValue("background-color");
+  // Kandidaten: id, typische Swipe classes, en algemene ankers/knoppen binnen de sectie
+  const candidates = [
+    "#ref-button",
+    ".tatsu-btn",
+    "a.tatsu-shortcode",
+    ".tatsu-module a",
+    "button",
+    "a"
+  ]
+    .map(sel => scope.querySelector(sel))
+    .filter(Boolean);
 
-  // 2️⃣ Als Swipe Pages kleur via CSS-variabele heeft ingesteld, lees die ook uit
-  if (
-    (!bgColor || bgColor === "rgba(0, 0, 0, 0)" || bgColor === "transparent") &&
-    style.getPropertyValue("--tatsu-bg-color")
-  ) {
-    bgColor = style.getPropertyValue("--tatsu-bg-color").trim();
+  // Helper: is een bruikbare, niet-transparante kleur?
+  const isValid = v =>
+    v &&
+    v !== "transparent" &&
+    v !== "rgba(0, 0, 0, 0)" &&
+    v.trim() !== "";
+
+  // Helper: haal kleur uit element (inclusief pseudo's en veelvoorkomende children)
+  const getColorFromEl = el => {
+    if (!el) return null;
+    const order = [
+      el,
+      el.querySelector(".default"),
+      el.querySelector("span"),
+      el.querySelector("div")
+    ].filter(Boolean);
+
+    for (const node of order) {
+      const cs = getComputedStyle(node);
+
+      // 1) directe background-color
+      const bg = cs.backgroundColor;
+      if (isValid(bg)) return bg;
+
+      // 2) CSS variabelen die Swipe vaak gebruikt
+      const varBg = cs.getPropertyValue("--tatsu-bg-color") || cs.getPropertyValue("--button-background");
+      if (isValid(varBg)) return varBg.trim();
+
+      // 3) gradient -> pak eerste kleur
+      const bgImg = cs.backgroundImage;
+      if (bgImg && bgImg !== "none") {
+        // zoek eerste rgba()/rgb()/#hex
+        const m =
+          bgImg.match(/rgba?\([^)]*\)/i) ||
+          bgImg.match(/#[0-9a-f]{3,8}/i);
+        if (m && isValid(m[0])) return m[0];
+      }
+
+      // 4) pseudo-elementen
+      for (const pseudo of ["::before", "::after"]) {
+        const ps = getComputedStyle(node, pseudo);
+        if (!ps) continue;
+
+        const pbg = ps.backgroundColor;
+        if (isValid(pbg)) return pbg;
+
+        const pVar = ps.getPropertyValue("--tatsu-bg-color");
+        if (isValid(pVar)) return pVar.trim();
+
+        const pImg = ps.backgroundImage;
+        if (pImg && pImg !== "none") {
+          const mm =
+            pImg.match(/rgba?\([^)]*\)/i) ||
+            pImg.match(/#[0-9a-f]{3,8}/i);
+          if (mm && isValid(mm[0])) return mm[0];
+        }
+      }
+    }
+    return null;
+  };
+
+  let picked = null;
+  for (const el of candidates) {
+    picked = getColorFromEl(el);
+    if (picked) break;
   }
 
-  // 3️⃣ Val terug op fallbackkleur
-  if (!bgColor || bgColor === "rgba(0, 0, 0, 0)" || bgColor === "transparent") {
-    console.warn("⚠️ Geen geldige kleur gevonden — gebruik fallback");
-    bgColor = getComputedStyle(document.body).getPropertyValue("--ld-primary") || "#14B670";
+  if (!picked) {
+    // laatste redmiddel: eigen var of default
+    picked = getComputedStyle(document.documentElement).getPropertyValue("--ld-primary").trim() || "#14B670";
+    console.warn("⚠️ Geen knopkleur gevonden — fallback gebruikt:", picked);
+  } else {
+    console.log("🎨 Campagnekleur gevonden:", picked);
   }
 
-  document.documentElement.style.setProperty("--campaign-primary", bgColor);
-  console.log("🎨 Campagnekleur ingesteld op:", bgColor);
+  document.documentElement.style.setProperty("--campaign-primary", picked);
 });
 
   // === Master background (zelfde logica behouden) ===
