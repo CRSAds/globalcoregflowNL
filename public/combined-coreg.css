@@ -326,6 +326,17 @@ button:hover {
   background-color: var(--ld-primary-hover);
 }
 
+/* ⚙️ Buttons zonder standaard coreg-styling */
+.no-padding {
+  padding: 0 !important;
+  background: none !important;
+  color: inherit !important;
+  border: none !important;
+  font-weight: normal !important;
+  width: auto !important; /* zodat het niet de volle breedte pakt */
+  display: inline !important;
+}
+
 /* === Responsiveness === */
 @media (max-width: 480px) {
   form { padding: 12px; }
