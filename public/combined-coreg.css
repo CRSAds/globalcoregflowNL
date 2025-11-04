@@ -328,7 +328,8 @@ button:hover {
 
 /* ⚙️ Buttons zonder standaard coreg-styling */
 .no-padding {
-  padding: 0 !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
   background: none !important;
   color: inherit !important;
   border: none !important;
