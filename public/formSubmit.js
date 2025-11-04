@@ -245,114 +245,77 @@ document.addEventListener("DOMContentLoaded", () => {
 }); // ✅ sluit tweede blok
 
 
-// -----------------------------------------------------------
-// 🔹 Shortform submit (ná geldige invoer) → 925 + co-sponsors
-// -----------------------------------------------------------
-document.addEventListener("DOMContentLoaded", () => {
-  const shortForm = document.querySelector("#lead-form");
-  if (!shortForm) return;
+  // -----------------------------------------------------------
+  // 🔹 Shortform submit (ná geldige invoer) → 925 + co-sponsors
+  // -----------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const shortForm = document.querySelector("#lead-form");
+    if (!shortForm) return;
 
-  let shortFormSubmitted = false;
+    let shortFormSubmitted = false;
 
-  shortForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (shortFormSubmitted) return;
-    shortFormSubmitted = true;
+    shortForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (shortFormSubmitted) return;
+      shortFormSubmitted = true;
 
-    // Verwijder oude foutmeldingen / rode randen
-    shortForm.querySelectorAll(".error-text").forEach(el => el.remove());
-    shortForm.querySelectorAll("input").forEach(el => el.classList.remove("error"));
-
-    // ✅ Controle: verplichte velden
-    const requiredFields = ["gender", "firstname", "lastname", "dob", "email"];
-    let hasError = false;
-
-    requiredFields.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el || !el.value.trim()) {
-        hasError = true;
-        el.classList.add("error");
-
-        const err = document.createElement("div");
-        err.className = "error-text";
-        err.textContent = "Dit veld is verplicht";
-
-        if (!el.nextElementSibling || !el.nextElementSibling.classList.contains("error-text")) {
-          el.insertAdjacentElement("afterend", err);
-        }
+      if (!shortForm.checkValidity()) {
+        console.warn("⚠️ Formulier niet volledig ingevuld");
+        shortForm.reportValidity();
+        shortFormSubmitted = false;
+        return;
       }
-    });
 
-    // ✅ Controle: geldig e-mailadres
-    const emailInput = document.getElementById("email");
-    const emailValue = emailInput?.value.trim() || "";
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailValue && !emailRegex.test(emailValue)) {
-      hasError = true;
-      emailInput.classList.add("error");
+      console.log("🟢 Shortform verzonden...");
 
-      const err = document.createElement("div");
-      err.className = "error-text";
-      err.textContent = "Voer een geldig e-mailadres in";
-
-      if (!emailInput.nextElementSibling || !emailInput.nextElementSibling.classList.contains("error-text")) {
-        emailInput.insertAdjacentElement("afterend", err);
-      }
-    }
-
-    if (hasError) {
-      console.warn("⚠️ Formulier niet volledig of onjuist ingevuld");
-      shortFormSubmitted = false;
-      return;
-    }
-
-    console.log("🟢 Shortform verzonden...");
-
-    // cache velden
-    shortForm.querySelectorAll("input").forEach(input => {
+      // cache velden
+      shortForm.querySelectorAll("input").forEach(input => {
       const name = input.name || input.id;
       if (!name) return;
       let val = (input.value || "").trim();
-      if (name === "dob") val = val.replace(/\s/g, ""); // "05/05/1980"
+      // Speciaal voor DOB: verwijder spaties zodat dd/mm/jjjj compact blijft
+      if (name === "dob") {
+        val = val.replace(/\s/g, ""); // "05/05/1980"
+      }
       if (val) sessionStorage.setItem(name, val);
     });
 
-    // hoofdlead
-    const basePayload = buildPayload({ cid: "925", sid: "34", is_shortform: true });
-    await fetchLead(basePayload);
-    console.log("✅ Shortform lead verzonden naar campagne 925");
+      // hoofdlead
+      const basePayload = buildPayload({ cid: "925", sid: "34", is_shortform: true });
+      await fetchLead(basePayload);
+      console.log("✅ Shortform lead verzonden naar campagne 925");
 
-    // co-sponsors (alleen als akkoord eerder is gegeven)
-    const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
-    if (accepted) {
-      try {
-        const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
-        const json = await res.json();
-        if (json.data && json.data.length > 0) {
-          console.log(`📡 Verstuur naar ${json.data.length} co-sponsors...`);
-          await Promise.allSettled(json.data.map(async sponsor => {
-            if (!sponsor.cid || !sponsor.sid) return;
-            const sponsorPayload = buildPayload({
-              cid: sponsor.cid,
-              sid: sponsor.sid,
-              is_shortform: true
-            });
-            await fetchLead(sponsorPayload);
-          }));
-        } else {
-          console.log("ℹ️ Geen actieve co-sponsors gevonden.");
+      // co-sponsors (alleen als akkoord eerder is gegeven)
+      const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
+      if (accepted) {
+        try {
+          const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
+          const json = await res.json();
+          if (json.data && json.data.length > 0) {
+            console.log(📡 Verstuur naar ${json.data.length} co-sponsors...);
+            await Promise.allSettled(json.data.map(async sponsor => {
+              if (!sponsor.cid || !sponsor.sid) return;
+              const sponsorPayload = buildPayload({
+                cid: sponsor.cid,
+                sid: sponsor.sid,
+                is_shortform: true
+              });
+              await fetchLead(sponsorPayload);
+            }));
+          } else {
+            console.log("ℹ️ Geen actieve co-sponsors gevonden.");
+          }
+        } catch (err) {
+          console.error("❌ Fout bij ophalen/versturen co-sponsors:", err);
         }
-      } catch (err) {
-        console.error("❌ Fout bij ophalen/versturen co-sponsors:", err);
+      } else {
+        console.log("⚠️ Voorwaarden niet geaccepteerd — alleen hoofdlead verzonden.");
       }
-    } else {
-      console.log("⚠️ Voorwaarden niet geaccepteerd — alleen hoofdlead verzonden.");
-    }
 
-    // ⚠️ Belangrijk: géén auto-click op .flow-next hier.
-    // Swipe Pages regelt de sectiewissel al via de knop-click.
+      // ⚠️ Belangrijk: géén auto-click op .flow-next hier.
+      // Swipe Pages regelt de sectiewissel al via de knop-click.
+    });
   });
-});
 
   // -------------------------------------------------------------
   // 🔹 Longform submit
