@@ -110,7 +110,7 @@
   display: block;
   width: 100%;
   margin: 4px 0 !important;  /* compacte witruimte tussen knoppen */
-  padding: 14px 18px;
+  padding: 5px 0px;
   border: none;
   border-radius: 10px;
   font-size: 1rem;
@@ -324,18 +324,6 @@ button#submit-long-form {
 }
 button:hover {
   background-color: var(--ld-primary-hover);
-}
-
-/* ⚙️ Buttons zonder standaard coreg-styling */
-.no-padding {
-  padding-top: 10px !important;
-  padding-bottom: 10px !important;
-  background: none !important;
-  color: inherit !important;
-  border: none !important;
-  font-weight: normal !important;
-  width: auto !important; /* zodat het niet de volle breedte pakt */
-  display: inline !important;
 }
 
 /* === Responsiveness === */
