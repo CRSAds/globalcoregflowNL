@@ -256,12 +256,15 @@ document.addEventListener("DOMContentLoaded", () => {
 }); // ✅ sluit tweede blok
 
 
-  // -----------------------------------------------------------
-// 🔹 Shortform submit (valideer + verzend) → 925 + co-sponsors
+// -----------------------------------------------------------
+// 🔹 Shortform submit (JS-validatie + IP + co-sponsors)
 // -----------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const shortForm = document.querySelector("#lead-form");
   if (!shortForm) return;
+
+  // ✅ Zorg dat browservalidatie uitstaat (geen focusfouten)
+  shortForm.setAttribute("novalidate", "true");
 
   let shortFormSubmitted = false;
 
@@ -270,11 +273,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (shortFormSubmitted) return;
     shortFormSubmitted = true;
 
-    // Reset foutmeldingen
+    // 🧹 Reset oude fouten
     shortForm.querySelectorAll(".error-text").forEach(el => el.remove());
     shortForm.querySelectorAll("input").forEach(el => el.classList.remove("error"));
 
-    // ✅ Controle verplichte velden
+    // ✅ Vereiste velden
     const requiredFields = ["gender", "firstname", "lastname", "dob", "email"];
     let hasError = false;
 
@@ -291,13 +294,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // ✅ Controle e-mailformaat
+    // ✅ Controle geldig e-mailadres
     const emailInput = document.getElementById("email");
     const emailValue = emailInput?.value.trim() || "";
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (emailValue && !emailRegex.test(emailValue)) {
       hasError = true;
       emailInput.classList.add("error");
+
       const err = document.createElement("div");
       err.className = "error-text";
       err.textContent = "Voer een geldig e-mailadres in";
@@ -312,7 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("🟢 Shortform verzonden...");
 
-    // cache velden
+    // 💾 Velden cachen in sessionStorage
     shortForm.querySelectorAll("input").forEach(input => {
       const name = input.name || input.id;
       if (!name) return;
@@ -321,12 +325,23 @@ document.addEventListener("DOMContentLoaded", () => {
       if (val) sessionStorage.setItem(name, val);
     });
 
-    // hoofdlead
+    // 🌍 IP-adres ophalen & opslaan (als nog niet in cache)
+    if (!sessionStorage.getItem("user_ip")) {
+      try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
+        sessionStorage.setItem("user_ip", data.ip);
+      } catch {
+        sessionStorage.setItem("user_ip", "0.0.0.0");
+      }
+    }
+
+    // ✅ Hoofdlead verzenden
     const basePayload = await buildPayload({ cid: "925", sid: "34", is_shortform: true });
     await fetchLead(basePayload);
     console.log("✅ Shortform lead verzonden naar campagne 925");
 
-    // co-sponsors (alleen als akkoord eerder is gegeven)
+    // 🧩 Co-sponsors (alleen bij akkoord)
     const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
     if (accepted) {
       try {
@@ -352,6 +367,8 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       console.log("⚠️ Voorwaarden niet geaccepteerd — alleen hoofdlead verzonden.");
     }
+
+    shortFormSubmitted = false;
   });
 });
 
