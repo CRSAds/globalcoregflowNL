@@ -257,7 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // -----------------------------------------------------------
-// 🔹 Shortform submit (ná geldige invoer) → 925 + co-sponsors
+// 🔹 Shortform submit (valideer + verzend) → 925 + co-sponsors
 // -----------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const shortForm = document.querySelector("#lead-form");
@@ -270,9 +270,42 @@ document.addEventListener("DOMContentLoaded", () => {
     if (shortFormSubmitted) return;
     shortFormSubmitted = true;
 
-    if (!shortForm.checkValidity()) {
-      console.warn("⚠️ Formulier niet volledig ingevuld");
-      shortForm.reportValidity();
+    // Reset foutmeldingen
+    shortForm.querySelectorAll(".error-text").forEach(el => el.remove());
+    shortForm.querySelectorAll("input").forEach(el => el.classList.remove("error"));
+
+    // ✅ Controle verplichte velden
+    const requiredFields = ["gender", "firstname", "lastname", "dob", "email"];
+    let hasError = false;
+
+    requiredFields.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el || !el.value.trim()) {
+        hasError = true;
+        el.classList.add("error");
+
+        const err = document.createElement("div");
+        err.className = "error-text";
+        err.textContent = "Dit veld is verplicht";
+        el.insertAdjacentElement("afterend", err);
+      }
+    });
+
+    // ✅ Controle e-mailformaat
+    const emailInput = document.getElementById("email");
+    const emailValue = emailInput?.value.trim() || "";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailValue && !emailRegex.test(emailValue)) {
+      hasError = true;
+      emailInput.classList.add("error");
+      const err = document.createElement("div");
+      err.className = "error-text";
+      err.textContent = "Voer een geldig e-mailadres in";
+      emailInput.insertAdjacentElement("afterend", err);
+    }
+
+    if (hasError) {
+      console.warn("⚠️ Formulier niet volledig of onjuist ingevuld");
       shortFormSubmitted = false;
       return;
     }
@@ -284,15 +317,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const name = input.name || input.id;
       if (!name) return;
       let val = (input.value || "").trim();
-      // Speciaal voor DOB: verwijder spaties zodat dd/mm/jjjj compact blijft
-      if (name === "dob") {
-        val = val.replace(/\s/g, ""); // "05/05/1980"
-      }
+      if (name === "dob") val = val.replace(/\s/g, "");
       if (val) sessionStorage.setItem(name, val);
     });
 
     // hoofdlead
-    const basePayload = buildPayload({ cid: "925", sid: "34", is_shortform: true });
+    const basePayload = await buildPayload({ cid: "925", sid: "34", is_shortform: true });
     await fetchLead(basePayload);
     console.log("✅ Shortform lead verzonden naar campagne 925");
 
@@ -306,7 +336,7 @@ document.addEventListener("DOMContentLoaded", () => {
           console.log(`📡 Verstuur naar ${json.data.length} co-sponsors...`);
           await Promise.allSettled(json.data.map(async sponsor => {
             if (!sponsor.cid || !sponsor.sid) return;
-            const sponsorPayload = buildPayload({
+            const sponsorPayload = await buildPayload({
               cid: sponsor.cid,
               sid: sponsor.sid,
               is_shortform: true
@@ -322,9 +352,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       console.log("⚠️ Voorwaarden niet geaccepteerd — alleen hoofdlead verzonden.");
     }
-
-    // ⚠️ Belangrijk: géén auto-click op .flow-next hier.
-    // Swipe Pages regelt de sectiewissel al via de knop-click.
   });
 });
 
