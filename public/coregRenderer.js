@@ -98,14 +98,18 @@ async function sendLeadToDatabowl(payload) {
 }
 
 // ============================================================
-// ✅ FIXED buildCoregPayload — async + correcte CID/SID + awaits
+// ✅ buildCoregPayload — async versie met correcte CID/SID & await
 // ============================================================
 async function buildCoregPayload(campaign, answerValue) {
   console.log("🧩 buildCoregPayload() → input:", { campaign, answerValue });
 
-  // Corrigeer 'undefined' of lege cid/sid
-  if (answerValue?.cid === "undefined" || !answerValue?.cid) answerValue.cid = campaign.cid;
-  if (answerValue?.sid === "undefined" || !answerValue?.sid) answerValue.sid = campaign.sid;
+  // 🛠️ Fix: corrigeer 'undefined' of lege cid/sid
+  if (answerValue?.cid === "undefined" || !answerValue?.cid) {
+    answerValue.cid = campaign.cid;
+  }
+  if (answerValue?.sid === "undefined" || !answerValue?.sid) {
+    answerValue.sid = campaign.sid;
+  }
 
   const cid = answerValue.cid;
   const sid = answerValue.sid;
@@ -118,10 +122,11 @@ async function buildCoregPayload(campaign, answerValue) {
     prevAnswers.push(coregAnswer);
     sessionStorage.setItem(key, JSON.stringify(prevAnswers));
   }
+
   const combinedAnswer = prevAnswers.join(" - ") || coregAnswer;
   sessionStorage.setItem(`f_2014_coreg_answer_${cid}`, combinedAnswer);
 
-  // ✅ AWAIT hier: wacht tot buildPayload klaar is
+  // ✅ Belangrijk: buildPayload is async → await verplicht
   const payload = await window.buildPayload({
     cid,
     sid,
@@ -129,6 +134,7 @@ async function buildCoregPayload(campaign, answerValue) {
     f_2014_coreg_answer: combinedAnswer
   });
 
+  // dropdown-answer toevoegen indien aanwezig
   const dropdownAnswer = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${cid}`);
   if (dropdownAnswer) payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
 
@@ -264,7 +270,7 @@ async function initCoregFlow() {
     // Dropdown
     const dropdown = section.querySelector(".coreg-dropdown");
     if (dropdown) {
-      dropdown.addEventListener("change", e => {
+      dropdown.addEventListener("change", async e => {
         const opt = e.target.selectedOptions[0];
         if (!opt || !opt.value) return;
         const camp = campaigns.find(c => c.id == dropdown.dataset.campaign);
@@ -296,7 +302,7 @@ async function initCoregFlow() {
         if (hasMoreSteps) {
           showNextSection(section);
         } else {
-          const payload = buildCoregPayload(camp, answerValue);
+          const payload = await buildCoregPayload(camp, answerValue);
           sendLeadToDatabowl(payload);
           sessionStorage.removeItem(`coreg_answers_${camp.cid}`); // 🧹 reset antwoorden
           showNextSection(section);
@@ -316,7 +322,7 @@ async function initCoregFlow() {
 
     // Buttons
     section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const camp = campaigns.find(c => c.id == btn.dataset.campaign);
         const answerValue = {
           answer_value: btn.dataset.answer,
@@ -356,7 +362,7 @@ async function initCoregFlow() {
           showNextSection(section);
         } else {
           // ✅ Alleen shortform coreg direct versturen
-          const payload = buildCoregPayload(camp, answerValue);
+          const payload = await buildCoregPayload(camp, answerValue);
           sendLeadToDatabowl(payload);
           sessionStorage.removeItem(`coreg_answers_${camp.cid}`); // 🧹 reset antwoorden
           showNextSection(section);
