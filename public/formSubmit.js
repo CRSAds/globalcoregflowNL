@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ formSubmit.js — stabiele shortform + co-sponsor verzending (met IP + JS-validatie)
+// ✅ formSubmit.js — stabiele shortform + co-sponsor verzending
 // =============================================================
 
 if (!window.formSubmitInitialized) {
@@ -36,8 +36,7 @@ if (!window.formSubmitInitialized) {
         const data = await res.json();
         ip = data.ip;
         sessionStorage.setItem("user_ip", ip);
-      } catch (err) {
-        console.warn("⚠️ Kon IP-adres niet ophalen:", err);
+      } catch {
         ip = "0.0.0.0";
       }
     }
@@ -72,7 +71,7 @@ if (!window.formSubmitInitialized) {
       sub_id,
       sub2,
       f_1453_campagne_url: campaignUrl,
-      f_17_ipaddress: ip, // ✅ toegevoegd IP-adres
+      f_17_ipaddress: ip,
       is_shortform: campaign.is_shortform || false
     };
   }
@@ -91,7 +90,6 @@ if (!window.formSubmitInitialized) {
         headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
         body: JSON.stringify(payload)
       });
-
       const text = await res.text();
       let result = {};
       try {
@@ -99,7 +97,6 @@ if (!window.formSubmitInitialized) {
       } catch {
         result = { raw: text };
       }
-
       console.log(`📨 Lead verstuurd naar ${payload.cid}/${payload.sid}:`, result);
       window.submittedCampaigns.add(key);
       return result;
@@ -111,31 +108,25 @@ if (!window.formSubmitInitialized) {
   window.fetchLead = fetchLead;
 
   // -----------------------------------------------------------
-  // 🔹 Live form tracking (short + long)
+  // 🔹 Live form tracking
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const shortForm = document.querySelector("#lead-form");
-    const longForm = document.querySelector("#long-form");
-
-    [shortForm, longForm].forEach(form => {
-      if (!form) return;
-      form.querySelectorAll("input").forEach(input => {
-        const name = input.name || input.id;
-        if (!name) return;
-        const save = () => {
-          if (input.type === "radio" && !input.checked) return;
-          sessionStorage.setItem(name, (input.value || "").trim());
-        };
-        input.addEventListener("input", save);
-        input.addEventListener("change", save);
-      });
+    if (!shortForm) return;
+    shortForm.querySelectorAll("input").forEach(input => {
+      const name = input.name || input.id;
+      if (!name) return;
+      const save = () => {
+        if (input.type === "radio" && !input.checked) return;
+        sessionStorage.setItem(name, (input.value || "").trim());
+      };
+      input.addEventListener("input", save);
+      input.addEventListener("change", save);
     });
-
-    console.log("🧠 Live form tracking actief (short + long)");
   });
 
   // -----------------------------------------------------------
-  // 🔹 Slimme DOB input handler (dd / mm / jjjj)
+  // 🔹 Slimme DOB input handler — met auto-jump teruggezet
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const dobInput = document.getElementById("dob");
@@ -161,17 +152,37 @@ if (!window.formSubmitInitialized) {
       return out;
     };
 
+    // ✅ Auto-jump logica
     dobInput.addEventListener("input", () => {
-      const digits = dobInput.value.replace(/\D/g, "").slice(0, 8);
+      let digits = dobInput.value.replace(/\D/g, "").slice(0, 8);
+      let jumpToMonth = false;
+      let jumpToYear = false;
+
+      if (digits.length === 1 && parseInt(digits[0], 10) >= 4) {
+        digits = "0" + digits;
+        jumpToMonth = true;
+      }
+      if (digits.length === 3 && parseInt(digits[2], 10) >= 2) {
+        digits = digits.slice(0, 2) + "0" + digits.slice(2);
+        jumpToYear = true;
+      }
+
       const formatted = formatWithSpaces(digits);
       dobInput.value = formatted;
-      const compact = formatted.replace(/\s/g, "");
-      sessionStorage.setItem("dob", compact);
+      sessionStorage.setItem("dob", formatted.replace(/\s/g, ""));
+
+      if (jumpToMonth && digits.length === 2) {
+        const pos = formatted.indexOf("/") + 3;
+        dobInput.setSelectionRange(pos, pos);
+      } else if (jumpToYear && digits.length === 4) {
+        const pos = formatted.lastIndexOf("/") + 3;
+        dobInput.setSelectionRange(pos, pos);
+      }
     });
   });
 
   // -----------------------------------------------------------
-  // 🔹 Shortform submit (JS-validatie + IP + co-sponsors)
+  // 🔹 Shortform submit — JS-validatie + IP + co-sponsors
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const shortForm = document.querySelector("#lead-form");
@@ -183,7 +194,6 @@ if (!window.formSubmitInitialized) {
     shortForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (shortFormSubmitted) return;
-      shortFormSubmitted = true;
 
       // 🧹 Reset fouten
       shortForm.querySelectorAll(".error-text").forEach(el => el.remove());
@@ -194,24 +204,22 @@ if (!window.formSubmitInitialized) {
 
       requiredFields.forEach(id => {
         const el = document.getElementById(id);
-        if (!el || !el.value?.trim()) {
+        if (el && !el.value.trim()) {
           hasError = true;
-          if (el) el.classList.add("error");
-          if (el && !el.nextElementSibling?.classList.contains("error-text")) {
-            const err = document.createElement("div");
-            err.className = "error-text";
-            err.textContent = "Dit veld is verplicht";
-            el.insertAdjacentElement("afterend", err);
-          }
+          el.classList.add("error");
+          const err = document.createElement("div");
+          err.className = "error-text";
+          err.textContent = "Dit veld is verplicht";
+          el.insertAdjacentElement("afterend", err);
         }
       });
 
-      // ✅ Controle e-mailadres
+      // ✅ E-mail check
       const emailInput = document.getElementById("email");
       if (emailInput) {
-        const emailValue = emailInput.value.trim();
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (emailValue && !emailRegex.test(emailValue)) {
+        const val = emailInput.value.trim();
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (val && !regex.test(val)) {
           hasError = true;
           emailInput.classList.add("error");
           const err = document.createElement("div");
@@ -224,11 +232,13 @@ if (!window.formSubmitInitialized) {
       if (hasError) {
         console.warn("⚠️ Formulier niet volledig of onjuist ingevuld");
         shortFormSubmitted = false;
-        return;
+        return; // ✅ STOP hier, ga NIET verder
       }
 
+      shortFormSubmitted = true;
       console.log("🟢 Shortform verzonden...");
 
+      // ✅ Gegevens opslaan
       shortForm.querySelectorAll("input").forEach(input => {
         const name = input.name || input.id;
         if (!name) return;
@@ -237,21 +247,11 @@ if (!window.formSubmitInitialized) {
         if (val) sessionStorage.setItem(name, val);
       });
 
-      // 🌍 IP ophalen (fallback)
-      if (!sessionStorage.getItem("user_ip")) {
-        try {
-          const res = await fetch("https://api.ipify.org?format=json");
-          const data = await res.json();
-          sessionStorage.setItem("user_ip", data.ip);
-        } catch {
-          sessionStorage.setItem("user_ip", "0.0.0.0");
-        }
-      }
-
+      // ✅ Hoofdlead verzenden
       const basePayload = await buildPayload({ cid: "925", sid: "34", is_shortform: true });
       await fetchLead(basePayload);
-      console.log("✅ Shortform lead verzonden naar campagne 925");
 
+      // ✅ Co-sponsors
       const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
       if (accepted) {
         try {
@@ -259,11 +259,11 @@ if (!window.formSubmitInitialized) {
           const json = await res.json();
           if (json.data?.length) {
             console.log(`📡 Verstuur naar ${json.data.length} co-sponsors...`);
-            await Promise.allSettled(json.data.map(async sponsor => {
-              if (!sponsor.cid || !sponsor.sid) return;
+            await Promise.allSettled(json.data.map(async s => {
+              if (!s.cid || !s.sid) return;
               const sponsorPayload = await buildPayload({
-                cid: sponsor.cid,
-                sid: sponsor.sid,
+                cid: s.cid,
+                sid: s.sid,
                 is_shortform: true
               });
               await fetchLead(sponsorPayload);
@@ -281,58 +281,6 @@ if (!window.formSubmitInitialized) {
       shortFormSubmitted = false;
     });
   });
-
-  // -----------------------------------------------------------
-  // 🔹 Longform submit
-  // -----------------------------------------------------------
-  function waitForLongForm() {
-    const btn = document.getElementById("submit-long-form");
-    const form = document.getElementById("long-form");
-    if (!btn || !form) {
-      setTimeout(waitForLongForm, 300);
-      return;
-    }
-    console.log("✅ Long form gevonden, listeners actief");
-
-    let submitting = false;
-    btn.addEventListener("click", async () => {
-      if (submitting) return;
-      submitting = true;
-
-      const fields = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
-      const values = Object.fromEntries(fields.map(id => [id, document.getElementById(id)?.value.trim() || ""]));
-
-      if (Object.values(values).some(v => !v)) {
-        alert("Vul alle verplichte velden in voordat je doorgaat.");
-        submitting = false;
-        return;
-      }
-
-      for (const [k, v] of Object.entries(values)) sessionStorage.setItem(k, v);
-      const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-      if (!pending.length) {
-        console.warn("⚠️ Geen longform-campagnes gevonden om te versturen");
-        submitting = false;
-        return;
-      }
-
-      for (const camp of pending) {
-        const payload = await buildPayload(camp);
-        const coregAnswer = sessionStorage.getItem(`f_2014_coreg_answer_${payload.cid}`);
-        if (coregAnswer) payload.f_2014_coreg_answer = coregAnswer;
-        const dropdownAnswer = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${payload.cid}`);
-        if (dropdownAnswer) payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
-        console.log("📨 Longform payload naar Databowl:", payload);
-        await fetchLead(payload);
-      }
-
-      console.log("✅ Longform-leads verzonden");
-      sessionStorage.removeItem("longFormCampaigns");
-      submitting = false;
-      document.dispatchEvent(new Event("longFormSubmitted"));
-    });
-  }
-  waitForLongForm();
 
   // -----------------------------------------------------------
   // 🔹 Sponsor akkoord tracking
