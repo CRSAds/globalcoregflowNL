@@ -67,6 +67,7 @@ export default async function handler(req, res) {
     if (offer_id) params.set("f_1687_offer_id", offer_id);
     if (aff_id) params.set("f_1685_aff_id", aff_id);
     if (sub_id) params.set("f_1684_sub_id", sub_id);
+    if (body.f_17_ipaddress) params.set("f_17_ipaddress", body.f_17_ipaddress);
 
     // ===== Alleen longformvelden bij longform leads
     if (!isShort) {
