@@ -169,74 +169,83 @@ if (!window.formSubmitInitialized) {
     });
   });
 
-  // -----------------------------------------------------------
-  // 🔹 Shortform met browservalidatie
-  // -----------------------------------------------------------
-  document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("lead-form");
-    if (!form) return;
+// -----------------------------------------------------------
+// 🔹 Shortform — altijd naar 925 + co-sponsors bij akkoord
+// -----------------------------------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("lead-form");
+  if (!form) return;
 
-    const btn = form.querySelector("button[type='submit'], .flow-next");
-    if (!btn) return;
+  const btn = form.querySelector("button[type='submit'], .flow-next");
+  if (!btn) return;
 
-    // voorkom swipe doorgang bij fout
-    btn.addEventListener("click", (e) => {
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-      }
-    }, true);
-
-    let submitting = false;
-    form.addEventListener("submit", async (e) => {
+  // blokkeer SwipePages bij ongeldige invoer
+  btn.addEventListener("click", (e) => {
+    if (!form.checkValidity()) {
+      form.reportValidity();
       e.preventDefault();
-      if (!form.checkValidity()) { form.reportValidity(); return; }
-      if (submitting) return;
-      submitting = true;
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
+  }, true);
 
-      // cache
-      const genderEl = form.querySelector("input[name='gender']:checked");
-      if (genderEl) sessionStorage.setItem("gender", genderEl.value);
-      ["firstname","lastname","email","dob"].forEach(id=>{
-        const el=document.getElementById(id);
-        if(el){let v=(el.value||"").trim();if(id==="dob")v=v.replace(/\s/g,"");sessionStorage.setItem(id,v);}
-      });
+  let submitting = false;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    if (submitting) return;
+    submitting = true;
 
-      await getIpOnce();
+    // waarden opslaan
+    const genderEl = form.querySelector("input[name='gender']:checked");
+    if (genderEl) sessionStorage.setItem("gender", genderEl.value);
+    ["firstname","lastname","email","dob"].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){let v=(el.value||"").trim();if(id==="dob")v=v.replace(/\s/g,"");sessionStorage.setItem(id,v);}
+    });
 
-      // hoofdlead (925)
-      try {
-        const basePayload = await buildPayload({ cid: "925", sid: "34", is_shortform: true });
-        await fetchLead(basePayload);
-        console.log("✅ Shortform lead verzonden (925/34)");
-      } catch (err) {
-        console.error("❌ Fout bij shortform lead:", err);
+    // IP garanderen
+    await getIpOnce();
+
+    // 1️⃣ Hoofdlead — campagne 925 altijd versturen
+    try {
+      const basePayload = await buildPayload({ cid: "925", sid: "34", is_shortform: true });
+      await fetchLead(basePayload);
+      console.log("✅ Shortform lead verzonden (925/34)");
+    } catch (err) {
+      console.error("❌ Fout bij shortform lead:", err);
+    }
+
+    // 2️⃣ Co-sponsors alleen bij akkoord
+    try {
+      const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
+      if (!accepted) {
+        console.log("⚠️ Sponsors niet geaccepteerd — geen co-sponsors verzonden");
+        submitting = false;
+        return;
       }
 
-      // co-sponsors
-      try {
-        const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
-        if (accepted) {
-          const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js", { cache: "no-store" });
-          const json = await res.json();
-          if (Array.isArray(json.data) && json.data.length) {
-            await Promise.allSettled(json.data.map(async s=>{
-              if(!s.cid||!s.sid)return;
-              const sp = await buildPayload({ cid: s.cid, sid: s.sid, is_shortform: true });
-              await fetchLead(sp);
-            }));
-            console.log(`✅ ${json.data.length} co-sponsors verzonden`);
-          }
-        } else {
-          console.log("⚠️ Sponsors niet geaccepteerd");
-        }
-      } catch (err) { console.error("❌ Fout co-sponsors:", err); }
+      // co-sponsors ophalen
+      const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js", { cache: "no-store" });
+      const json = await res.json();
+      if (Array.isArray(json.data) && json.data.length) {
+        console.log(`📡 Verstuur ${json.data.length} co-sponsors...`);
+        await Promise.allSettled(json.data.map(async s => {
+          if (!s.cid || !s.sid) return;
+          const spPayload = await buildPayload({ cid: s.cid, sid: s.sid, is_shortform: true });
+          await fetchLead(spPayload);
+        }));
+        console.log("✅ Alle co-sponsors verzonden");
+      } else {
+        console.log("ℹ️ Geen actieve co-sponsors gevonden");
+      }
+    } catch (err) {
+      console.error("❌ Fout bij co-sponsors:", err);
+    }
 
-      submitting = false;
-    });
+    submitting = false;
   });
+});
 
   // -----------------------------------------------------------
   // 🔹 Longform
