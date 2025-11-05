@@ -110,6 +110,7 @@ function initFlowLite() {
   const flowButtons = document.querySelectorAll(".flow-next");
   flowButtons.forEach(btn => {
     btn.addEventListener("click", () => {
+      if (btn.closest("#lead-form")) return;
       const current = btn.closest(".flow-section, .ivr-section");
       if (!current) return;
 
@@ -186,6 +187,39 @@ function initFlowLite() {
       console.log("🏁 Einde van de flow bereikt na long form");
     }
   });
+
+  // ✅ Automatische doorgang na short form submit
+document.addEventListener("shortFormSubmitted", () => {
+  console.log("✅ Short form voltooid → door naar volgende sectie");
+  const current = document.getElementById("lead-form")?.closest(".flow-section") || document.getElementById("lead-form");
+  if (!current) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("status") || "online";
+
+  let next = current.nextElementSibling;
+  while (next && next.classList.contains("ivr-section") && status === "online") {
+    next = next.nextElementSibling;
+  }
+
+  if (next) {
+    current.style.display = "none";
+    next.style.display = "block";
+    reloadImages(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    console.log("➡️ Volgende sectie getoond:", next.className);
+
+    if (next.id === "sovendus-section" && typeof window.setupSovendus === "function") {
+      if (!window.sovendusStarted) {
+        window.sovendusStarted = true;
+        console.log("🎁 Sovendus-sectie getoond → setupSovendus()");
+        window.setupSovendus();
+      }
+    }
+  } else {
+    console.log("🏁 Einde van de flow bereikt na short form");
+  }
+});
 
   // ============================================================
   // 6️⃣ System Check Log
