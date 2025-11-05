@@ -103,8 +103,16 @@ async function sendLeadToDatabowl(payload) {
 function buildCoregPayload(campaign, answerValue) {
   console.log("🧩 buildCoregPayload() → input:", { campaign, answerValue });
 
-  const cid = answerValue?.cid || campaign.cid;
-  const sid = answerValue?.sid || campaign.sid;
+  // 🛠️ FIX: corrigeer 'undefined' of lege cid/sid uit dataset / DOM
+  if (answerValue?.cid === "undefined" || answerValue?.cid === "" || !answerValue?.cid) {
+    answerValue.cid = campaign.cid;
+  }
+  if (answerValue?.sid === "undefined" || answerValue?.sid === "" || !answerValue?.sid) {
+    answerValue.sid = campaign.sid;
+  }
+
+  const cid = answerValue.cid;
+  const sid = answerValue.sid;
   const coregAnswer = answerValue?.answer_value || answerValue || "";
 
   // 🧠 Multistep support: bewaar alle antwoorden per cid
@@ -125,11 +133,9 @@ function buildCoregPayload(campaign, answerValue) {
     cid,
     sid,
     is_shortform: false, // Altijd false zodat Databowl het als coreg lead behandelt
-    coregAnswerKey: `coreg_answer_${campaign.id}`
+    coregAnswerKey: `coreg_answer_${campaign.id}`,
+    f_2014_coreg_answer: combinedAnswer
   });
-
-  // ✅ Voeg de gecombineerde antwoorden toe aan het payload-object
-  payload.f_2014_coreg_answer = combinedAnswer;
 
   // ✅ Bewaar dropdownwaarde ook per campagne (indien aanwezig)
   const dropdownAnswer = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${cid}`);
