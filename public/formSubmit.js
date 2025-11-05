@@ -18,59 +18,70 @@ if (!window.formSubmitInitialized) {
   });
 
   // -----------------------------------------------------------
-  // 🔹 Payload opbouwen
-  // -----------------------------------------------------------
-  function buildPayload(campaign = {}) {
-    const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
-    const aff_id = sessionStorage.getItem("aff_id") || "unknown";
-    const offer_id = sessionStorage.getItem("offer_id") || "unknown";
-    const sub_id = sessionStorage.getItem("sub_id") || "unknown";
-    const sub2 = sessionStorage.getItem("sub2") || "unknown";
-    const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
+// 🔹 Payload opbouwen (met IP-adres)
+// -----------------------------------------------------------
+async function buildPayload(campaign = {}) {
+  const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
+  const aff_id = sessionStorage.getItem("aff_id") || "unknown";
+  const offer_id = sessionStorage.getItem("offer_id") || "unknown";
+  const sub_id = sessionStorage.getItem("sub_id") || "unknown";
+  const sub2 = sessionStorage.getItem("sub2") || "unknown";
+  const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
 
-    // ✅ Nieuw: geboortedatum in ISO 8601 (yyyy-mm-dd)
-    const dobValue = sessionStorage.getItem("dob");
-    let dob = "";
-    if (dobValue && dobValue.includes("/")) {
-      const [rawDD, rawMM, rawYYYY] = dobValue.split("/");
-      const dd = (rawDD || "").replace(/\s/g, "");
-      const mm = (rawMM || "").replace(/\s/g, "");
-      const yyyy = (rawYYYY || "").replace(/\s/g, "");
-      if (dd && mm && yyyy) {
-        dob = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
-      }
+  // ✅ IP-adres ophalen (cache voor performance)
+  let ip = sessionStorage.getItem("user_ip");
+  if (!ip) {
+    try {
+      const res = await fetch("https://api.ipify.org?format=json");
+      const data = await res.json();
+      ip = data.ip;
+      sessionStorage.setItem("user_ip", ip);
+    } catch (err) {
+      console.warn("⚠️ Kon IP-adres niet ophalen:", err);
+      ip = "0.0.0.0";
     }
-
-    return {
-      // vaste Databowl-campagne ID’s
-      cid: campaign.cid || "925",
-      sid: campaign.sid || "34",
-
-      // formulierdata
-      gender: sessionStorage.getItem("gender") || "",
-      firstname: sessionStorage.getItem("firstname") || "",
-      lastname: sessionStorage.getItem("lastname") || "",
-      email: sessionStorage.getItem("email") || "",
-      postcode: sessionStorage.getItem("postcode") || "",
-      straat: sessionStorage.getItem("straat") || "",
-      huisnummer: sessionStorage.getItem("huisnummer") || "",
-      woonplaats: sessionStorage.getItem("woonplaats") || "",
-      telefoon: sessionStorage.getItem("telefoon") || "",
-
-      // tracking & meta
-      dob,                  // 🔹 juiste key voor backend
-      t_id,                 // 🔹 juiste key
-      aff_id,               // 🔹 juiste key
-      offer_id,             // 🔹 juiste key
-      sub_id,               // 🔹 juiste key
-      sub2,
-      f_1453_campagne_url: campaignUrl,
-
-      // flags
-      is_shortform: campaign.is_shortform || false
-    };
   }
-  window.buildPayload = buildPayload;
+
+  // ✅ Geboortedatum in ISO 8601 (yyyy-mm-dd)
+  const dobValue = sessionStorage.getItem("dob");
+  let dob = "";
+  if (dobValue && dobValue.includes("/")) {
+    const [rawDD, rawMM, rawYYYY] = dobValue.split("/");
+    const dd = (rawDD || "").replace(/\s/g, "");
+    const mm = (rawMM || "").replace(/\s/g, "");
+    const yyyy = (rawYYYY || "").replace(/\s/g, "");
+    if (dd && mm && yyyy) dob = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+  }
+
+  return {
+    cid: campaign.cid || "925",
+    sid: campaign.sid || "34",
+
+    gender: sessionStorage.getItem("gender") || "",
+    firstname: sessionStorage.getItem("firstname") || "",
+    lastname: sessionStorage.getItem("lastname") || "",
+    email: sessionStorage.getItem("email") || "",
+    postcode: sessionStorage.getItem("postcode") || "",
+    straat: sessionStorage.getItem("straat") || "",
+    huisnummer: sessionStorage.getItem("huisnummer") || "",
+    woonplaats: sessionStorage.getItem("woonplaats") || "",
+    telefoon: sessionStorage.getItem("telefoon") || "",
+
+    // tracking & meta
+    dob,
+    t_id,
+    aff_id,
+    offer_id,
+    sub_id,
+    sub2,
+    f_1453_campagne_url: campaignUrl,
+    f_17_ipaddress: ip, // ✅ toegevoegd IP-adres
+
+    // flags
+    is_shortform: campaign.is_shortform || false
+  };
+}
+window.buildPayload = buildPayload;
 
   // -----------------------------------------------------------
   // 🔹 Lead versturen naar Databowl
