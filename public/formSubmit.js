@@ -170,81 +170,107 @@ if (!window.formSubmitInitialized) {
   });
 
 // -----------------------------------------------------------
-// 🔹 Shortform — altijd naar 925 + co-sponsors bij akkoord
+// 🔹 Shortform — 100% gecontroleerd via knop-click (capture)
+//    - Blokkeert SwipePages
+//    - Native validatie
+//    - Altijd 925/34 versturen
+//    - Co-sponsors alleen bij akkoord
+//    - Daarna eigen doorgang via shortFormSubmitted
 // -----------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("lead-form");
   if (!form) return;
 
-  const btn = form.querySelector("button[type='submit'], .flow-next");
+  // Pak expliciet de knop binnen het formulier (maakt niet uit of het type=submit of type=button is)
+  const btn = form.querySelector(".flow-next, button[type='submit']");
   if (!btn) return;
 
-  // blokkeer SwipePages bij ongeldige invoer
-  btn.addEventListener("click", (e) => {
+  let submitting = false;
+
+  const handleShortForm = async (e) => {
+    // 👉 Neem volledige controle (geen SwipePages)
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    // ✅ Browser-validatie
     if (!form.checkValidity()) {
       form.reportValidity();
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
+      return;
     }
-  }, true);
 
-  let submitting = false;
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!form.checkValidity()) { form.reportValidity(); return; }
     if (submitting) return;
     submitting = true;
+    btn.disabled = true;
 
-    // waarden opslaan
-    const genderEl = form.querySelector("input[name='gender']:checked");
-    if (genderEl) sessionStorage.setItem("gender", genderEl.value);
-    ["firstname","lastname","email","dob"].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el){let v=(el.value||"").trim();if(id==="dob")v=v.replace(/\s/g,"");sessionStorage.setItem(id,v);}
-    });
-
-    // IP garanderen
-    await getIpOnce();
-
-    // 1️⃣ Hoofdlead — campagne 925 altijd versturen
     try {
-      const basePayload = await buildPayload({ cid: "925", sid: "34", is_shortform: true });
-      await fetchLead(basePayload);
-      console.log("✅ Shortform lead verzonden (925/34)");
-    } catch (err) {
-      console.error("❌ Fout bij shortform lead:", err);
-    }
+      // 💾 Waarden cachen
+      const genderEl = form.querySelector("input[name='gender']:checked");
+      if (genderEl) sessionStorage.setItem("gender", genderEl.value);
+      ["firstname","lastname","email","dob"].forEach(id=>{
+        const el = document.getElementById(id);
+        if (!el) return;
+        let v = (el.value || "").trim();
+        if (id === "dob") v = v.replace(/\s/g, ""); // dd/mm/jjjj → dd/mm/jjjj (zonder spaties)
+        sessionStorage.setItem(id, v);
+      });
 
-    // 2️⃣ Co-sponsors alleen bij akkoord
-    try {
-      const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
-      if (!accepted) {
-        console.log("⚠️ Sponsors niet geaccepteerd — geen co-sponsors verzonden");
-        submitting = false;
-        return;
+      // 🌍 IP garanderen
+      if (typeof getIpOnce === "function") {
+        await getIpOnce();
       }
 
-      // co-sponsors ophalen
-      const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js", { cache: "no-store" });
-      const json = await res.json();
-      if (Array.isArray(json.data) && json.data.length) {
-        console.log(`📡 Verstuur ${json.data.length} co-sponsors...`);
-        await Promise.allSettled(json.data.map(async s => {
-          if (!s.cid || !s.sid) return;
-          const spPayload = await buildPayload({ cid: s.cid, sid: s.sid, is_shortform: true });
-          await fetchLead(spPayload);
-        }));
-        console.log("✅ Alle co-sponsors verzonden");
-      } else {
-        console.log("ℹ️ Geen actieve co-sponsors gevonden");
+      // 1️⃣ Altijd hoofdlead 925/34
+      try {
+        const basePayload = await window.buildPayload({ cid: "925", sid: "34", is_shortform: true });
+        await window.fetchLead(basePayload);
+        console.log("✅ Shortform lead verzonden (925/34)");
+      } catch (err) {
+        console.error("❌ Fout bij shortform lead 925:", err);
       }
-    } catch (err) {
-      console.error("❌ Fout bij co-sponsors:", err);
+
+      // 2️⃣ Co-sponsors alleen bij akkoord
+      try {
+        const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
+        if (accepted) {
+          const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js", { cache: "no-store" });
+          const json = await res.json();
+          if (Array.isArray(json.data) && json.data.length) {
+            console.log(`📡 Verstuur ${json.data.length} co-sponsors...`);
+            await Promise.allSettled(json.data.map(async s => {
+              if (!s?.cid || !s?.sid) return;
+              const spPayload = await window.buildPayload({ cid: s.cid, sid: s.sid, is_shortform: true });
+              await window.fetchLead(spPayload);
+            }));
+            console.log("✅ Co-sponsors verzonden");
+          } else {
+            console.log("ℹ️ Geen actieve co-sponsors gevonden");
+          }
+        } else {
+          console.log("⚠️ Sponsors niet geaccepteerd — geen co-sponsors verzonden");
+        }
+      } catch (err) {
+        console.error("❌ Fout co-sponsors:", err);
+      }
+
+      // 3️⃣ Nu pas de flow laten doorgaan (initFlow-lite luistert hierop)
+      document.dispatchEvent(new Event("shortFormSubmitted"));
+    } finally {
+      // throttle loslaten
+      submitting = false;
+      btn.disabled = false;
     }
-    document.dispatchEvent(new Event("shortFormSubmitted"));
-    submitting = false;
-  });
+  };
+
+  // 🎯 Behandel ALTIJD via onze handler (capture = true)
+  btn.addEventListener("click", handleShortForm, true);
+
+  // ↩️ Enter op inputs binnen form → zelfde handler (i.p.v. native submit)
+  form.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      handleShortForm(e);
+    }
+  }, true);
 });
 
   // -----------------------------------------------------------
