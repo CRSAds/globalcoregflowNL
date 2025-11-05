@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ formSubmit.js — stabiele shortform + co-sponsor verzending (met enkel DOB-veld)
+// ✅ formSubmit.js — stabiele shortform + co-sponsor verzending (met IP + JS-validatie)
 // =============================================================
 
 if (!window.formSubmitInitialized) {
@@ -18,70 +18,65 @@ if (!window.formSubmitInitialized) {
   });
 
   // -----------------------------------------------------------
-// 🔹 Payload opbouwen (met IP-adres)
-// -----------------------------------------------------------
-async function buildPayload(campaign = {}) {
-  const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
-  const aff_id = sessionStorage.getItem("aff_id") || "unknown";
-  const offer_id = sessionStorage.getItem("offer_id") || "unknown";
-  const sub_id = sessionStorage.getItem("sub_id") || "unknown";
-  const sub2 = sessionStorage.getItem("sub2") || "unknown";
-  const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
+  // 🔹 Payload opbouwen (met IP-adres)
+  // -----------------------------------------------------------
+  async function buildPayload(campaign = {}) {
+    const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
+    const aff_id = sessionStorage.getItem("aff_id") || "unknown";
+    const offer_id = sessionStorage.getItem("offer_id") || "unknown";
+    const sub_id = sessionStorage.getItem("sub_id") || "unknown";
+    const sub2 = sessionStorage.getItem("sub2") || "unknown";
+    const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
 
-  // ✅ IP-adres ophalen (cache voor performance)
-  let ip = sessionStorage.getItem("user_ip");
-  if (!ip) {
-    try {
-      const res = await fetch("https://api.ipify.org?format=json");
-      const data = await res.json();
-      ip = data.ip;
-      sessionStorage.setItem("user_ip", ip);
-    } catch (err) {
-      console.warn("⚠️ Kon IP-adres niet ophalen:", err);
-      ip = "0.0.0.0";
+    // ✅ IP-adres ophalen (1x per sessie)
+    let ip = sessionStorage.getItem("user_ip");
+    if (!ip) {
+      try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
+        ip = data.ip;
+        sessionStorage.setItem("user_ip", ip);
+      } catch (err) {
+        console.warn("⚠️ Kon IP-adres niet ophalen:", err);
+        ip = "0.0.0.0";
+      }
     }
+
+    // ✅ Geboortedatum in ISO 8601 (yyyy-mm-dd)
+    const dobValue = sessionStorage.getItem("dob");
+    let dob = "";
+    if (dobValue && dobValue.includes("/")) {
+      const [rawDD, rawMM, rawYYYY] = dobValue.split("/");
+      const dd = (rawDD || "").replace(/\s/g, "");
+      const mm = (rawMM || "").replace(/\s/g, "");
+      const yyyy = (rawYYYY || "").replace(/\s/g, "");
+      if (dd && mm && yyyy) dob = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+    }
+
+    return {
+      cid: campaign.cid || "925",
+      sid: campaign.sid || "34",
+      gender: sessionStorage.getItem("gender") || "",
+      firstname: sessionStorage.getItem("firstname") || "",
+      lastname: sessionStorage.getItem("lastname") || "",
+      email: sessionStorage.getItem("email") || "",
+      postcode: sessionStorage.getItem("postcode") || "",
+      straat: sessionStorage.getItem("straat") || "",
+      huisnummer: sessionStorage.getItem("huisnummer") || "",
+      woonplaats: sessionStorage.getItem("woonplaats") || "",
+      telefoon: sessionStorage.getItem("telefoon") || "",
+      dob,
+      t_id,
+      aff_id,
+      offer_id,
+      sub_id,
+      sub2,
+      f_1453_campagne_url: campaignUrl,
+      f_17_ipaddress: ip, // ✅ toegevoegd IP-adres
+      is_shortform: campaign.is_shortform || false
+    };
   }
-
-  // ✅ Geboortedatum in ISO 8601 (yyyy-mm-dd)
-  const dobValue = sessionStorage.getItem("dob");
-  let dob = "";
-  if (dobValue && dobValue.includes("/")) {
-    const [rawDD, rawMM, rawYYYY] = dobValue.split("/");
-    const dd = (rawDD || "").replace(/\s/g, "");
-    const mm = (rawMM || "").replace(/\s/g, "");
-    const yyyy = (rawYYYY || "").replace(/\s/g, "");
-    if (dd && mm && yyyy) dob = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
-  }
-
-  return {
-    cid: campaign.cid || "925",
-    sid: campaign.sid || "34",
-
-    gender: sessionStorage.getItem("gender") || "",
-    firstname: sessionStorage.getItem("firstname") || "",
-    lastname: sessionStorage.getItem("lastname") || "",
-    email: sessionStorage.getItem("email") || "",
-    postcode: sessionStorage.getItem("postcode") || "",
-    straat: sessionStorage.getItem("straat") || "",
-    huisnummer: sessionStorage.getItem("huisnummer") || "",
-    woonplaats: sessionStorage.getItem("woonplaats") || "",
-    telefoon: sessionStorage.getItem("telefoon") || "",
-
-    // tracking & meta
-    dob,
-    t_id,
-    aff_id,
-    offer_id,
-    sub_id,
-    sub2,
-    f_1453_campagne_url: campaignUrl,
-    f_17_ipaddress: ip, // ✅ toegevoegd IP-adres
-
-    // flags
-    is_shortform: campaign.is_shortform || false
-  };
-}
-window.buildPayload = buildPayload;
+  window.buildPayload = buildPayload;
 
   // -----------------------------------------------------------
   // 🔹 Lead versturen naar Databowl
@@ -115,266 +110,181 @@ window.buildPayload = buildPayload;
   }
   window.fetchLead = fetchLead;
 
-// -----------------------------------------------------------
-// 🔹 Live form tracking (short + long)
-// -----------------------------------------------------------
-document.addEventListener("DOMContentLoaded", () => {
-  const shortForm = document.querySelector("#lead-form");
-  const longForm = document.querySelector("#long-form");
+  // -----------------------------------------------------------
+  // 🔹 Live form tracking (short + long)
+  // -----------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const shortForm = document.querySelector("#lead-form");
+    const longForm = document.querySelector("#long-form");
 
-  [shortForm, longForm].forEach(form => {
-    if (!form) return;
-    form.querySelectorAll("input").forEach(input => {
-      const name = input.name || input.id;
-      if (!name) return;
-      const save = () => {
-        if (input.type === "radio" && !input.checked) return;
-        sessionStorage.setItem(name, (input.value || "").trim());
-      };
-      input.addEventListener("input", save);
-      input.addEventListener("change", save);
+    [shortForm, longForm].forEach(form => {
+      if (!form) return;
+      form.querySelectorAll("input").forEach(input => {
+        const name = input.name || input.id;
+        if (!name) return;
+        const save = () => {
+          if (input.type === "radio" && !input.checked) return;
+          sessionStorage.setItem(name, (input.value || "").trim());
+        };
+        input.addEventListener("input", save);
+        input.addEventListener("change", save);
+      });
+    });
+
+    console.log("🧠 Live form tracking actief (short + long)");
+  });
+
+  // -----------------------------------------------------------
+  // 🔹 Slimme DOB input handler (dd / mm / jjjj)
+  // -----------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const dobInput = document.getElementById("dob");
+    if (!dobInput) return;
+
+    dobInput.setAttribute("placeholder", "dd / mm / jjjj");
+    dobInput.setAttribute("inputmode", "numeric");
+    dobInput.setAttribute("maxlength", "14");
+
+    const formatWithSpaces = (digits) => {
+      let out = "";
+      const len = digits.length;
+      if (len >= 1) out += digits[0];
+      if (len >= 2) out += digits[1];
+      if (len >= 2) out += " / ";
+      if (len >= 3) out += digits[2];
+      if (len >= 4) out += digits[3];
+      if (len >= 4) out += " / ";
+      if (len >= 5) out += digits[4];
+      if (len >= 6) out += digits[5];
+      if (len >= 7) out += digits[6];
+      if (len >= 8) out += digits[7];
+      return out;
+    };
+
+    dobInput.addEventListener("input", () => {
+      const digits = dobInput.value.replace(/\D/g, "").slice(0, 8);
+      const formatted = formatWithSpaces(digits);
+      dobInput.value = formatted;
+      const compact = formatted.replace(/\s/g, "");
+      sessionStorage.setItem("dob", compact);
     });
   });
 
-  console.log("🧠 Live form tracking actief (short + long)");
-}); // ✅ sluit eerste blok
+  // -----------------------------------------------------------
+  // 🔹 Shortform submit (JS-validatie + IP + co-sponsors)
+  // -----------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const shortForm = document.querySelector("#lead-form");
+    if (!shortForm) return;
 
+    shortForm.setAttribute("novalidate", "true");
+    let shortFormSubmitted = false;
 
-// ✅ Slimme DOB input handler — dd / mm / jjjj (stable caret, max 8 digits, auto-jump dag→maand & maand→jaar)
-document.addEventListener("DOMContentLoaded", () => {
-  const dobInput = document.getElementById("dob");
-  if (!dobInput) return;
+    shortForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (shortFormSubmitted) return;
+      shortFormSubmitted = true;
 
-  // Placeholder & input hints
-  dobInput.setAttribute("placeholder", "dd / mm / jjjj");
-  dobInput.setAttribute("inputmode", "numeric");
-  dobInput.setAttribute("maxlength", "14");
+      // 🧹 Reset fouten
+      shortForm.querySelectorAll(".error-text").forEach(el => el.remove());
+      shortForm.querySelectorAll("input").forEach(el => el.classList.remove("error"));
 
-  const formatWithSpaces = (digits) => {
-    // Build "dd / mm / jjjj" progressively
-    let out = "";
-    const len = digits.length;
+      const requiredFields = ["gender", "firstname", "lastname", "dob", "email"];
+      let hasError = false;
 
-    if (len >= 1) out += digits[0];
-    if (len >= 2) out += digits[1];
-    if (len >= 2) out += " / ";
-    if (len >= 3) out += digits[2];
-    if (len >= 4) out += digits[3];
-    if (len >= 4) out += " / ";
-    if (len >= 5) out += digits[4];
-    if (len >= 6) out += digits[5];
-    if (len >= 7) out += digits[6];
-    if (len >= 8) out += digits[7];
-
-    return out;
-  };
-
-  const countDigitsBefore = (str, pos) => {
-    let c = 0;
-    for (let i = 0; i < Math.min(pos, str.length); i++) {
-      if (/\d/.test(str[i])) c++;
-    }
-    return c;
-  };
-
-  const caretFromDigitIndex = (val, targetDigitIdx) => {
-    if (targetDigitIdx <= 0) return 0;
-    let count = 0;
-    for (let i = 0; i < val.length; i++) {
-      if (/\d/.test(val[i])) {
-        count++;
-        if (count === targetDigitIdx) return i + 1;
-      }
-    }
-    return val.length;
-  };
-
-  // Block non-digits via beforeinput
-  dobInput.addEventListener("beforeinput", (e) => {
-    if (e.inputType === "insertText" && !/[0-9]/.test(e.data)) e.preventDefault();
-  });
-
-  // Remember caret before mutation
-  const rememberCaret = () => {
-    dobInput._prevVal = dobInput.value;
-    dobInput._prevPos = dobInput.selectionStart ?? dobInput.value.length;
-  };
-  dobInput.addEventListener("keydown", rememberCaret);
-  dobInput.addEventListener("click", rememberCaret);
-
-  // Main input handler
-  dobInput.addEventListener("input", () => {
-    const prevVal = dobInput._prevVal || "";
-    const prevPos = dobInput._prevPos ?? dobInput.selectionStart ?? prevVal.length;
-    const prevDigitsBefore = countDigitsBefore(prevVal, prevPos);
-
-    // Digits only, max 8
-    let digits = dobInput.value.replace(/\D/g, "").slice(0, 8);
-
-    // ✅ Leading zero rules + cursor jump flags
-    let jumpToMonth = false;
-    let jumpToYear = false;
-
-    // Day 4–9 -> 04–09
-    if (digits.length === 1 && parseInt(digits[0], 10) >= 4) {
-      digits = "0" + digits;
-      jumpToMonth = true; // after filling day, move to month
-    }
-
-    // Month first digit 2–9 -> 0X
-    if (digits.length === 3 && parseInt(digits[2], 10) >= 2) {
-      digits = digits.slice(0, 2) + "0" + digits.slice(2);
-      jumpToYear = true; // after filling month, move to year
-    }
-
-    const formatted = formatWithSpaces(digits);
-    dobInput.value = formatted;
-
-    // Caret restoration + jumps
-    let newCaret = caretFromDigitIndex(formatted, Math.min(prevDigitsBefore + 1, digits.length));
-    if (jumpToMonth && digits.length === 2) {
-      // move to after first " / "
-      newCaret = formatted.indexOf("/") + 3;
-    } else if (jumpToYear && digits.length === 4) {
-      // move to after second " / "
-      newCaret = formatted.lastIndexOf("/") + 3;
-    }
-    dobInput.setSelectionRange(newCaret, newCaret);
-
-    // Store compact form dd/mm/jjjj (no spaces)
-    const compact = formatted.replace(/\s/g, "");
-    sessionStorage.setItem("dob", compact);
-
-    dobInput._prevVal = formatted;
-    dobInput._prevPos = newCaret;
-  });
-
-  // Fallback keypress filter
-  dobInput.addEventListener("keypress", (e) => {
-    if (!/[0-9]/.test(e.key)) e.preventDefault();
-  });
-}); // ✅ sluit tweede blok
-
-
-// -----------------------------------------------------------
-// 🔹 Shortform submit (JS-validatie + IP + co-sponsors)
-// -----------------------------------------------------------
-document.addEventListener("DOMContentLoaded", () => {
-  const shortForm = document.querySelector("#lead-form");
-  if (!shortForm) return;
-
-  // ✅ Zorg dat browservalidatie uitstaat (geen focusfouten)
-  shortForm.setAttribute("novalidate", "true");
-
-  let shortFormSubmitted = false;
-
-  shortForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (shortFormSubmitted) return;
-    shortFormSubmitted = true;
-
-    // 🧹 Reset oude fouten
-    shortForm.querySelectorAll(".error-text").forEach(el => el.remove());
-    shortForm.querySelectorAll("input").forEach(el => el.classList.remove("error"));
-
-    // ✅ Vereiste velden
-    const requiredFields = ["gender", "firstname", "lastname", "dob", "email"];
-    let hasError = false;
-
-    requiredFields.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el || !el.value.trim()) {
-        hasError = true;
-        el.classList.add("error");
-
-        const err = document.createElement("div");
-        err.className = "error-text";
-        err.textContent = "Dit veld is verplicht";
-        el.insertAdjacentElement("afterend", err);
-      }
-    });
-
-    // ✅ Controle geldig e-mailadres
-    const emailInput = document.getElementById("email");
-    const emailValue = emailInput?.value.trim() || "";
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailValue && !emailRegex.test(emailValue)) {
-      hasError = true;
-      emailInput.classList.add("error");
-
-      const err = document.createElement("div");
-      err.className = "error-text";
-      err.textContent = "Voer een geldig e-mailadres in";
-      emailInput.insertAdjacentElement("afterend", err);
-    }
-
-    if (hasError) {
-      console.warn("⚠️ Formulier niet volledig of onjuist ingevuld");
-      shortFormSubmitted = false;
-      return;
-    }
-
-    console.log("🟢 Shortform verzonden...");
-
-    // 💾 Velden cachen in sessionStorage
-    shortForm.querySelectorAll("input").forEach(input => {
-      const name = input.name || input.id;
-      if (!name) return;
-      let val = (input.value || "").trim();
-      if (name === "dob") val = val.replace(/\s/g, "");
-      if (val) sessionStorage.setItem(name, val);
-    });
-
-    // 🌍 IP-adres ophalen & opslaan (als nog niet in cache)
-    if (!sessionStorage.getItem("user_ip")) {
-      try {
-        const res = await fetch("https://api.ipify.org?format=json");
-        const data = await res.json();
-        sessionStorage.setItem("user_ip", data.ip);
-      } catch {
-        sessionStorage.setItem("user_ip", "0.0.0.0");
-      }
-    }
-
-    // ✅ Hoofdlead verzenden
-    const basePayload = await buildPayload({ cid: "925", sid: "34", is_shortform: true });
-    await fetchLead(basePayload);
-    console.log("✅ Shortform lead verzonden naar campagne 925");
-
-    // 🧩 Co-sponsors (alleen bij akkoord)
-    const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
-    if (accepted) {
-      try {
-        const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
-        const json = await res.json();
-        if (json.data && json.data.length > 0) {
-          console.log(`📡 Verstuur naar ${json.data.length} co-sponsors...`);
-          await Promise.allSettled(json.data.map(async sponsor => {
-            if (!sponsor.cid || !sponsor.sid) return;
-            const sponsorPayload = await buildPayload({
-              cid: sponsor.cid,
-              sid: sponsor.sid,
-              is_shortform: true
-            });
-            await fetchLead(sponsorPayload);
-          }));
-        } else {
-          console.log("ℹ️ Geen actieve co-sponsors gevonden.");
+      requiredFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || !el.value?.trim()) {
+          hasError = true;
+          if (el) el.classList.add("error");
+          if (el && !el.nextElementSibling?.classList.contains("error-text")) {
+            const err = document.createElement("div");
+            err.className = "error-text";
+            err.textContent = "Dit veld is verplicht";
+            el.insertAdjacentElement("afterend", err);
+          }
         }
-      } catch (err) {
-        console.error("❌ Fout bij ophalen/versturen co-sponsors:", err);
+      });
+
+      // ✅ Controle e-mailadres
+      const emailInput = document.getElementById("email");
+      if (emailInput) {
+        const emailValue = emailInput.value.trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (emailValue && !emailRegex.test(emailValue)) {
+          hasError = true;
+          emailInput.classList.add("error");
+          const err = document.createElement("div");
+          err.className = "error-text";
+          err.textContent = "Voer een geldig e-mailadres in";
+          emailInput.insertAdjacentElement("afterend", err);
+        }
       }
-    } else {
-      console.log("⚠️ Voorwaarden niet geaccepteerd — alleen hoofdlead verzonden.");
-    }
 
-    shortFormSubmitted = false;
+      if (hasError) {
+        console.warn("⚠️ Formulier niet volledig of onjuist ingevuld");
+        shortFormSubmitted = false;
+        return;
+      }
+
+      console.log("🟢 Shortform verzonden...");
+
+      shortForm.querySelectorAll("input").forEach(input => {
+        const name = input.name || input.id;
+        if (!name) return;
+        let val = (input.value || "").trim();
+        if (name === "dob") val = val.replace(/\s/g, "");
+        if (val) sessionStorage.setItem(name, val);
+      });
+
+      // 🌍 IP ophalen (fallback)
+      if (!sessionStorage.getItem("user_ip")) {
+        try {
+          const res = await fetch("https://api.ipify.org?format=json");
+          const data = await res.json();
+          sessionStorage.setItem("user_ip", data.ip);
+        } catch {
+          sessionStorage.setItem("user_ip", "0.0.0.0");
+        }
+      }
+
+      const basePayload = await buildPayload({ cid: "925", sid: "34", is_shortform: true });
+      await fetchLead(basePayload);
+      console.log("✅ Shortform lead verzonden naar campagne 925");
+
+      const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
+      if (accepted) {
+        try {
+          const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
+          const json = await res.json();
+          if (json.data?.length) {
+            console.log(`📡 Verstuur naar ${json.data.length} co-sponsors...`);
+            await Promise.allSettled(json.data.map(async sponsor => {
+              if (!sponsor.cid || !sponsor.sid) return;
+              const sponsorPayload = await buildPayload({
+                cid: sponsor.cid,
+                sid: sponsor.sid,
+                is_shortform: true
+              });
+              await fetchLead(sponsorPayload);
+            }));
+          } else {
+            console.log("ℹ️ Geen actieve co-sponsors gevonden.");
+          }
+        } catch (err) {
+          console.error("❌ Fout bij ophalen/versturen co-sponsors:", err);
+        }
+      } else {
+        console.log("⚠️ Voorwaarden niet geaccepteerd — alleen hoofdlead verzonden.");
+      }
+
+      shortFormSubmitted = false;
+    });
   });
-});
 
-  // -------------------------------------------------------------
+  // -----------------------------------------------------------
   // 🔹 Longform submit
-  // -------------------------------------------------------------
+  // -----------------------------------------------------------
   function waitForLongForm() {
     const btn = document.getElementById("submit-long-form");
     const form = document.getElementById("long-form");
@@ -407,21 +317,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       for (const camp of pending) {
-        const payload = window.buildPayload(camp);
-
-        // 🎯 Coreg-antwoorden toevoegen aan payload
+        const payload = await buildPayload(camp);
         const coregAnswer = sessionStorage.getItem(`f_2014_coreg_answer_${payload.cid}`);
-        if (coregAnswer) {
-          payload.f_2014_coreg_answer = coregAnswer;
-        }
-        
+        if (coregAnswer) payload.f_2014_coreg_answer = coregAnswer;
         const dropdownAnswer = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${payload.cid}`);
-        if (dropdownAnswer) {
-          payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
-        }
-
+        if (dropdownAnswer) payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
         console.log("📨 Longform payload naar Databowl:", payload);
-        await window.fetchLead(payload);
+        await fetchLead(payload);
       }
 
       console.log("✅ Longform-leads verzonden");
@@ -430,7 +332,6 @@ document.addEventListener("DOMContentLoaded", () => {
       document.dispatchEvent(new Event("longFormSubmitted"));
     });
   }
-
   waitForLongForm();
 
   // -----------------------------------------------------------
