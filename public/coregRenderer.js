@@ -98,50 +98,39 @@ async function sendLeadToDatabowl(payload) {
 }
 
 // ============================================================
-// ✅ buildCoregPayload met multistep support + per-cid coreg_answer opslag
+// ✅ FIXED buildCoregPayload — async + correcte CID/SID + awaits
 // ============================================================
-function buildCoregPayload(campaign, answerValue) {
+async function buildCoregPayload(campaign, answerValue) {
   console.log("🧩 buildCoregPayload() → input:", { campaign, answerValue });
 
-  // 🛠️ FIX: corrigeer 'undefined' of lege cid/sid uit dataset / DOM
-  if (answerValue?.cid === "undefined" || answerValue?.cid === "" || !answerValue?.cid) {
-    answerValue.cid = campaign.cid;
-  }
-  if (answerValue?.sid === "undefined" || answerValue?.sid === "" || !answerValue?.sid) {
-    answerValue.sid = campaign.sid;
-  }
+  // Corrigeer 'undefined' of lege cid/sid
+  if (answerValue?.cid === "undefined" || !answerValue?.cid) answerValue.cid = campaign.cid;
+  if (answerValue?.sid === "undefined" || !answerValue?.sid) answerValue.sid = campaign.sid;
 
   const cid = answerValue.cid;
   const sid = answerValue.sid;
   const coregAnswer = answerValue?.answer_value || answerValue || "";
 
-  // 🧠 Multistep support: bewaar alle antwoorden per cid
+  // 🧠 Multistep support
   const key = `coreg_answers_${cid}`;
   const prevAnswers = JSON.parse(sessionStorage.getItem(key) || "[]");
   if (coregAnswer && !prevAnswers.includes(coregAnswer)) {
     prevAnswers.push(coregAnswer);
     sessionStorage.setItem(key, JSON.stringify(prevAnswers));
   }
-
-  // Combineer alle antwoorden van dezelfde campagne
   const combinedAnswer = prevAnswers.join(" - ") || coregAnswer;
-
-  // ✅ Bewaar coreg-answer per campagne voor longform-verzending
   sessionStorage.setItem(`f_2014_coreg_answer_${cid}`, combinedAnswer);
 
-  const payload = window.buildPayload({
+  // ✅ AWAIT hier: wacht tot buildPayload klaar is
+  const payload = await window.buildPayload({
     cid,
     sid,
-    is_shortform: false, // Altijd false zodat Databowl het als coreg lead behandelt
-    coregAnswerKey: `coreg_answer_${campaign.id}`,
+    is_shortform: false,
     f_2014_coreg_answer: combinedAnswer
   });
 
-  // ✅ Bewaar dropdownwaarde ook per campagne (indien aanwezig)
   const dropdownAnswer = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${cid}`);
-  if (dropdownAnswer) {
-    payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
-  }
+  if (dropdownAnswer) payload.f_2575_coreg_answer_dropdown = dropdownAnswer;
 
   console.log("📦 buildCoregPayload() → output:", payload);
   return payload;
