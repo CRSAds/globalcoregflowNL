@@ -242,7 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       console.error("❌ Fout bij co-sponsors:", err);
     }
-
+    document.dispatchEvent(new Event("shortFormSubmitted"));
     submitting = false;
   });
 });
