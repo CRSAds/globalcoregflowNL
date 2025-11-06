@@ -2,12 +2,23 @@
 // ✅ initFlow-lite.js — stabiele versie met shortform & longform event flow
 // =============================================================
 
-window.addEventListener("DOMContentLoaded", initFlowLite);
+window.addEventListener("DOMContentLoaded", () => {
+  // Extra failsafe — wacht tot secties er echt zijn (Swipe Pages laadt traag)
+  let tries = 0;
+  const interval = setInterval(() => {
+    const sections = document.querySelectorAll(".flow-section, .ivr-section");
+    if (sections.length > 0 || tries > 10) {
+      clearInterval(interval);
+      initFlowLite();
+    }
+    tries++;
+  }, 50);
+});
 
 // =============================================================
 // 🔧 Logging toggle
 // =============================================================
-const DEBUG = true; // ← Zet op false in productie en true bij testen
+const DEBUG = false; // ← Zet op true bij testen
 const log = (...args) => { if (DEBUG) console.log(...args); };
 const warn = (...args) => { if (DEBUG) console.warn(...args); };
 const error = (...args) => { if (DEBUG) console.error(...args); };
@@ -65,9 +76,20 @@ function initFlowLite() {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status") || "online";
 
-  // 1️⃣ Secties verzamelen
   const allSections = Array.from(document.querySelectorAll(".flow-section, .ivr-section"));
   log("📦 Swipe-secties gevonden:", allSections.length);
+
+  // 🧩 Failsafe: als er geen secties zijn, stop
+  if (!allSections.length) {
+    warn("⚠️ Geen secties gevonden — initFlowLite() afgebroken");
+    return;
+  }
+
+  // Verberg ALLES standaard
+  allSections.forEach(el => {
+    el.style.display = "none";
+    el.style.visibility = "hidden";
+  });
 
   const coregContainer = document.getElementById("coreg-container");
   if (coregContainer) {
@@ -75,12 +97,11 @@ function initFlowLite() {
     log("✅ coreg-container zichtbaar gehouden");
   }
 
-  allSections.forEach(el => (el.style.display = "none"));
-
-  // 2️⃣ Eerste sectie tonen
+  // Toon alleen de eerste zichtbare sectie
   const firstVisible = allSections.find(el => !el.classList.contains("ivr-section"));
   if (firstVisible) {
     firstVisible.style.display = "block";
+    firstVisible.style.visibility = "visible";
     reloadImages(firstVisible);
     log("✅ Eerste sectie getoond:", firstVisible.className);
   } else {
@@ -135,6 +156,7 @@ function initFlowLite() {
 
       if (next) {
         next.style.display = "block";
+        next.style.visibility = "visible";
         reloadImages(next);
         window.scrollTo({ top: 0, behavior: "smooth" });
         log("➡️ Volgende sectie getoond:", next.className);
@@ -145,51 +167,10 @@ function initFlowLite() {
     });
   });
 
-  // 5️⃣ Automatische doorgang na longform
-  document.addEventListener("longFormSubmitted", () => {
-    log("✅ Longform voltooid → door naar volgende sectie");
-    const current = document.getElementById("long-form")?.closest(".flow-section") || document.getElementById("long-form");
-    if (!current) return;
-
-    let next = current.nextElementSibling;
-    while (next && next.classList.contains("ivr-section") && status === "online") {
-      next = next.nextElementSibling;
-    }
-
-    if (next) {
-      current.style.display = "none";
-      next.style.display = "block";
-      reloadImages(next);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      log("➡️ Volgende sectie getoond:", next.className);
-      startSovendusIfNeeded(next);
-    } else {
-      log("🏁 Einde flow na longform");
-    }
-  });
-
-  // 6️⃣ Automatische doorgang na shortform
-  document.addEventListener("shortFormSubmitted", () => {
-    log("✅ Shortform voltooid → door naar volgende sectie");
-    const current = document.getElementById("lead-form")?.closest(".flow-section") || document.getElementById("lead-form");
-    if (!current) return;
-
-    let next = current.nextElementSibling;
-    while (next && next.classList.contains("ivr-section") && status === "online") {
-      next = next.nextElementSibling;
-    }
-
-    if (next) {
-      current.style.display = "none";
-      next.style.display = "block";
-      reloadImages(next);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      log("➡️ Volgende sectie getoond:", next.className);
-      startSovendusIfNeeded(next);
-    } else {
-      log("🏁 Einde flow na shortform");
-    }
-  });
+  // 5️⃣ Longform event
+  document.addEventListener("longFormSubmitted", () => handleFormAdvance("long-form", status));
+  // 6️⃣ Shortform event
+  document.addEventListener("shortFormSubmitted", () => handleFormAdvance("lead-form", status));
 
   // 7️⃣ System check
   console.groupCollapsed("✅ Global CoregFlow System Check");
@@ -203,7 +184,7 @@ function initFlowLite() {
 }
 
 // =============================================================
-// ♻️ Lazy images + Sovendus helper
+// ♻️ Lazy images + helper
 // =============================================================
 function reloadImages(section) {
   if (!section) return;
@@ -224,5 +205,30 @@ function startSovendusIfNeeded(section) {
       log("🎁 Sovendus gestart bij sectie:", section.id);
       window.setupSovendus();
     }
+  }
+}
+
+// =============================================================
+// 🔁 Helper om forms automatisch door te laten gaan
+// =============================================================
+function handleFormAdvance(formId, status) {
+  log(`✅ ${formId} voltooid → door naar volgende sectie`);
+  const current = document.getElementById(formId)?.closest(".flow-section") || document.getElementById(formId);
+  if (!current) return;
+
+  let next = current.nextElementSibling;
+  while (next && next.classList.contains("ivr-section") && status === "online") {
+    next = next.nextElementSibling;
+  }
+
+  if (next) {
+    current.style.display = "none";
+    next.style.display = "block";
+    reloadImages(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    log("➡️ Volgende sectie getoond:", next.className);
+    startSovendusIfNeeded(next);
+  } else {
+    log(`🏁 Einde flow na ${formId}`);
   }
 }
