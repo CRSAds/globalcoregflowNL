@@ -189,7 +189,7 @@ async function initCoregFlow() {
 container.innerHTML = `
   <div class="coreg-inner">
     <div class="coreg-header">
-      <h2 id="coreg-motivation" class="coreg-motivation">Laten we beginnen — dit duurt maar een minuut 👇</h2>
+      <h2 id="coreg-motivation" class="coreg-motivation">Een paar makkelijke vragen en je bent er 🎯</h2>
     </div>
     <div class="ld-progress-wrap mb-25">
       <div class="ld-progress-info">
@@ -237,11 +237,11 @@ function updateProgressBar(sectionIdx) {
 
   // Dynamische motiverende tekst
   if (motivationEl) {
-    let msg = "Laten we beginnen — minder dan een minuut 👇";
-    if (percent >= 25 && percent < 50) msg = "Top! Je doet het goed — nog een paar vragen 🎯";
-    else if (percent >= 50 && percent < 75) msg = "Je bent over de helft — even volhouden! 🚀";
+    let msg = "Een paar makkelijke vragen en je bent er 🎯";
+    if (percent >= 25 && percent < 50) msg = "Top! Nog maar een paar vragen ⚡️";
+    else if (percent >= 50 && percent < 75) msg = "Over de helft — even volhouden! 🚀";
     else if (percent >= 75 && percent < 100) msg = "Bijna klaar — laatste vragen 🙌";
-    else if (percent >= 100) msg = "Geweldig! Je hebt alle vragen beantwoord 🎉";
+    else if (percent >= 100) msg = "Geweldig! Laatste vraag! 🎉";
     motivationEl.textContent = msg;
   }
 }
