@@ -270,36 +270,48 @@ document.addEventListener("DOMContentLoaded", () => {
   }, true);
 });
 
-  // -----------------------------------------------------------
-  // 🔹 Longform
-  // -----------------------------------------------------------
-  document.addEventListener("click", async (e) => {
-    if (!e.target || !e.target.matches("#submit-long-form")) return;
-    e.preventDefault();
+// -----------------------------------------------------------
+// 🔹 Longform — volledig async ("fire-and-forget")
+//    - Browservalidatie op verplichte velden
+//    - Versturen alle pending longform-leads parallel
+//    - Flow gaat direct verder (geen UI-wacht)
+// -----------------------------------------------------------
+document.addEventListener("click", async (e) => {
+  if (!e.target || !e.target.matches("#submit-long-form")) return;
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
 
-    const form = document.getElementById("long-form");
-    if (!form) return;
+  const form = document.getElementById("long-form");
+  if (!form) return;
 
-    const fields = ["postcode","straat","huisnummer","woonplaats","telefoon"];
-    const invalid = fields.filter(id => !document.getElementById(id)?.value.trim());
-    if (invalid.length) {
-      alert("Vul alle verplichte velden in.");
-      e.stopImmediatePropagation();
-      return;
-    }
+  const fields = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
+  const invalid = fields.filter(id => !document.getElementById(id)?.value.trim());
+  if (invalid.length) {
+    alert("Vul alle verplichte velden in.");
+    return;
+  }
 
-    fields.forEach(id=>{
-      const v=document.getElementById(id)?.value.trim()||"";
-      if(v)sessionStorage.setItem(id,v);
-    });
+  // 💾 Cache waarden
+  fields.forEach(id => {
+    const v = document.getElementById(id)?.value.trim() || "";
+    if (v) sessionStorage.setItem(id, v);
+  });
 
-    const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-    if (!pending.length) { console.warn("⚠️ Geen longform campagnes"); return; }
+  const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+  if (!pending.length) {
+    console.warn("⚠️ Geen longform campagnes om te versturen");
+    document.dispatchEvent(new Event("longFormSubmitted"));
+    return;
+  }
 
-    await getIpOnce();
+  // 🌍 IP ophalen (zonder blokkeren)
+  if (typeof getIpOnce === "function") getIpOnce();
 
+  // 🚀 Fire-and-forget verzending
+  (async () => {
     try {
-      for (const camp of pending) {
+      await Promise.allSettled(pending.map(async camp => {
         const coregAns = sessionStorage.getItem(`f_2014_coreg_answer_${camp.cid}`);
         const dropdownAns = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${camp.cid}`);
         const payload = await buildPayload({
@@ -308,15 +320,19 @@ document.addEventListener("DOMContentLoaded", () => {
           f_2014_coreg_answer: coregAns || undefined,
           f_2575_coreg_answer_dropdown: dropdownAns || undefined
         });
-        await fetchLead(payload);
-      }
-      console.log("✅ Longform leads verzonden");
+        return window.fetchLead(payload);
+      }));
+      console.log("✅ Longform leads verzonden (async)");
       sessionStorage.removeItem("longFormCampaigns");
-      document.dispatchEvent(new Event("longFormSubmitted"));
     } catch (err) {
-      console.error("❌ Fout bij longform:", err);
+      console.error("❌ Fout bij longform (async):", err);
     }
-  });
+  })();
+
+  // 🎯 Flow direct verder
+  document.dispatchEvent(new Event("longFormSubmitted"));
+  console.log("➡️ Flow direct vervolgd (longform fire-and-forget)");
+});
 
   // -----------------------------------------------------------
   // 🔹 Sponsor akkoord
