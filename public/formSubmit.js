@@ -41,63 +41,67 @@ if (!window.formSubmitInitialized) {
     return ip;
   }
 
-  // -----------------------------------------------------------
-  // 🔹 Payload opbouwen
-  // -----------------------------------------------------------
-  async function buildPayload(campaign = {}) {
-    const ip = await getIpOnce();
+// -----------------------------------------------------------
+// 🔹 Payload opbouwen
+// -----------------------------------------------------------
+async function buildPayload(campaign = {}) {
+  const ip = await getIpOnce();
 
-    const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
-    const aff_id = sessionStorage.getItem("aff_id") || "unknown";
-    const offer_id = sessionStorage.getItem("offer_id") || "unknown";
-    const sub_id = sessionStorage.getItem("sub_id") || "unknown";
-    const sub2 = sessionStorage.getItem("sub2") || "unknown";
-    const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
+  const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
+  const aff_id = sessionStorage.getItem("aff_id") || "unknown";
+  const offer_id = sessionStorage.getItem("offer_id") || "unknown";
+  const sub_id = sessionStorage.getItem("sub_id") || "unknown";
+  const sub2 = sessionStorage.getItem("sub2") || "unknown";
+  const campaignUrl = `${window.location.origin}${window.location.pathname}?status=online`;
 
-    // ✅ DOB parsing
-    const dobValue = sessionStorage.getItem("dob");
-    let dob = "";
-    if (dobValue && dobValue.includes("/")) {
-      const [dd, mm, yyyy] = dobValue.split("/");
-      if (dd && mm && yyyy) dob = `${yyyy}-${mm.padStart(2,"0")}-${dd.padStart(2,"0")}`;
-    }
-
-    // ✅ CID/SID fix — voorkom “undefined” strings
-    let cid = campaign.cid;
-    let sid = campaign.sid;
-    if (cid === "undefined" || cid === undefined || cid === "") cid = null;
-    if (sid === "undefined" || sid === undefined || sid === "") sid = null;
-
-    const payload = {
-      cid,
-      sid,
-      gender: sessionStorage.getItem("gender") || "",
-      firstname: sessionStorage.getItem("firstname") || "",
-      lastname: sessionStorage.getItem("lastname") || "",
-      email: sessionStorage.getItem("email") || "",
-      postcode: sessionStorage.getItem("postcode") || "",
-      straat: sessionStorage.getItem("straat") || "",
-      huisnummer: sessionStorage.getItem("huisnummer") || "",
-      woonplaats: sessionStorage.getItem("woonplaats") || "",
-      telefoon: sessionStorage.getItem("telefoon") || "",
-      dob,
-      t_id,
-      aff_id,
-      offer_id,
-      sub_id,
-      sub2,
-      f_1453_campagne_url: campaignUrl,
-      f_17_ipaddress: ip,
-      is_shortform: campaign.is_shortform || false,
-    };
-
-    if (campaign.f_2014_coreg_answer)
-      payload.f_2014_coreg_answer = campaign.f_2014_coreg_answer;
-    if (campaign.f_2575_coreg_answer_dropdown)
-      payload.f_2575_coreg_answer_dropdown = campaign.f_2575_coreg_answer_dropdown;
-
-    return payload;
+  // ✅ DOB parsing
+  const dobValue = sessionStorage.getItem("dob");
+  let dob = "";
+  if (dobValue && dobValue.includes("/")) {
+    const [dd, mm, yyyy] = dobValue.split("/");
+    if (dd && mm && yyyy) dob = `${yyyy}-${mm.padStart(2,"0")}-${dd.padStart(2,"0")}`;
   }
+
+  // ✅ CID/SID fix
+  let cid = campaign.cid;
+  let sid = campaign.sid;
+  if (cid === "undefined" || cid === undefined || cid === "") cid = null;
+  if (sid === "undefined" || sid === undefined || sid === "") sid = null;
+
+  // ✅ Optindate (UTC ISO +0000)
+  const optindate = new Date().toISOString().split(".")[0] + "+0000";
+
+  const payload = {
+    cid,
+    sid,
+    gender: sessionStorage.getItem("gender") || "",
+    firstname: sessionStorage.getItem("firstname") || "",
+    lastname: sessionStorage.getItem("lastname") || "",
+    email: sessionStorage.getItem("email") || "",
+    postcode: sessionStorage.getItem("postcode") || "",
+    straat: sessionStorage.getItem("straat") || "",
+    huisnummer: sessionStorage.getItem("huisnummer") || "",
+    woonplaats: sessionStorage.getItem("woonplaats") || "",
+    telefoon: sessionStorage.getItem("telefoon") || "",
+    dob,
+    t_id,
+    aff_id,
+    offer_id,
+    sub_id,
+    sub2,
+    f_1453_campagne_url: campaignUrl,
+    f_17_ipaddress: ip,
+    f_55_optindate: optindate, // ✅ nieuw toegevoegd
+    is_shortform: campaign.is_shortform || false,
+  };
+
+  if (campaign.f_2014_coreg_answer)
+    payload.f_2014_coreg_answer = campaign.f_2014_coreg_answer;
+  if (campaign.f_2575_coreg_answer_dropdown)
+    payload.f_2575_coreg_answer_dropdown = campaign.f_2575_coreg_answer_dropdown;
+
+  return payload;
+}
   window.buildPayload = buildPayload;
 
   // -----------------------------------------------------------
