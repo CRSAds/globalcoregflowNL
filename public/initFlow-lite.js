@@ -7,7 +7,7 @@ window.addEventListener("DOMContentLoaded", initFlowLite);
 // =============================================================
 // 🔧 Logging toggle
 // =============================================================
-const DEBUG = false; // ← Zet op false in productie en true bij testen
+const DEBUG = true; // ← Zet op false in productie en true bij testen
 const log = (...args) => { if (DEBUG) console.log(...args); };
 const warn = (...args) => { if (DEBUG) console.warn(...args); };
 const error = (...args) => { if (DEBUG) console.error(...args); };
