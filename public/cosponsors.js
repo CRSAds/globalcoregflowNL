@@ -3,7 +3,7 @@
 // =============================================================
 (function () {
   // 🔧 Logging toggle
-  const DEBUG = true; // ← Zet op false in productie
+  const DEBUG = false; // ← Zet op false in productie
   const log = (...args) => { if (DEBUG) console.log(...args); };
   const warn = (...args) => { if (DEBUG) console.warn(...args); };
   const error = (...args) => { if (DEBUG) console.error(...args); };
