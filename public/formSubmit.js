@@ -1,11 +1,17 @@
 // =============================================================
 // ✅ formSubmit.js — unified versie met auto-jump DOB, IP-tracking,
-// shortform (925) + co-sponsors + longform + CID/SID fix
+// shortform (925) + co-sponsors + longform + CID/SID fix + DEBUG toggle
 // =============================================================
 
 if (!window.formSubmitInitialized) {
   window.formSubmitInitialized = true;
   window.submittedCampaigns = window.submittedCampaigns || new Set();
+
+  // 🔧 Toggle logging hier
+  const DEBUG = true; // ← zet op false in productie
+  const log = (...args) => { if (DEBUG) console.log(...args); };
+  const warn = (...args) => { if (DEBUG) console.warn(...args); };
+  const error = (...args) => { if (DEBUG) console.error(...args); };
 
   // -----------------------------------------------------------
   // 🔹 Tracking opslaan bij pageload
@@ -85,7 +91,6 @@ if (!window.formSubmitInitialized) {
       is_shortform: campaign.is_shortform || false,
     };
 
-    // extra antwoorden meenemen (coreg of dropdown)
     if (campaign.f_2014_coreg_answer)
       payload.f_2014_coreg_answer = campaign.f_2014_coreg_answer;
     if (campaign.f_2575_coreg_answer_dropdown)
@@ -100,7 +105,7 @@ if (!window.formSubmitInitialized) {
   // -----------------------------------------------------------
   async function fetchLead(payload) {
     if (!payload || !payload.cid || !payload.sid) {
-      console.error("❌ fetchLead: ontbrekende cid/sid in payload:", payload);
+      error("❌ fetchLead: ontbrekende cid/sid in payload:", payload);
       return { success: false, error: "Missing cid/sid" };
     }
 
@@ -116,11 +121,11 @@ if (!window.formSubmitInitialized) {
       const text = await res.text();
       let result = {};
       try { result = text ? JSON.parse(text) : {}; } catch { result = { raw: text }; }
-      console.log(`📨 Lead verstuurd naar ${payload.cid}/${payload.sid}:`, result);
+      log(`📨 Lead verstuurd naar ${payload.cid}/${payload.sid}:`, result);
       window.submittedCampaigns.add(key);
       return result;
     } catch (err) {
-      console.error("❌ Fout bij lead versturen:", err);
+      error("❌ Fout bij lead versturen:", err);
       return { success: false, error: err.message };
     }
   }
@@ -169,170 +174,148 @@ if (!window.formSubmitInitialized) {
     });
   });
 
-// -----------------------------------------------------------
-// 🔹 Shortform — volledig async ("fire-and-forget")
-//    - Blokkeert SwipePages bij ongeldige invoer
-//    - Valideert via browser
-//    - Stuurt 925 + co-sponsors asynchroon
-//    - Flow gaat direct verder (geen UI-wacht)
-// -----------------------------------------------------------
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("lead-form");
-  if (!form) return;
+  // -----------------------------------------------------------
+  // 🔹 Shortform — volledig async
+  // -----------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("lead-form");
+    if (!form) return;
 
-  const btn = form.querySelector(".flow-next, button[type='submit']");
-  if (!btn) return;
+    const btn = form.querySelector(".flow-next, button[type='submit']");
+    if (!btn) return;
 
-  let submitting = false;
+    let submitting = false;
 
-  const handleShortForm = async (e) => {
-    // 👉 Neem volledige controle (SwipePages negeren)
+    const handleShortForm = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      if (submitting) return;
+      submitting = true;
+      btn.disabled = true;
+
+      try {
+        const genderEl = form.querySelector("input[name='gender']:checked");
+        if (genderEl) sessionStorage.setItem("gender", genderEl.value);
+        ["firstname", "lastname", "email", "dob"].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          let v = (el.value || "").trim();
+          if (id === "dob") v = v.replace(/\s/g, "");
+          sessionStorage.setItem(id, v);
+        });
+
+        if (typeof getIpOnce === "function") getIpOnce();
+
+        (async () => {
+          try {
+            const basePayload = await window.buildPayload({ cid: "925", sid: "34", is_shortform: true });
+            window.fetchLead(basePayload)
+              .then(r => log("✅ Shortform 925 async verzonden:", r))
+              .catch(err => error("❌ Fout shortform 925 async:", err));
+
+            const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
+            if (accepted) {
+              const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js", { cache: "no-store" });
+              const json = await res.json();
+              if (Array.isArray(json.data) && json.data.length) {
+                log(`📡 Verstuur ${json.data.length} co-sponsors async...`);
+                Promise.allSettled(json.data.map(async s => {
+                  if (!s?.cid || !s?.sid) return;
+                  const spPayload = await window.buildPayload({ cid: s.cid, sid: s.sid, is_shortform: true });
+                  return window.fetchLead(spPayload);
+                }))
+                .then(() => log("✅ Co-sponsors klaar (async)"))
+                .catch(err => warn("⚠️ Co-sponsors fout (async):", err));
+              } else {
+                log("ℹ️ Geen actieve co-sponsors gevonden");
+              }
+            } else {
+              warn("⚠️ Sponsors niet geaccepteerd — geen co-sponsors verzonden");
+            }
+          } catch (err) {
+            error("💥 Async shortform fout:", err);
+          }
+        })();
+
+        document.dispatchEvent(new Event("shortFormSubmitted"));
+        log("➡️ Flow direct vervolgd (fire-and-forget)");
+      } catch (err) {
+        error("❌ Fout bij start shortform async:", err);
+      } finally {
+        submitting = false;
+        btn.disabled = false;
+      }
+    };
+
+    btn.addEventListener("click", handleShortForm, true);
+    form.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleShortForm(e);
+    }, true);
+  });
+
+  // -----------------------------------------------------------
+  // 🔹 Longform — volledig async
+  // -----------------------------------------------------------
+  document.addEventListener("click", async (e) => {
+    if (!e.target || !e.target.matches("#submit-long-form")) return;
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
 
-    // ✅ Browser-validatie
-    if (!form.checkValidity()) {
-      form.reportValidity();
+    const form = document.getElementById("long-form");
+    if (!form) return;
+
+    const fields = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
+    const invalid = fields.filter(id => !document.getElementById(id)?.value.trim());
+    if (invalid.length) {
+      alert("Vul alle verplichte velden in.");
       return;
     }
 
-    if (submitting) return;
-    submitting = true;
-    btn.disabled = true;
+    fields.forEach(id => {
+      const v = document.getElementById(id)?.value.trim() || "";
+      if (v) sessionStorage.setItem(id, v);
+    });
 
-    try {
-      // 💾 Cache invoer
-      const genderEl = form.querySelector("input[name='gender']:checked");
-      if (genderEl) sessionStorage.setItem("gender", genderEl.value);
-      ["firstname", "lastname", "email", "dob"].forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        let v = (el.value || "").trim();
-        if (id === "dob") v = v.replace(/\s/g, "");
-        sessionStorage.setItem(id, v);
-      });
-
-      // 🌍 IP garanderen (niet blokkeren)
-      if (typeof getIpOnce === "function") getIpOnce();
-
-      // 🚀 Fire-and-forget verzending
-      (async () => {
-        try {
-          // 1️⃣ Hoofdlead 925/34
-          const basePayload = await window.buildPayload({ cid: "925", sid: "34", is_shortform: true });
-          window.fetchLead(basePayload)
-            .then(r => console.log("✅ Shortform 925 async verzonden:", r))
-            .catch(err => console.error("❌ Fout shortform 925 async:", err));
-
-          // 2️⃣ Co-sponsors (alleen bij akkoord)
-          const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
-          if (accepted) {
-            const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js", { cache: "no-store" });
-            const json = await res.json();
-            if (Array.isArray(json.data) && json.data.length) {
-              console.log(`📡 Verstuur ${json.data.length} co-sponsors async...`);
-              Promise.allSettled(json.data.map(async s => {
-                if (!s?.cid || !s?.sid) return;
-                const spPayload = await window.buildPayload({ cid: s.cid, sid: s.sid, is_shortform: true });
-                return window.fetchLead(spPayload);
-              }))
-              .then(() => console.log("✅ Co-sponsors klaar (async)"))
-              .catch(err => console.warn("⚠️ Co-sponsors fout (async):", err));
-            } else {
-              console.log("ℹ️ Geen actieve co-sponsors gevonden");
-            }
-          } else {
-            console.log("⚠️ Sponsors niet geaccepteerd — geen co-sponsors verzonden");
-          }
-        } catch (err) {
-          console.error("💥 Async shortform fout:", err);
-        }
-      })();
-
-      // 🎯 Flow direct verder (initFlow-lite luistert hierop)
-      document.dispatchEvent(new Event("shortFormSubmitted"));
-      console.log("➡️ Flow direct vervolgd (fire-and-forget)");
-    } catch (err) {
-      console.error("❌ Fout bij start shortform async:", err);
-    } finally {
-      submitting = false;
-      btn.disabled = false;
+    const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+    if (!pending.length) {
+      warn("⚠️ Geen longform campagnes om te versturen");
+      document.dispatchEvent(new Event("longFormSubmitted"));
+      return;
     }
-  };
 
-  // 🎯 Altijd via onze handler (capture = true)
-  btn.addEventListener("click", handleShortForm, true);
+    if (typeof getIpOnce === "function") getIpOnce();
 
-  // ↩️ Enter in velden → zelfde gedrag
-  form.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleShortForm(e);
-  }, true);
-});
+    (async () => {
+      try {
+        await Promise.allSettled(pending.map(async camp => {
+          const coregAns = sessionStorage.getItem(`f_2014_coreg_answer_${camp.cid}`);
+          const dropdownAns = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${camp.cid}`);
+          const payload = await buildPayload({
+            cid: camp.cid,
+            sid: camp.sid,
+            f_2014_coreg_answer: coregAns || undefined,
+            f_2575_coreg_answer_dropdown: dropdownAns || undefined
+          });
+          return window.fetchLead(payload);
+        }));
+        log("✅ Longform leads verzonden (async)");
+        sessionStorage.removeItem("longFormCampaigns");
+      } catch (err) {
+        error("❌ Fout bij longform (async):", err);
+      }
+    })();
 
-// -----------------------------------------------------------
-// 🔹 Longform — volledig async ("fire-and-forget")
-//    - Browservalidatie op verplichte velden
-//    - Versturen alle pending longform-leads parallel
-//    - Flow gaat direct verder (geen UI-wacht)
-// -----------------------------------------------------------
-document.addEventListener("click", async (e) => {
-  if (!e.target || !e.target.matches("#submit-long-form")) return;
-  e.preventDefault();
-  e.stopPropagation();
-  e.stopImmediatePropagation();
-
-  const form = document.getElementById("long-form");
-  if (!form) return;
-
-  const fields = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
-  const invalid = fields.filter(id => !document.getElementById(id)?.value.trim());
-  if (invalid.length) {
-    alert("Vul alle verplichte velden in.");
-    return;
-  }
-
-  // 💾 Cache waarden
-  fields.forEach(id => {
-    const v = document.getElementById(id)?.value.trim() || "";
-    if (v) sessionStorage.setItem(id, v);
-  });
-
-  const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-  if (!pending.length) {
-    console.warn("⚠️ Geen longform campagnes om te versturen");
     document.dispatchEvent(new Event("longFormSubmitted"));
-    return;
-  }
-
-  // 🌍 IP ophalen (zonder blokkeren)
-  if (typeof getIpOnce === "function") getIpOnce();
-
-  // 🚀 Fire-and-forget verzending
-  (async () => {
-    try {
-      await Promise.allSettled(pending.map(async camp => {
-        const coregAns = sessionStorage.getItem(`f_2014_coreg_answer_${camp.cid}`);
-        const dropdownAns = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${camp.cid}`);
-        const payload = await buildPayload({
-          cid: camp.cid,
-          sid: camp.sid,
-          f_2014_coreg_answer: coregAns || undefined,
-          f_2575_coreg_answer_dropdown: dropdownAns || undefined
-        });
-        return window.fetchLead(payload);
-      }));
-      console.log("✅ Longform leads verzonden (async)");
-      sessionStorage.removeItem("longFormCampaigns");
-    } catch (err) {
-      console.error("❌ Fout bij longform (async):", err);
-    }
-  })();
-
-  // 🎯 Flow direct verder
-  document.dispatchEvent(new Event("longFormSubmitted"));
-  console.log("➡️ Flow direct vervolgd (longform fire-and-forget)");
-});
+    log("➡️ Flow direct vervolgd (longform fire-and-forget)");
+  });
 
   // -----------------------------------------------------------
   // 🔹 Sponsor akkoord
@@ -342,32 +325,7 @@ document.addEventListener("click", async (e) => {
     if (!acceptBtn) return;
     acceptBtn.addEventListener("click", () => {
       sessionStorage.setItem("sponsorsAccepted", "true");
-      console.log("✅ Sponsors akkoord");
+      log("✅ Sponsors akkoord");
     });
   });
-}
-
-// =============================================================
-// ✅ coregRenderer.js FIX — bouw payload altijd met geldige CID/SID
-// =============================================================
-function buildCoregPayload(campaign, answerValue) {
-  console.log("🧩 buildCoregPayload →", campaign.title, answerValue);
-
-  // ⛑️ FIX: filter lege of “undefined” strings uit dataset
-  if (answerValue?.cid === "undefined" || !answerValue?.cid) answerValue.cid = campaign.cid;
-  if (answerValue?.sid === "undefined" || !answerValue?.sid) answerValue.sid = campaign.sid;
-
-  const cid = answerValue.cid;
-  const sid = answerValue.sid;
-  const coregAnswer = answerValue.answer_value || answerValue || "";
-
-  // Bewaar in sessionStorage
-  sessionStorage.setItem(`f_2014_coreg_answer_${cid}`, coregAnswer);
-
-  const payload = window.buildPayload({
-    cid,
-    sid,
-    f_2014_coreg_answer: coregAnswer
-  });
-  return payload;
 }
