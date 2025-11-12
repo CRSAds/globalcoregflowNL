@@ -1,47 +1,24 @@
 // =============================================================
-// ✅ /api/lead.js — stabiele versie met juiste Databowl mapping + optindate
+// ✅ /api/lead.js — met automatische cap-detectie & tijdelijke pauze
 // =============================================================
 import querystring from "querystring";
 
 export default async function handler(req, res) {
   // ✅ Universele CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control');
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cache-Control, Authorization");
 
-  // ✅ Preflight (OPTIONS) meteen afsluiten
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // ✅ Alleen POST requests toestaan
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ success: false, message: "Method Not Allowed" });
 
   try {
     const body = req.body || {};
     const {
-      cid,
-      sid,
-      firstname,
-      lastname,
-      email,
-      gender,
-      dob,
-      postcode,
-      straat,
-      huisnummer,
-      woonplaats,
-      telefoon,
-      is_shortform,
-      f_2014_coreg_answer,
-      f_2575_coreg_answer_dropdown,
-      f_1453_campagne_url,
-      t_id,
-      offer_id,
-      aff_id,
-      sub_id
+      cid, sid, firstname, lastname, email, gender, dob,
+      postcode, straat, huisnummer, woonplaats, telefoon,
+      is_shortform, f_2014_coreg_answer, f_2575_coreg_answer_dropdown,
+      f_1453_campagne_url, t_id, offer_id, aff_id, sub_id
     } = body;
 
     // ===== Detecteer shortform lead
@@ -69,8 +46,8 @@ export default async function handler(req, res) {
     if (sub_id) params.set("f_1684_sub_id", sub_id);
     if (body.f_17_ipaddress) params.set("f_17_ipaddress", body.f_17_ipaddress);
 
-    // ✅ Optindate toevoegen (van client of fallback server)
-    const optindate = body.f_55_optindate || new Date().toISOString().split('.')[0] + '+0000';
+    // ✅ Optindate toevoegen
+    const optindate = body.f_55_optindate || new Date().toISOString().split(".")[0] + "+0000";
     params.set("f_55_optindate", optindate);
 
     // ===== Alleen longformvelden bij longform leads
@@ -83,12 +60,8 @@ export default async function handler(req, res) {
     }
 
     // ===== Coreg antwoorden
-    if (f_2014_coreg_answer?.trim()) {
-      params.set("f_2014_coreg_answer", f_2014_coreg_answer.trim());
-    }
-    if (f_2575_coreg_answer_dropdown?.trim()) {
-      params.set("f_2575_coreg_answer_dropdown", f_2575_coreg_answer_dropdown.trim());
-    }
+    if (f_2014_coreg_answer?.trim()) params.set("f_2014_coreg_answer", f_2014_coreg_answer.trim());
+    if (f_2575_coreg_answer_dropdown?.trim()) params.set("f_2575_coreg_answer_dropdown", f_2575_coreg_answer_dropdown.trim());
 
     // ===== Databowl endpoint
     const databowlUrl = "https://crsadvertising.databowl.com/api/v1/lead";
@@ -101,7 +74,53 @@ export default async function handler(req, res) {
     });
 
     const text = await resp.text();
+    const json = JSON.parse(text || "{}");
 
+    // ===== Check op foutmeldingen van Databowl
+    if (json?.error?.msg === "TOTAL_CAP_REACHED") {
+      console.warn(`⚠️ CAP REACHED for campaign cid=${cid}, sid=${sid}`);
+
+      // 🕐 Pauzeer tot volgende dag 00:00 UTC
+      const tomorrow = new Date();
+      tomorrow.setUTCHours(0, 0, 0, 0);
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+      const updateData = JSON.stringify({
+        data: { is_live: false, paused_until: tomorrow.toISOString() },
+        filter: { cid: { _eq: cid }, sid: { _eq: sid } }
+      });
+
+      try {
+        await fetch(`${process.env.DIRECTUS_URL}/items/coreg_campaigns`, {
+          method: "PATCH",
+          headers: {
+            "Authorization": `Bearer ${process.env.DIRECTUS_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: updateData
+        });
+
+        await fetch(`${process.env.DIRECTUS_URL}/items/co_sponsors`, {
+          method: "PATCH",
+          headers: {
+            "Authorization": `Bearer ${process.env.DIRECTUS_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: updateData
+        });
+
+        console.log(`🚫 Campaign paused until ${tomorrow.toISOString()}`);
+      } catch (e) {
+        console.error("❌ Failed to pause campaign:", e);
+      }
+
+      return res.status(200).json({
+        success: false,
+        message: "Campaign cap reached — temporarily paused"
+      });
+    }
+
+    // ===== Normale foutafhandeling
     if (!resp.ok) {
       console.error("❌ Databowl error:", text);
       return res.status(resp.status).json({ success: false, error: text });
@@ -109,7 +128,6 @@ export default async function handler(req, res) {
 
     console.log("✅ Lead succesvol naar Databowl:", text);
     res.status(200).json({ success: true, response: text });
-
   } catch (err) {
     console.error("💥 Lead API fout:", err);
     res.status(500).json({ success: false, error: err.message });
