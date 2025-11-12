@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ /api/lead.js — met automatische cap-detectie & tijdelijke pauze
+// ✅ /api/lead.js — automatische cap-detectie & tijdelijke pauze (werkende PATCH)
 // =============================================================
 import querystring from "querystring";
 
@@ -85,38 +85,54 @@ export default async function handler(req, res) {
       tomorrow.setUTCHours(0, 0, 0, 0);
       tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
 
-      const updateData = JSON.stringify({
-        data: { is_live: false, paused_until: tomorrow.toISOString() },
-        filter: { cid: { _eq: cid }, sid: { _eq: sid } }
-      });
+      // 🔍 Functie om één collectie bij te werken
+      async function pauseInCollection(collection) {
+        try {
+          const findRes = await fetch(
+            `${process.env.DIRECTUS_URL}/items/${collection}?filter[cid][_eq]=${cid}&filter[sid][_eq]=${sid}&fields=id,is_live`,
+            {
+              headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` }
+            }
+          );
+          const findJson = await findRes.json();
+          const item = findJson.data?.[0];
 
-      try {
-        await fetch(`${process.env.DIRECTUS_URL}/items/coreg_campaigns`, {
-          method: "PATCH",
-          headers: {
-            "Authorization": `Bearer ${process.env.DIRECTUS_TOKEN}`,
-            "Content-Type": "application/json"
-          },
-          body: updateData
-        });
+          if (!item) {
+            console.warn(`⚠️ Geen item gevonden in ${collection} voor cid=${cid}`);
+            return;
+          }
 
-        await fetch(`${process.env.DIRECTUS_URL}/items/co_sponsors`, {
-          method: "PATCH",
-          headers: {
-            "Authorization": `Bearer ${process.env.DIRECTUS_TOKEN}`,
-            "Content-Type": "application/json"
-          },
-          body: updateData
-        });
+          // 🧩 PATCH met specifiek ID
+          const patchRes = await fetch(`${process.env.DIRECTUS_URL}/items/${collection}/${item.id}`, {
+            method: "PATCH",
+            headers: {
+              "Authorization": `Bearer ${process.env.DIRECTUS_TOKEN}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              is_live: false,
+              paused_until: tomorrow.toISOString()
+            })
+          });
 
-        console.log(`🚫 Campaign paused until ${tomorrow.toISOString()}`);
-      } catch (e) {
-        console.error("❌ Failed to pause campaign:", e);
+          if (!patchRes.ok) {
+            const errText = await patchRes.text();
+            console.error(`❌ PATCH-fout in ${collection}:`, errText);
+          } else {
+            console.log(`🚫 ${collection} ${item.id} gepauzeerd tot ${tomorrow.toISOString()}`);
+          }
+        } catch (err) {
+          console.error(`❌ Pauzeren mislukt voor ${collection}:`, err);
+        }
       }
+
+      // 🔁 Beide collecties bijwerken
+      await pauseInCollection("coreg_campaigns");
+      await pauseInCollection("co_sponsors");
 
       return res.status(200).json({
         success: false,
-        message: "Campaign cap reached — temporarily paused"
+        message: `Campaign ${cid} paused until ${tomorrow.toISOString()}`
       });
     }
 
