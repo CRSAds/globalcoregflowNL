@@ -267,35 +267,68 @@ async function buildPayload(campaign = {}) {
   // -----------------------------------------------------------
   // 🔹 Longform — volledig async
   // -----------------------------------------------------------
-  document.addEventListener("click", async (e) => {
-    if (!e.target || !e.target.matches("#submit-long-form")) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
+document.addEventListener("click", async (e) => {
+  if (!e.target || !e.target.matches("#submit-long-form")) return;
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
 
-    const form = document.getElementById("long-form");
-    if (!form) return;
+  const form = document.getElementById("long-form");
+  if (!form) return;
 
-    const fields = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
-    const invalid = fields.filter(id => !document.getElementById(id)?.value.trim());
-    if (invalid.length) {
-      alert("Vul alle verplichte velden in.");
-      return;
-    }
+  const fields = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
+  const invalid = fields.filter(id => !document.getElementById(id)?.value.trim());
+  if (invalid.length) {
+    alert("Vul alle verplichte velden in.");
+    return;
+  }
 
-    fields.forEach(id => {
-      const v = document.getElementById(id)?.value.trim() || "";
-      if (v) sessionStorage.setItem(id, v);
+  // ----------------------------------------------------
+  // ✅ SERVER-SIDE ADRESVALIDATIE via /api/validateAddressNL
+  // ----------------------------------------------------
+  const pc = document.getElementById("postcode").value.replace(/\s+/g, "");
+  const hn = document.getElementById("huisnummer").value.trim();
+
+  try {
+    const r = await fetch("/api/validateAddressNL", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postcode: pc, huisnummer: hn })
     });
 
-    const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-    if (!pending.length) {
-      warn("⚠️ Geen longform campagnes om te versturen");
-      document.dispatchEvent(new Event("longFormSubmitted"));
-      return;
+    const data = await r.json();
+
+    if (!data.valid) {
+      alert("Adres niet gevonden. Controleer uw postcode en huisnummer.");
+      return; // ❌ Blokkeer longform
     }
 
-    if (typeof getIpOnce === "function") getIpOnce();
+    // Automatische aanvulling (alleen invullen als leeg)
+    if (data.street && !document.getElementById("straat").value)
+      document.getElementById("straat").value = data.street;
+
+    if (data.city && !document.getElementById("woonplaats").value)
+      document.getElementById("woonplaats").value = data.city;
+
+  } catch (err) {
+    alert("Adresvalidatie niet mogelijk. Probeer opnieuw.");
+    return;
+  }
+  // ----------------------------------------------------
+
+  fields.forEach(id => {
+    const v = document.getElementById(id)?.value.trim() || "";
+    if (v) sessionStorage.setItem(id, v);
+  });
+
+  const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+  if (!pending.length) {
+    warn("⚠️ Geen longform campagnes om te versturen");
+    document.dispatchEvent(new Event("longFormSubmitted"));
+    return;
+  }
+
+  if (typeof getIpOnce === "function") getIpOnce();
 
     (async () => {
       try {
