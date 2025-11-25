@@ -290,7 +290,7 @@ document.addEventListener("click", async (e) => {
   const hn = document.getElementById("huisnummer").value.trim();
 
   try {
-    const r = await fetch("/api/validateAddressNL", {
+    const r = await fetch("/api/validateAddressNL.js", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ postcode: pc, huisnummer: hn })
