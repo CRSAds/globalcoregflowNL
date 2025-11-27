@@ -13,14 +13,13 @@ export default async function handler(req, res) {
       "Content-Type": "application/json"
     };
 
+    // ⚠️ GEEN data wrapper!
     const body = JSON.stringify({
-      data: {
-        is_live: true,
-        paused_until: null
-      }
+      is_live: true,
+      paused_until: null
     });
 
-    // === coreg_campaigns ===
+    // coreg_campaigns
     const r1 = await fetch(
       `${process.env.DIRECTUS_URL}/items/coreg_campaigns?filter[paused_until][_lte]=${now}`,
       {
@@ -30,7 +29,7 @@ export default async function handler(req, res) {
       }
     );
 
-    // === co_sponsors ===
+    // co_sponsors
     const r2 = await fetch(
       `${process.env.DIRECTUS_URL}/items/co_sponsors?filter[paused_until][_lte]=${now}`,
       {
@@ -39,8 +38,6 @@ export default async function handler(req, res) {
         body
       }
     );
-
-    console.log("✅ Reactivation check complete");
 
     return res.status(200).json({
       success: true,
