@@ -248,6 +248,7 @@ async function buildPayload(campaign = {}) {
           }
         })();
 
+        sessionStorage.setItem("shortFormCompleted", "true");
         document.dispatchEvent(new Event("shortFormSubmitted"));
         log("➡️ Flow direct vervolgd (fire-and-forget)");
       } catch (err) {
