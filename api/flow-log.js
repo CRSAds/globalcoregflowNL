@@ -1,22 +1,22 @@
 // /api/flow-log.js
 //
-// Versimpelde flow logging:
-// - Alleen 7 events
-// - Alleen t_id, offer_id, aff_id, sub_id, event, ts
-// - ts in seconden
-// - Maximaal betrouwbaar en clean
+// Simpele flow logging:
+//
+// - events (bijv. section_shortform_visible, ivr_called, flow_landed)
+// - ts (UNIX seconds)
+// - t_id, offer_id, aff_id, sub_id uit de URL
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL;
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
-const COLLECTION = "flow_logs";
+const FLOW_COLLECTION = process.env.DIRECTUS_FLOW_COLLECTION || "flow_logs";
 
-// -------------------------
+// -------------------------------------------------
 // Helpers
-// -------------------------
+// -------------------------------------------------
 function toSeconds(ts) {
   const n = Number(ts);
   if (!Number.isFinite(n)) return Math.floor(Date.now() / 1000);
-  return n > 2_000_000_000 ? Math.floor(n / 1000) : n;
+  return n > 2_000_000_000 ? Math.floor(n / 1000) : Math.floor(n);
 }
 
 function extractParams(url) {
@@ -27,21 +27,23 @@ function extractParams(url) {
       t_id: p.get("t_id") || null,
       offer_id: p.get("offer_id") || null,
       aff_id: p.get("aff_id") || null,
-      sub_id: p.get("sub_id") || null
+      sub_id: p.get("sub_id") || null,
     };
   } catch {
-    return {};
+    return {
+      t_id: null,
+      offer_id: null,
+      aff_id: null,
+      sub_id: null,
+    };
   }
 }
 
-// -------------------------
-// Directus save
-// -------------------------
 async function saveToDirectus(entry) {
   if (!DIRECTUS_URL || !DIRECTUS_TOKEN) return;
 
   try {
-    await fetch(`${DIRECTUS_URL}/items/${COLLECTION}`, {
+    const res = await fetch(`${DIRECTUS_URL}/items/${FLOW_COLLECTION}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -49,61 +51,75 @@ async function saveToDirectus(entry) {
       },
       body: JSON.stringify(entry),
     });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.warn("⚠️ Directus flow-log store failed:", res.status, text);
+    }
   } catch (err) {
     console.error("❌ Directus store error:", err);
   }
 }
 
-// -------------------------
+// -------------------------------------------------
 // Handler
-// -------------------------
+// -------------------------------------------------
 export default async function handler(req, res) {
-
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
 
-  // POST — store log
+  // POST: log opslaan
   if (req.method === "POST") {
     let body = req.body || {};
     if (typeof body === "string") {
-      try { body = JSON.parse(body); } catch { body = {}; }
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = {};
+      }
     }
 
     const tsRaw = body.ts || Date.now();
     const ts = toSeconds(tsRaw);
-    const { t_id, offer_id, aff_id, sub_id } = extractParams(body.url || "");
 
-    const final = {
+    const url = body.url || "";
+    const { t_id, offer_id, aff_id, sub_id } = extractParams(url);
+
+    const entry = {
       event: body.event || "unknown",
       ts,
       t_id,
       offer_id,
       aff_id,
-      sub_id
+      sub_id,
     };
 
-    console.log("📊 FLOW LOG:", final);
-    saveToDirectus(final);
+    console.log("📊 FLOW LOG:", entry);
+    saveToDirectus(entry).catch(() => {});
 
     return res.status(200).json({ ok: true });
   }
 
-  // GET — stats
+  // GET: kleine beschrijving / sanity check
   if (req.method === "GET") {
     return res.status(200).json({
       ok: true,
+      description: "Flow log endpoint",
       events: [
         "flow_landed",
-        "flow_shortform_submitted",
-        "flow_coreg_shown",
-        "flow_longform_shown",
-        "flow_ivr_shown",
-        "flow_ivr_called",
-        "flow_sovendus_shown",
-      ]
+        "shortform_submitted",
+        "section_shortform_visible",
+        "section_coreg_visible",
+        "section_longform_visible",
+        "section_ivr_visible",
+        "section_sovendus_visible",
+        "ivr_called",
+      ],
     });
   }
 
