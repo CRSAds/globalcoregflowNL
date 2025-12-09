@@ -2,8 +2,20 @@
 (function () {
   console.log("🧩 swipe-body.js gestart");
 
+  // 🔎 Performance marker — script start
+  if (performance && performance.mark) {
+    performance.mark("swipe-body:start");
+  }
+
   // === Loader-stijl + structuur ===
   document.addEventListener("DOMContentLoaded", () => {
+
+    // 🔎 Start loader visible timer
+    console.time?.("loader_visible");
+    if (performance && performance.mark) {
+      performance.mark("loader:created");
+    }
+
     if (!document.getElementById("page-loader")) {
       const loader = document.createElement("div");
       loader.id = "page-loader";
@@ -42,9 +54,20 @@
   // === Loader verbergen na visuals of fallback ===
   (function () {
     let done = false;
+
     function hideLoader() {
       if (done) return;
       done = true;
+
+      // 🔎 Loader timing stoppen
+      console.timeEnd?.("loader_visible");
+      if (performance && performance.mark) {
+        performance.mark("loader:hidden");
+        try {
+          performance.measure("loader:duration", "loader:created", "loader:hidden");
+        } catch (e) {}
+      }
+
       const loader = document.getElementById("page-loader");
       if (loader) {
         loader.classList.add("fade-out");
@@ -114,12 +137,12 @@
     console.log("✅ Fontstijlen toegepast vanuit style-settings");
   });
 
-    // === 🎨 Campagnekleur: vaste fallback (geen detectie meer) ===
-window.addEventListener("load", () => {
-  const fallback = "#14B670"; // standaard groene campagnetint
-  document.documentElement.style.setProperty("--campaign-primary", fallback);
-  console.log("🎨 Campagnekleur standaard ingesteld:", fallback);
-});
+  // === 🎨 Campagnekleur: vaste fallback (geen detectie meer) ===
+  window.addEventListener("load", () => {
+    const fallback = "#14B670"; // standaard groene campagnetint
+    document.documentElement.style.setProperty("--campaign-primary", fallback);
+    console.log("🎨 Campagnekleur standaard ingesteld:", fallback);
+  });
 
   // === Master background (zelfde logica behouden) ===
   document.addEventListener("DOMContentLoaded", () => {
@@ -134,4 +157,40 @@ window.addEventListener("load", () => {
       section.style.backgroundRepeat = "no-repeat";
     });
   });
+
+  // === Real User Monitoring (RUM) ===
+  (function () {
+    let sent = false;
+
+    function sendPerfLog() {
+      if (sent) return;
+      sent = true;
+
+      const loaderMeasure = performance.getEntriesByName("loader:duration")[0];
+      const initFlowMeasure = performance.getEntriesByName("initFlow:time-to-first-section")[0];
+
+      const payload = {
+        ts: Date.now(),
+        url: location.href,
+        userAgent: navigator.userAgent,
+        loaderVisible: loaderMeasure ? Math.round(loaderMeasure.duration) : null,
+        initFirstSection: initFlowMeasure ? Math.round(initFlowMeasure.duration) : null,
+      };
+
+      fetch("/api/perf-log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    }
+
+    // Versturen zodra coreg gestart
+    window.addEventListener("coreg-started", sendPerfLog);
+
+    // Extra fallback: na 4 seconden na window load
+    window.addEventListener("load", () => setTimeout(sendPerfLog, 4000));
+  })();
+
 })();
