@@ -9,6 +9,23 @@ const DIRECTUS_URL = process.env.DIRECTUS_URL;
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
 const FLOW_COLLECTION = process.env.DIRECTUS_FLOW_COLLECTION || "flow_logs";
 
+// 🔧 Helper: ts normaliseren naar seconden (Unix time) i.p.v. milliseconden
+function normalizeTs(inputTs) {
+  let ts = inputTs;
+
+  if (typeof ts !== "number" || !Number.isFinite(ts)) {
+    ts = Date.now();
+  }
+
+  // Als het > 2.000.000.000.000 is, is het vrijwel zeker ms → naar seconden
+  if (ts > 2_000_000_000_000) {
+    ts = Math.floor(ts / 1000);
+  }
+
+  // Veiligheid: afronden naar integer
+  return Math.floor(ts);
+}
+
 async function storeInDirectus(payload) {
   if (!DIRECTUS_URL || !DIRECTUS_TOKEN) {
     console.warn("⚠️ Directus credentials ontbreken, sla logs alleen in Vercel op");
@@ -26,12 +43,12 @@ async function storeInDirectus(payload) {
         },
         body: JSON.stringify({
           event: payload.event || null,
-          ts: payload.ts || Date.now(),
+          ts: normalizeTs(payload.ts),          // ✅ nu altijd veilige Unix seconden
           url: payload.url || null,
           ua: payload.ua || null,
           sectionId: payload.sectionId || null,
           classList: payload.classList || null,
-          data: payload.data || null, // overige velden als JSON
+          data: payload.data || null,          // overige velden als JSON (incl. ts_ms)
         }),
       }
     );
@@ -72,7 +89,7 @@ export default async function handler(req, res) {
 
       const {
         event,
-        ts = Date.now(),
+        ts,
         url,
         ua,
         sectionId,
@@ -80,20 +97,26 @@ export default async function handler(req, res) {
         ...rest
       } = payload;
 
+      const tsMs = typeof ts === "number" ? ts : Date.now();
+      const tsSafe = normalizeTs(tsMs);
+
       const logEntry = {
         event: event || "unknown",
-        ts,
+        ts: tsSafe,                 // ✅ veilige integer voor Directus
         url,
         ua,
         sectionId,
         classList,
-        data: rest,
+        // in data stoppen we o.a. de originele ms-timestamp
+        data: {
+          ts_ms: tsMs,
+          ...rest,
+        },
       };
 
       console.log("📊 FLOW LOG:", logEntry);
 
       // Probeer op te slaan in Directus (zonder de request te blokkeren)
-      // Niet awaited, maar als je wél wilt wachten kun je await toevoegen.
       storeInDirectus(logEntry).catch(() => {});
 
       return res.status(200).json({ ok: true });
