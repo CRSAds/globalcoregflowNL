@@ -79,7 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
 // 🚀 Hoofdinit — flow controller
 // =============================================================
 function initFlowLite() {
-  sendFlowLog("flow_start");
 
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status") || "online";
