@@ -58,6 +58,9 @@ document.addEventListener("DOMContentLoaded", () => {
 function initFlowLite() {
   flowLog("InitFlow gestart");
 
+  // 🔎 RUM: coreg/flow is officieel gestart
+  window.dispatchEvent(new Event("coreg-started"));
+
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status") || "online";
 
