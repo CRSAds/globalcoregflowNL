@@ -17,8 +17,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const status = params.get("status");
 
   if (status !== "online" && status !== "live") {
-
-    // Verborgen output tonen we niet in productie → enkel error screen renderen
     document.querySelectorAll("section, footer, .sp-section, #dynamic-footer")
       .forEach(el => el.style.display = "none");
 
@@ -61,6 +59,12 @@ function initFlowLite() {
   // 🔎 RUM: coreg/flow is officieel gestart
   window.dispatchEvent(new Event("coreg-started"));
 
+  // 🔎 Performance marker voor time-to-first-section
+  console.time?.("initFlow:first-section");
+  if (performance && performance.mark) {
+    performance.mark("initFlow:start");
+  }
+
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status") || "online";
 
@@ -77,6 +81,19 @@ function initFlowLite() {
   if (firstVisible) {
     firstVisible.style.display = "block";
     reloadImages(firstVisible);
+
+    // 🔎 Time-to-first-section afronden
+    console.timeEnd?.("initFlow:first-section");
+    if (performance && performance.mark) {
+      performance.mark("initFlow:first-section-visible");
+      try {
+        performance.measure(
+          "initFlow:time-to-first-section",
+          "initFlow:start",
+          "initFlow:first-section-visible"
+        );
+      } catch (e) {}
+    }
   }
 
   // 3️⃣ Footer logica
