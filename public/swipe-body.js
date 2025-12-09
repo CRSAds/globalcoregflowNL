@@ -193,7 +193,7 @@
       let loaderVisible = null;
       let initFirstSection = null;
 
-      // Prefer waarden die we zelf in window hebben gezet
+      // 1️⃣ Loader-duur uit eigen variabele of Performance API
       if (typeof window.__loaderVisibleMs === "number") {
         loaderVisible = window.__loaderVisibleMs;
       } else if (typeof performance !== "undefined" && performance.getEntriesByName) {
@@ -201,6 +201,7 @@
         if (loaderMeasure) loaderVisible = Math.round(loaderMeasure.duration);
       }
 
+      // 2️⃣ Time-to-first-section uit eigen variabele of Performance API
       if (typeof window.__initFirstSectionMs === "number") {
         initFirstSection = window.__initFirstSectionMs;
       } else if (typeof performance !== "undefined" && performance.getEntriesByName) {
@@ -214,7 +215,7 @@
         userAgent: navigator.userAgent,
         loaderVisible,
         initFirstSection,
-        measures: [] // gereserveerd voor extra metrics later
+        measures: []
       };
 
       fetch("https://globalcoregflow-nl.vercel.app/api/perf-log.js", {
@@ -226,10 +227,11 @@
       }).catch(() => {});
     }
 
-    // Versturen zodra coreg/flow gestart is
-    window.addEventListener("coreg-started", sendPerfLog);
-    // Extra fallback: na 4 seconden na window load
-    window.addEventListener("load", () => setTimeout(sendPerfLog, 4000));
+    // ❗ Alleen na volledige pageload loggen, zodat alle timings gezet zijn
+    window.addEventListener("load", () => {
+      // kleine delay zodat hideLoader + initFlow klaar zijn
+      setTimeout(sendPerfLog, 4000);
+    });
   })();
 
 })();
