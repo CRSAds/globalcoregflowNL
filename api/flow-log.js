@@ -1,13 +1,13 @@
 // /api/flow-log.js
 //
 // Flow logging → Supabase REST + Directus
-// - Supabase zonder SDK (100% Vercel safe)
-// - Alleen bestaande kolommen gebruiken
-// - Directus blijft optioneel
-// - Geen “flow_start” nodig
+// - Supabase zonder SDK (REST)
+// - Schrijft naar tabel public.flow_logs
+// - Kolommen: ts, event, t_id, offer_id, aff_id, sub_id, template, url, ua
+// - Directus blijft optioneel voor uitgebreide logs
 
 // ---------- ENV ----------
-const SUPABASE_URL = process.env.SUPABASE_URL; 
+const SUPABASE_URL = process.env.SUPABASE_URL; // bv: https://xxxx.supabase.co
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_FLOW_TABLE = process.env.SUPABASE_FLOW_TABLE || "flow_logs";
 
@@ -15,11 +15,11 @@ const DIRECTUS_URL = process.env.DIRECTUS_URL;
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
 const DIRECTUS_COLLECTION = process.env.DIRECTUS_FLOW_COLLECTION || "flow_logs";
 
-
 // ---------- HELPERS ----------
 function toSeconds(ts) {
   const n = Number(ts);
   if (!Number.isFinite(n)) return Math.floor(Date.now() / 1000);
+  // als het een millis timestamp is → delen door 1000
   return n > 2_000_000_000 ? Math.floor(n / 1000) : Math.floor(n);
 }
 
@@ -27,7 +27,6 @@ function extractParams(url) {
   try {
     const u = new URL(url);
     const p = u.searchParams;
-
     return {
       t_id: p.get("t_id") || null,
       offer_id: p.get("offer_id") || null,
@@ -39,10 +38,12 @@ function extractParams(url) {
   }
 }
 
-
 // ---------- SUPABASE WRITE ----------
 async function saveToSupabase(entry) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return;
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn("⚠️ Supabase env niet gezet, slaan niets op in Supabase");
+    return;
+  }
 
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_FLOW_TABLE}`, {
@@ -51,9 +52,9 @@ async function saveToSupabase(entry) {
         "Content-Type": "application/json",
         apikey: SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        Prefer: "return=minimal"
+        Prefer: "return=minimal",
       },
-      body: JSON.stringify(entry)
+      body: JSON.stringify(entry),
     });
 
     if (!res.ok) {
@@ -63,7 +64,6 @@ async function saveToSupabase(entry) {
     console.error("❌ Supabase store error:", err);
   }
 }
-
 
 // ---------- DIRECTUS WRITE ----------
 async function saveToDirectus(entry) {
@@ -83,10 +83,9 @@ async function saveToDirectus(entry) {
       console.warn("⚠️ Directus error:", res.status, await res.text());
     }
   } catch (err) {
-    console.error("❌ Directus store error:", err);
+    console.error("❌ Directus error:", err);
   }
 }
-
 
 // ---------- HANDLER ----------
 export default async function handler(req, res) {
@@ -96,61 +95,53 @@ export default async function handler(req, res) {
 
   if (req.method === "OPTIONS") return res.status(200).end();
 
-
-  // ---------- WRITE ----------
+  // POST: log schrijven
   if (req.method === "POST") {
     let body = req.body;
     if (typeof body === "string") {
-      try { body = JSON.parse(body); } catch { body = {}; }
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = {};
+      }
     }
 
     const ts = toSeconds(body.ts || Date.now());
     const url = body.url || "";
-    const params = extractParams(url);
+    const { t_id, offer_id, aff_id, sub_id } = extractParams(url);
 
-    // ❗ Alleen kolommen die bestaan in Supabase
+    // Volledige entry — matcht jouw Supabase-kolommen
     const entry = {
       ts,
       event: body.event || "unknown",
-      t_id: params.t_id,
-      offer_id: params.offer_id,
-      aff_id: params.aff_id,
-      sub_id: params.sub_id,
-      // overige velden alleen voor Directus:
+      t_id,
+      offer_id,
+      aff_id,
+      sub_id,
       template: body.template || null,
-      url
+      url,
+      ua: body.ua || null,
     };
 
     console.log("📊 FLOW LOG ENTRY:", entry);
 
-    // Supabase (fire & forget)
-    saveToSupabase({
-      ts: entry.ts,
-      event: entry.event,
-      t_id: entry.t_id,
-      offer_id: entry.offer_id,
-      aff_id: entry.aff_id,
-      sub_id: entry.sub_id
-    }).catch(() => {});
+    // Supabase: alleen de kolommen die daar bestaan (allemaal dus)
+    saveToSupabase(entry).catch(() => {});
 
-    // Directus (fire & forget)
+    // Directus: zelfde entry
     saveToDirectus(entry).catch(() => {});
 
     return res.status(200).json({ ok: true });
   }
 
-
-  // ---------- GET INFO ----------
+  // GET: simpele sanity check
   if (req.method === "GET") {
     return res.status(200).json({
       ok: true,
-      mode: "Supabase + Directus",
-      supabaseTable: SUPABASE_FLOW_TABLE,
-      directusCollection: DIRECTUS_COLLECTION
+      info: "Supabase + Directus flow logger",
+      table: SUPABASE_FLOW_TABLE,
     });
   }
 
-
-  // ---------- INVALID ----------
   return res.status(405).json({ error: "Method not allowed" });
 }
