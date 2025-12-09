@@ -1,176 +1,128 @@
 // /api/flow-log.js
 //
-// Centrale flow-logging endpoint voor ALLE templates
-// - Ontvangt logs van front-end (flow_section_visible, flow_start, enz.)
-// - Logt naar Vercel logs
-// - Probeert logs op te slaan in Directus (collectie: flow_logs)
+// Centrale flow-logging endpoint voor alle templates
+// - Slaat logs op in Directus (met ts in SECONDEN i.p.v. ms)
+// - Stuurt volledige ms naar data.ts_ms voor debugging
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL;
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
 const FLOW_COLLECTION = process.env.DIRECTUS_FLOW_COLLECTION || "flow_logs";
 
-// 🔧 Helper: ts normaliseren naar seconden (Unix time) i.p.v. milliseconden
-function normalizeTs(inputTs) {
-  let ts = inputTs;
+// -------------------------
+// 🔧 Timestamp normalizer
+// -------------------------
+function toSeconds(ts) {
+  const n = Number(ts);
+  if (!Number.isFinite(n)) return Math.floor(Date.now() / 1000);
 
-  if (typeof ts !== "number" || !Number.isFinite(ts)) {
-    ts = Date.now();
-  }
+  // Als groter dan 2 miljard → is ms → converteren
+  if (n > 2_000_000_000) return Math.floor(n / 1000);
 
-  // Als het > 2.000.000.000.000 is, is het vrijwel zeker ms → naar seconden
-  if (ts > 2_000_000_000_000) {
-    ts = Math.floor(ts / 1000);
-  }
-
-  // Veiligheid: afronden naar integer
-  return Math.floor(ts);
+  // Al in seconds
+  return Math.floor(n);
 }
 
-async function storeInDirectus(payload) {
-  if (!DIRECTUS_URL || !DIRECTUS_TOKEN) {
-    console.warn("⚠️ Directus credentials ontbreken, sla logs alleen in Vercel op");
-    return;
-  }
+// -------------------------
+// 📩 Opslaan in Directus
+// -------------------------
+async function store(entry) {
+  if (!DIRECTUS_URL || !DIRECTUS_TOKEN) return;
 
   try {
-    const res = await fetch(
-      `${DIRECTUS_URL}/items/${FLOW_COLLECTION}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${DIRECTUS_TOKEN}`,
-        },
-        body: JSON.stringify({
-          event: payload.event || null,
-          ts: normalizeTs(payload.ts),          // ✅ nu altijd veilige Unix seconden
-          url: payload.url || null,
-          ua: payload.ua || null,
-          sectionId: payload.sectionId || null,
-          classList: payload.classList || null,
-          data: payload.data || null,          // overige velden als JSON (incl. ts_ms)
-        }),
-      }
-    );
+    const res = await fetch(`${DIRECTUS_URL}/items/${FLOW_COLLECTION}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${DIRECTUS_TOKEN}`,
+      },
+      body: JSON.stringify(entry),
+    });
 
     if (!res.ok) {
-      const text = await res.text();
-      console.warn("⚠️ Directus flow-log store failed:", res.status, text);
+      console.warn("⚠️ Directus flow-log store failed:", res.status, await res.text());
     }
   } catch (err) {
-    console.error("❌ Fout bij opslaan flow-log in Directus:", err);
+    console.error("❌ Directus store error:", err);
   }
 }
 
+// -------------------------
+// 🌐 API handler
+// -------------------------
 export default async function handler(req, res) {
-  // --- CORS ---
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
 
+  // ----------------------------------------
+  // 🔥 POST: log ontvangen
+  // ----------------------------------------
   if (req.method === "POST") {
-    try {
-      const rawBody = req.body;
-      let payload;
+    let body = req.body;
 
-      if (typeof rawBody === "string") {
-        try {
-          payload = JSON.parse(rawBody);
-        } catch {
-          payload = {};
-        }
-      } else {
-        payload = rawBody || {};
-      }
-
-      const {
-        event,
-        ts,
-        url,
-        ua,
-        sectionId,
-        classList,
-        ...rest
-      } = payload;
-
-      const tsMs = typeof ts === "number" ? ts : Date.now();
-      const tsSafe = normalizeTs(tsMs);
-
-      const logEntry = {
-        event: event || "unknown",
-        ts: tsSafe,                 // ✅ veilige integer voor Directus
-        url,
-        ua,
-        sectionId,
-        classList,
-        // in data stoppen we o.a. de originele ms-timestamp
-        data: {
-          ts_ms: tsMs,
-          ...rest,
-        },
-      };
-
-      console.log("📊 FLOW LOG:", logEntry);
-
-      // Probeer op te slaan in Directus (zonder de request te blokkeren)
-      storeInDirectus(logEntry).catch(() => {});
-
-      return res.status(200).json({ ok: true });
-    } catch (err) {
-      console.error("❌ Fout in flow-log handler (POST):", err);
-      return res.status(500).json({ ok: false, error: err.message });
+    if (typeof body === "string") {
+      try { body = JSON.parse(body); } catch { body = {}; }
     }
+
+    const tsIncoming = body.ts || Date.now();
+    const tsSec = toSeconds(tsIncoming);
+
+    const entry = {
+      event: body.event || "unknown",
+      ts: tsSec,                        // ← ALLEEN seconden in Directus
+      url: body.url || null,
+      ua: body.ua || null,
+      sectionId: body.sectionId || null,
+      classList: body.classList || null,
+      data: {
+        ts_ms: tsIncoming,             // ← debugging, niet gebruikt door Directus
+        ...(body.data || {}),
+        template: body.template || null,
+      },
+    };
+
+    console.log("📊 FLOW LOG:", entry);
+
+    store(entry);
+
+    return res.status(200).json({ ok: true });
   }
 
-  // Klein “dashboard” JSON voor snelle checks in de browser
+  // ----------------------------------------
+  // 📊 GET: mini-dashboard voor snelle check
+  // ----------------------------------------
   if (req.method === "GET") {
     if (!DIRECTUS_URL || !DIRECTUS_TOKEN) {
       return res.status(200).json({
         ok: true,
-        note: "Geen Directus configuratie, alleen Vercel logs beschikbaar.",
+        msg: "Directus niet geconfigureerd, alleen Vercel logs beschikbaar.",
       });
     }
 
     try {
-      // Haal de laatste 1000 logs op, meest recente eerst
-      const url = `${DIRECTUS_URL}/items/${FLOW_COLLECTION}?limit=1000&sort[]=-ts`;
-      const directusRes = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${DIRECTUS_TOKEN}`,
-        },
+      const url = `${DIRECTUS_URL}/items/${FLOW_COLLECTION}?limit=500&sort[]=-ts`;
+      const res2 = await fetch(url, {
+        headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
       });
 
-      if (!directusRes.ok) {
-        const text = await directusRes.text();
-        console.warn("⚠️ Directus flow-log GET failed:", directusRes.status, text);
-        return res.status(500).json({ ok: false, error: "Directus GET failed" });
-      }
-
-      const json = await directusRes.json();
+      const json = await res2.json();
       const items = json.data || [];
 
       const summary = {
         ok: true,
         totalLogs: items.length,
         byEvent: {},
-        bySectionId: {},
       };
 
       for (const item of items) {
-        const ev = item.event || "unknown";
-        const sid = item.sectionId || "(none)";
-
-        summary.byEvent[ev] = (summary.byEvent[ev] || 0) + 1;
-        summary.bySectionId[sid] = (summary.bySectionId[sid] || 0) + 1;
+        summary.byEvent[item.event] = (summary.byEvent[item.event] || 0) + 1;
       }
 
       return res.status(200).json(summary);
     } catch (err) {
-      console.error("❌ Fout in flow-log handler (GET):", err);
+      console.error("❌ GET error:", err);
       return res.status(500).json({ ok: false, error: err.message });
     }
   }
