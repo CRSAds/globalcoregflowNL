@@ -7,6 +7,45 @@ const FLOW_DEBUG = false;
 const flowLog  = (...args) => { if (FLOW_DEBUG) console.log(...args); };
 const flowWarn = (...args) => { if (FLOW_DEBUG) console.warn(...args); };
 
+// ===== FLOW LOGGING: centraal endpoint =====
+const FLOW_LOG_ENDPOINT =
+  window.FLOW_LOG_ENDPOINT ||
+  "https://globalcoregflow-nl.vercel.app/api/flow-log.js";
+
+function sendFlowLog(event, extra = {}) {
+  try {
+    const payload = {
+      event,
+      ts: Date.now(),
+      url: window.location.href,
+      ua: navigator.userAgent,
+      ...extra,
+    };
+
+    fetch(FLOW_LOG_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (e) {
+    console.warn("Flow log failed:", e);
+  }
+}
+
+function logSectionVisible(section) {
+  if (!section) return;
+  const all = Array.from(document.querySelectorAll(".flow-section, .ivr-section"));
+  const index = all.indexOf(section);
+
+  sendFlowLog("flow_section_visible", {
+    template: "globalcoregflow",
+    sectionId: section.id || null,
+    index,
+    classList: Array.from(section.classList || []),
+  });
+}
+
 window.addEventListener("DOMContentLoaded", initFlowLite);
 
 // =============================================================
@@ -55,6 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // =============================================================
 function initFlowLite() {
   flowLog("InitFlow gestart");
+  sendFlowLog("flow_start", { template: "globalcoregflow" });
 
   // 🔎 RUM: coreg/flow is officieel gestart
   window.dispatchEvent(new Event("coreg-started"));
@@ -85,6 +125,7 @@ function initFlowLite() {
   if (firstVisible) {
     firstVisible.style.display = "block";
     reloadImages(firstVisible);
+    logSectionVisible(firstVisible);
 
     // 🔎 Time-to-first-section afronden (eigen ms + measure)
     console.timeEnd?.("initFlow:first-section");
@@ -94,6 +135,9 @@ function initFlowLite() {
       : Date.now();
     if (start !== null) {
       window.__initFirstSectionMs = Math.round(now2 - start);
+      sendFlowLog("flow_first_section_time", {
+        ms: window.__initFirstSectionMs,
+      });
     }
 
     if (typeof performance !== "undefined" && performance.mark) {
@@ -151,6 +195,7 @@ function initFlowLite() {
       if (next) {
         next.style.display = "block";
         reloadImages(next);
+        logSectionVisible(next);
         window.scrollTo({ top: 0, behavior: "smooth" });
 
         if (next.id === "sovendus-section" && typeof window.setupSovendus === "function") {
@@ -179,6 +224,7 @@ function initFlowLite() {
       current.style.display = "none";
       next.style.display = "block";
       reloadImages(next);
+      logSectionVisible(next);
       window.scrollTo({ top: 0, behavior: "smooth" });
 
       startSovendusIfNeeded(next);
@@ -216,6 +262,7 @@ function initFlowLite() {
       current.style.display = "none";
       next.style.display = "block";
       reloadImages(next);
+      logSectionVisible(next);
       window.scrollTo({ top: 0, behavior: "smooth" });
       startSovendusIfNeeded(next);
     }
