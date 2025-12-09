@@ -1,24 +1,38 @@
-// /api/flow-log.js
+// =============================================================
+//  /api/flow-log.js — nieuwe minimalistische flow-logger
+// =============================================================
 //
-// Simpele flow logging:
+//  Front-end stuurt nu alleen:
+//     event: "coreg_visible"
+//     ts: Date.now()
+//     url: window.location.href
+//     ua: navigator.userAgent
+//     template: "template5.2" of "globalcoregflow"
 //
-// - events (bijv. section_shortform_visible, ivr_called, flow_landed)
-// - ts (UNIX seconds)
-// - t_id, offer_id, aff_id, sub_id uit de URL
+//  Backend logt:
+//     - event
+//     - ts (in seconden)
+//     - t_id, offer_id, aff_id, sub_id (automatisch uit URL)
+//     - template
+//
+// =============================================================
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL;
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
 const FLOW_COLLECTION = process.env.DIRECTUS_FLOW_COLLECTION || "flow_logs";
 
-// -------------------------------------------------
-// Helpers
-// -------------------------------------------------
+// ----------------------------------
+// Timestamp normalisatie
+// ----------------------------------
 function toSeconds(ts) {
   const n = Number(ts);
   if (!Number.isFinite(n)) return Math.floor(Date.now() / 1000);
   return n > 2_000_000_000 ? Math.floor(n / 1000) : Math.floor(n);
 }
 
+// ----------------------------------
+// Query parameters extraheren
+// ----------------------------------
 function extractParams(url) {
   try {
     const u = new URL(url);
@@ -30,73 +44,64 @@ function extractParams(url) {
       sub_id: p.get("sub_id") || null,
     };
   } catch {
-    return {
-      t_id: null,
-      offer_id: null,
-      aff_id: null,
-      sub_id: null,
-    };
+    return { t_id: null, offer_id: null, aff_id: null, sub_id: null };
   }
 }
 
+// ----------------------------------
+// Directus opslag
+// ----------------------------------
 async function saveToDirectus(entry) {
   if (!DIRECTUS_URL || !DIRECTUS_TOKEN) return;
 
-  try {
-    const res = await fetch(`${DIRECTUS_URL}/items/${FLOW_COLLECTION}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${DIRECTUS_TOKEN}`,
-      },
-      body: JSON.stringify(entry),
-    });
+  const res = await fetch(`${DIRECTUS_URL}/items/${FLOW_COLLECTION}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${DIRECTUS_TOKEN}`,
+    },
+    body: JSON.stringify(entry),
+  });
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.warn("⚠️ Directus flow-log store failed:", res.status, text);
-    }
-  } catch (err) {
-    console.error("❌ Directus store error:", err);
+  if (!res.ok) {
+    const text = await res.text();
+    console.warn("⚠️ Directus flow-log store failed:", res.status, text);
   }
 }
 
-// -------------------------------------------------
+// ----------------------------------
 // Handler
-// -------------------------------------------------
+// ----------------------------------
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
 
-  // POST: log opslaan
+  // POST — nieuwe log binnen
   if (req.method === "POST") {
     let body = req.body || {};
+
     if (typeof body === "string") {
-      try {
-        body = JSON.parse(body);
-      } catch {
-        body = {};
-      }
+      try { body = JSON.parse(body); } catch { body = {}; }
     }
 
-    const tsRaw = body.ts || Date.now();
-    const ts = toSeconds(tsRaw);
-
     const url = body.url || "";
+    const ts = toSeconds(body.ts);
+    const event = body.event || "unknown";
+    const template = body.template || null;
+
     const { t_id, offer_id, aff_id, sub_id } = extractParams(url);
 
     const entry = {
-      event: body.event || "unknown",
+      event,
       ts,
       t_id,
       offer_id,
       aff_id,
       sub_id,
+      template,
     };
 
     console.log("📊 FLOW LOG:", entry);
@@ -105,20 +110,20 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  // GET: kleine beschrijving / sanity check
+  // GET — sanity info
   if (req.method === "GET") {
     return res.status(200).json({
       ok: true,
-      description: "Flow log endpoint",
-      events: [
+      accepts: [
         "flow_landed",
-        "shortform_submitted",
-        "section_shortform_visible",
-        "section_coreg_visible",
-        "section_longform_visible",
-        "section_ivr_visible",
-        "section_sovendus_visible",
-        "ivr_called",
+        "flow_start",
+        "landing_visible",
+        "shortform_visible",
+        "coreg_visible",
+        "longform_visible",
+        "ivr_visible",
+        "sovendus_visible",
+        "thankyou_visible",
       ],
     });
   }
