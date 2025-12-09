@@ -3,16 +3,19 @@
   console.log("🧩 swipe-body.js gestart");
 
   // 🔎 Performance marker — script start
-  if (performance && performance.mark) {
+  if (typeof performance !== "undefined" && performance.mark) {
     performance.mark("swipe-body:start");
   }
 
   // === Loader-stijl + structuur ===
   document.addEventListener("DOMContentLoaded", () => {
-
-    // 🔎 Start loader visible timer
+    // 🔎 Start loader visible timer (fallback op Date.now)
+    const now = (typeof performance !== "undefined" && performance.now)
+      ? performance.now()
+      : Date.now();
+    window.__loaderStart = now;
     console.time?.("loader_visible");
-    if (performance && performance.mark) {
+    if (typeof performance !== "undefined" && performance.mark) {
       performance.mark("loader:created");
     }
 
@@ -59,9 +62,19 @@
       if (done) return;
       done = true;
 
-      // 🔎 Loader timing stoppen
+      // 🔎 Loader timing stoppen + bewaren in window.__loaderVisibleMs
+      const start = typeof window.__loaderStart === "number" ? window.__loaderStart : null;
+      const now = (typeof performance !== "undefined" && performance.now)
+        ? performance.now()
+        : Date.now();
+
+      if (start !== null) {
+        window.__loaderVisibleMs = Math.round(now - start);
+      }
+
       console.timeEnd?.("loader_visible");
-      if (performance && performance.mark) {
+
+      if (typeof performance !== "undefined" && performance.mark) {
         performance.mark("loader:hidden");
         try {
           performance.measure("loader:duration", "loader:created", "loader:hidden");
@@ -75,19 +88,20 @@
       }
     }
 
+    // Expose lokaal voor fallback
+    window.__hidePageLoader = hideLoader;
+
     window.addEventListener("visuals:assets-ready", hideLoader);
     window.addEventListener("load", () => setTimeout(hideLoader, 1200));
 
-    // 🚨 Nood-fallback: forceer verwijdering na 3.5s
+    // 🚨 Nood-fallback: forceer verwijdering na 3.5s via dezelfde functie
     setTimeout(() => {
       const loader = document.getElementById("page-loader");
       if (loader) {
         console.warn("⚠️ Visuals-event niet ontvangen — forceer loader verwijdering via hideLoader()");
-        // gebruik dezelfde functie, zodat de timing & performance.measure ook lopen
-        if (typeof hideLoader === "function") {
-          hideLoader();
+        if (typeof window.__hidePageLoader === "function") {
+          window.__hidePageLoader();
         } else {
-          // super-fallback, voor het geval er iets mis is
           loader.classList.add("fade-out");
           setTimeout(() => loader.remove(), 900);
         }
@@ -109,7 +123,11 @@
         el.style.overflow = "hidden";
       }
     });
-    console.log(isEditor ? "✏️ Editor gedetecteerd — helper-secties zichtbaar" : "✅ Style/dev-secties verborgen op live site");
+    console.log(
+      isEditor
+        ? "✏️ Editor gedetecteerd — helper-secties zichtbaar"
+        : "✅ Style/dev-secties verborgen op live site"
+    );
   });
 
   // === Fonts uit style-settings overnemen ===
@@ -172,15 +190,31 @@
       if (sent) return;
       sent = true;
 
-      const loaderMeasure = performance.getEntriesByName("loader:duration")[0];
-      const initFlowMeasure = performance.getEntriesByName("initFlow:time-to-first-section")[0];
+      let loaderVisible = null;
+      let initFirstSection = null;
+
+      // Prefer waarden die we zelf in window hebben gezet
+      if (typeof window.__loaderVisibleMs === "number") {
+        loaderVisible = window.__loaderVisibleMs;
+      } else if (typeof performance !== "undefined" && performance.getEntriesByName) {
+        const loaderMeasure = performance.getEntriesByName("loader:duration")[0];
+        if (loaderMeasure) loaderVisible = Math.round(loaderMeasure.duration);
+      }
+
+      if (typeof window.__initFirstSectionMs === "number") {
+        initFirstSection = window.__initFirstSectionMs;
+      } else if (typeof performance !== "undefined" && performance.getEntriesByName) {
+        const initMeasure = performance.getEntriesByName("initFlow:time-to-first-section")[0];
+        if (initMeasure) initFirstSection = Math.round(initMeasure.duration);
+      }
 
       const payload = {
         ts: Date.now(),
         url: location.href,
         userAgent: navigator.userAgent,
-        loaderVisible: loaderMeasure ? Math.round(loaderMeasure.duration) : null,
-        initFirstSection: initFlowMeasure ? Math.round(initFlowMeasure.duration) : null,
+        loaderVisible,
+        initFirstSection,
+        measures: [] // gereserveerd voor extra metrics later
       };
 
       fetch("https://globalcoregflow-nl.vercel.app/api/perf-log.js", {
@@ -192,9 +226,8 @@
       }).catch(() => {});
     }
 
-    // Versturen zodra coreg gestart
+    // Versturen zodra coreg/flow gestart is
     window.addEventListener("coreg-started", sendPerfLog);
-
     // Extra fallback: na 4 seconden na window load
     window.addEventListener("load", () => setTimeout(sendPerfLog, 4000));
   })();
