@@ -82,9 +82,15 @@
     setTimeout(() => {
       const loader = document.getElementById("page-loader");
       if (loader) {
-        console.warn("⚠️ Visuals-event niet ontvangen — forceer loader verwijdering");
-        loader.classList.add("fade-out");
-        setTimeout(() => loader.remove(), 900);
+        console.warn("⚠️ Visuals-event niet ontvangen — forceer loader verwijdering via hideLoader()");
+        // gebruik dezelfde functie, zodat de timing & performance.measure ook lopen
+        if (typeof hideLoader === "function") {
+          hideLoader();
+        } else {
+          // super-fallback, voor het geval er iets mis is
+          loader.classList.add("fade-out");
+          setTimeout(() => loader.remove(), 900);
+        }
       }
     }, 3500);
   })();
