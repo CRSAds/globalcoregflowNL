@@ -1,25 +1,24 @@
 // =============================================================
 // ✅ initFlow-lite.js — productieversie (silent mode)
+// GLOBALCOREGFLOW
 // =============================================================
 
 // Debug toggle (false = productie)
 const FLOW_DEBUG = false;
 const flowLog  = (...args) => { if (FLOW_DEBUG) console.log(...args); };
-const flowWarn = (...args) => { if (FLOW_DEBUG) console.warn(...args); };
 
 // ===== FLOW LOGGING: centraal endpoint =====
 const FLOW_LOG_ENDPOINT =
   window.FLOW_LOG_ENDPOINT ||
   "https://globalcoregflow-nl.vercel.app/api/flow-log.js";
 
-function sendFlowLog(event, extra = {}) {
+function sendFlowLog(event) {
   try {
     const payload = {
       event,
       ts: Date.now(),
       url: window.location.href,
       ua: navigator.userAgent,
-      ...extra,
     };
 
     fetch(FLOW_LOG_ENDPOINT, {
@@ -28,28 +27,26 @@ function sendFlowLog(event, extra = {}) {
       body: JSON.stringify(payload),
       keepalive: true,
     }).catch(() => {});
-  } catch (e) {
-    console.warn("Flow log failed:", e);
-  }
+  } catch (e) {}
 }
 
+// ===== sectie-visible logger via log-* class =====
 function logSectionVisible(section) {
   if (!section) return;
-  const all = Array.from(document.querySelectorAll(".flow-section, .ivr-section"));
-  const index = all.indexOf(section);
 
-  sendFlowLog("flow_section_visible", {
-    template: "globalcoregflow",
-    sectionId: section.id || null,
-    index,
-    classList: Array.from(section.classList || []),
-  });
+  const cls = Array.from(section.classList).find(c => c.startsWith("log-"));
+  if (!cls) return; // geen logging gewenst
+
+  const name = cls.replace("log-", "");
+  const eventName = `${name}_visible`;
+
+  sendFlowLog(eventName);
 }
 
 window.addEventListener("DOMContentLoaded", initFlowLite);
 
 // =============================================================
-// 🚫 Toegangscontrole: controleer status=online|live
+// 🚫 Toegangscontrole
 // =============================================================
 document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
@@ -59,21 +56,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("section, footer, .sp-section, #dynamic-footer")
       .forEach(el => el.style.display = "none");
 
-    const errorDiv = document.createElement("div");
-    errorDiv.innerHTML = `
+    document.body.innerHTML = `
       <style>
         html, body {
-          margin: 0;
-          padding: 0;
-          height: 100%;
-          overflow: hidden;
-          background: #f8f8f8;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          font-family: 'Inter','Helvetica Neue',Arial,sans-serif;
-          text-align: center;
-          color: #333;
+          margin: 0; padding: 0; height: 100%; overflow: hidden;
+          background: #f8f8f8; display: flex; justify-content: center; align-items: center;
+          font-family: Inter, Helvetica, Arial; text-align: center; color: #333;
         }
         h1 { font-size: 24px; font-weight: 600; margin-bottom: 10px; }
         p { font-size: 15px; line-height: 1.6; color: #555; }
@@ -84,8 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
         Controleer of je de juiste link hebt of probeer het later opnieuw.</p>
       </div>
     `;
-    document.body.innerHTML = "";
-    document.body.appendChild(errorDiv);
   }
 });
 
@@ -93,103 +79,49 @@ document.addEventListener("DOMContentLoaded", () => {
 // 🚀 Hoofdinit — flow controller
 // =============================================================
 function initFlowLite() {
-  flowLog("InitFlow gestart");
-  sendFlowLog("flow_start", { template: "globalcoregflow" });
-
-  // 🔎 RUM: coreg/flow is officieel gestart
-  window.dispatchEvent(new Event("coreg-started"));
-
-  // 🔎 Performance marker + eigen timestamp voor first-section
-  console.time?.("initFlow:first-section");
-  const initNow = (typeof performance !== "undefined" && performance.now)
-    ? performance.now()
-    : Date.now();
-  window.__initFirstStart = initNow;
-  if (typeof performance !== "undefined" && performance.mark) {
-    performance.mark("initFlow:start");
-  }
+  sendFlowLog("flow_start");
 
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status") || "online";
 
-  // 1️⃣ Alle secties verzamelen
+  // Alle secties ophalen
   const allSections = Array.from(document.querySelectorAll(".flow-section, .ivr-section"));
   allSections.forEach(el => el.style.display = "none");
 
-  // coreg-container blijft zichtbaar
+  // Coreg container blijft zichtbaar
   const coregContainer = document.getElementById("coreg-container");
   if (coregContainer) coregContainer.style.display = "block";
 
-  // 2️⃣ Eerste niet-IVR sectie tonen
+  // Eerste zichtbare sectie tonen
   const firstVisible = allSections.find(el => !el.classList.contains("ivr-section"));
   if (firstVisible) {
     firstVisible.style.display = "block";
     reloadImages(firstVisible);
     logSectionVisible(firstVisible);
-
-    // 🔎 Time-to-first-section afronden (eigen ms + measure)
-    console.timeEnd?.("initFlow:first-section");
-    const start = typeof window.__initFirstStart === "number" ? window.__initFirstStart : null;
-    const now2 = (typeof performance !== "undefined" && performance.now)
-      ? performance.now()
-      : Date.now();
-    if (start !== null) {
-      window.__initFirstSectionMs = Math.round(now2 - start);
-      sendFlowLog("flow_first_section_time", {
-        ms: window.__initFirstSectionMs,
-      });
-    }
-
-    if (typeof performance !== "undefined" && performance.mark) {
-      performance.mark("initFlow:first-section-visible");
-      try {
-        performance.measure(
-          "initFlow:time-to-first-section",
-          "initFlow:start",
-          "initFlow:first-section-visible"
-        );
-      } catch (e) {}
-    }
   }
 
-  // 3️⃣ Footer logica
-  if (status === "online") {
-    document.querySelectorAll(".ivr-section").forEach(el => el.style.display = "none");
-    document.querySelectorAll(".footeronline").forEach(el => el.style.display = "block");
-    document.querySelectorAll(".footerlive").forEach(el => el.style.display = "none");
-  } else {
-    document.querySelectorAll(".footeronline").forEach(el => el.style.display = "none");
-    document.querySelectorAll(".footerlive").forEach(el => el.style.display = "block");
-  }
-
-  // 4️⃣ Navigeren via flow-next (behalve shortform)
+  // Navigatieknoppen
   const flowButtons = document.querySelectorAll(".flow-next");
   flowButtons.forEach(btn => {
     btn.addEventListener("click", () => {
-      if (btn.closest("#lead-form")) return; // shortform own handler
+      if (btn.closest("#lead-form")) return; // shortform apart
 
       const current = btn.closest(".flow-section, .ivr-section");
       if (!current) return;
 
       current.style.display = "none";
+
       let next = current.nextElementSibling;
 
-      // Skip IVR-secties bij status=online
+      // skip ivr if online
       while (next && next.classList.contains("ivr-section") && status === "online") {
         next = next.nextElementSibling;
       }
 
-      // Skip longform als longform niet nodig is
+      // longform skip
       if (next && next.id === "long-form-section") {
-        const showLongForm = sessionStorage.getItem("requiresLongForm") === "true";
-
-        if (!showLongForm) {
-          next = next.nextElementSibling;
-
-          while (next && next.classList.contains("ivr-section") && status === "online") {
-            next = next.nextElementSibling;
-          }
-        }
+        const needsLF = sessionStorage.getItem("requiresLongForm") === "true";
+        if (!needsLF) next = next.nextElementSibling;
       }
 
       if (next) {
@@ -197,145 +129,59 @@ function initFlowLite() {
         reloadImages(next);
         logSectionVisible(next);
         window.scrollTo({ top: 0, behavior: "smooth" });
-
-        if (next.id === "sovendus-section" && typeof window.setupSovendus === "function") {
-          if (!window.sovendusStarted) {
-            window.sovendusStarted = true;
-            window.setupSovendus();
-          }
-        }
       }
     });
   });
 
-  // 5️⃣ Automatische voortgang na longform
-  document.addEventListener("longFormSubmitted", () => {
-    const current = document.getElementById("long-form")?.closest(".flow-section") ||
-                    document.getElementById("long-form");
-
-    if (!current) return;
-
+  // Event na shortform
+  document.addEventListener("shortFormSubmitted", () => {
+    const form = document.getElementById("lead-form");
+    const current = form.closest(".flow-section");
     let next = current.nextElementSibling;
+
+    // ivr skip
     while (next && next.classList.contains("ivr-section") && status === "online") {
       next = next.nextElementSibling;
     }
 
-    if (next) {
-      current.style.display = "none";
-      next.style.display = "block";
-      reloadImages(next);
-      logSectionVisible(next);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-
-      startSovendusIfNeeded(next);
+    // longform skip
+    if (next && next.id === "long-form-section") {
+      const showLong = sessionStorage.getItem("requiresLongForm") === "true";
+      if (!showLong) next = next.nextElementSibling;
     }
+
+    current.style.display = "none";
+    next.style.display = "block";
+    reloadImages(next);
+    logSectionVisible(next);
   });
 
-  // 6️⃣ Automatische voortgang na shortform
-  document.addEventListener("shortFormSubmitted", async () => {
-
-    const current =
-      document.getElementById("lead-form")?.closest(".flow-section") ||
-      document.getElementById("lead-form");
-
-    if (!current) return;
-
+  // Event na longform
+  document.addEventListener("longFormSubmitted", () => {
+    const current = document.getElementById("long-form-section");
     let next = current.nextElementSibling;
 
-    // IVR skip bij online
     while (next && next.classList.contains("ivr-section") && status === "online") {
       next = next.nextElementSibling;
     }
 
-    // Longform skip indien niet nodig
-    if (next && next.id === "long-form-section") {
-      const showLongForm = sessionStorage.getItem("requiresLongForm") === "true";
-      if (!showLongForm) {
-        next = next.nextElementSibling;
-        while (next && next.classList.contains("ivr-section") && status === "online") {
-          next = next.nextElementSibling;
-        }
-      }
-    }
-
-    if (next) {
-      current.style.display = "none";
-      next.style.display = "block";
-      reloadImages(next);
-      logSectionVisible(next);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      startSovendusIfNeeded(next);
-    }
-
-    // 🎯 Pending shortform coreg wordt hier afgehandeld
-    try {
-      let pending = [];
-
-      if (Array.isArray(window.pendingShortCoreg))
-        pending = [...window.pendingShortCoreg];
-
-      if (!pending.length) {
-        const stored = sessionStorage.getItem("pendingShortCoreg") || "[]";
-        try { pending = JSON.parse(stored); } catch {}
-      }
-
-      if (!pending.length) return;
-
-      if (typeof window.buildPayload !== "function" ||
-          typeof window.fetchLead !== "function")
-        return;
-
-      for (const camp of pending) {
-        if (!camp?.cid || !camp?.sid) continue;
-
-        const coregAns = sessionStorage.getItem(`f_2014_coreg_answer_${camp.cid}`) || camp.answer_value;
-        const dropdownAns = sessionStorage.getItem(`f_2575_coreg_answer_dropdown_${camp.cid}`) || undefined;
-
-        const payload = await window.buildPayload({
-          cid: camp.cid,
-          sid: camp.sid,
-          is_shortform: true,
-          f_2014_coreg_answer: coregAns,
-          f_2575_coreg_answer_dropdown: dropdownAns,
-        });
-
-        await window.fetchLead(payload);
-      }
-
-      window.pendingShortCoreg = [];
-      sessionStorage.removeItem("pendingShortCoreg");
-    } catch (err) {
-      console.error("❌ Fout bij verzenden pendingShortCoreg:", err);
-    }
+    current.style.display = "none";
+    next.style.display = "block";
+    reloadImages(next);
+    logSectionVisible(next);
   });
 }
 
 // =============================================================
-// ♻️ Lazy images + Sovendus helper
+// Helpers
 // =============================================================
 function reloadImages(section) {
   if (!section) return;
-  const imgs = section.querySelectorAll("img[data-src], img[src*='data:image']");
-  imgs.forEach(img => {
-    const newSrc = img.getAttribute("data-src") || img.src;
-    if (newSrc && !img.src.includes(newSrc)) img.src = newSrc;
-  });
+  const imgs = section.querySelectorAll("img[data-src]");
+  imgs.forEach(img => img.src = img.dataset.src);
 
-  // trick om Swiper/SwipePages direct te refreshen
   window.scrollBy(0, 1);
   setTimeout(() => window.scrollBy(0, -1), 150);
 }
 
-function startSovendusIfNeeded(section) {
-  if (section.id === "sovendus-section" && typeof window.setupSovendus === "function") {
-    if (!window.sovendusStarted) {
-      window.sovendusStarted = true;
-      window.setupSovendus();
-    }
-  }
-}
-
-// =============================================================
-// 🎉 Eén nette loaded-melding
-// =============================================================
-console.info("🎉 initFlow-lite loaded successfully");
+console.info("🎉 initFlow-lite (global) loaded");
