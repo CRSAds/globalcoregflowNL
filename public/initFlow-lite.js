@@ -59,9 +59,13 @@ function initFlowLite() {
   // 🔎 RUM: coreg/flow is officieel gestart
   window.dispatchEvent(new Event("coreg-started"));
 
-  // 🔎 Performance marker voor time-to-first-section
+  // 🔎 Performance marker + eigen timestamp voor first-section
   console.time?.("initFlow:first-section");
-  if (performance && performance.mark) {
+  const initNow = (typeof performance !== "undefined" && performance.now)
+    ? performance.now()
+    : Date.now();
+  window.__initFirstStart = initNow;
+  if (typeof performance !== "undefined" && performance.mark) {
     performance.mark("initFlow:start");
   }
 
@@ -82,9 +86,17 @@ function initFlowLite() {
     firstVisible.style.display = "block";
     reloadImages(firstVisible);
 
-    // 🔎 Time-to-first-section afronden
+    // 🔎 Time-to-first-section afronden (eigen ms + measure)
     console.timeEnd?.("initFlow:first-section");
-    if (performance && performance.mark) {
+    const start = typeof window.__initFirstStart === "number" ? window.__initFirstStart : null;
+    const now2 = (typeof performance !== "undefined" && performance.now)
+      ? performance.now()
+      : Date.now();
+    if (start !== null) {
+      window.__initFirstSectionMs = Math.round(now2 - start);
+    }
+
+    if (typeof performance !== "undefined" && performance.mark) {
       performance.mark("initFlow:first-section-visible");
       try {
         performance.measure(
