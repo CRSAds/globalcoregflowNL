@@ -177,7 +177,7 @@
         initFirstSection: initFlowMeasure ? Math.round(initFlowMeasure.duration) : null,
       };
 
-      fetch("/api/perf-log", {
+      fetch("https://globalcoregflow-nl.vercel.app/api/perf-log.js", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
