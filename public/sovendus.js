@@ -1,19 +1,28 @@
 // =============================================================
-// sovendus.js — finale versie (met timeout + image reload)
+// 🎁 sovendus.js — verbeterde definitieve versie
+// GLOBALCOREGFLOW / TEMPLATE 5.2 COMPATIBLE
 // =============================================================
 
 let hasInitialized = false;
 let hasAdvanced = false;
-const SOV_TIMEOUT_MS = 10000; // tijd in milliseconden tot doorgang
+const SOV_TIMEOUT_MS = 10000;
 
+// -------------------------------------------------------------
+// 🔄 Doorgaan naar volgende sectie
+// -------------------------------------------------------------
 function advanceAfterSovendus() {
   if (hasAdvanced) return;
   hasAdvanced = true;
 
   const current = document.getElementById("sovendus-section");
-  if (!current) return;
+  if (!current) {
+    console.warn("❗ Geen Sovendus-sectie gevonden bij advance()");
+    return;
+  }
 
   let next = current.nextElementSibling;
+
+  // Skip IVR-secties (zoals NL & 5.2 flows vereisen)
   while (next && next.classList.contains("ivr-section")) {
     next = next.nextElementSibling;
   }
@@ -22,7 +31,6 @@ function advanceAfterSovendus() {
     current.style.display = "none";
     next.style.display = "block";
 
-    // 🖼️ Forceer afbeeldingload in nieuwe sectie
     if (typeof window.reloadImages === "function") {
       reloadImages(next);
     }
@@ -30,26 +38,33 @@ function advanceAfterSovendus() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     console.log("➡️ Flow vervolgd na Sovendus");
   } else {
-    console.log("🏁 Geen volgende sectie gevonden na Sovendus");
+    console.log("🏁 Einde Sovendus → geen volgende sectie");
   }
 }
 
+// -------------------------------------------------------------
+// 🚀 Hoofdfunctie: Sovendus initialiseren
+// -------------------------------------------------------------
 function setupSovendus() {
   if (hasInitialized) {
-    console.log("⚠️ setupSovendus al uitgevoerd — overslaan");
+    console.log("⚠️ setupSovendus() al uitgevoerd → skip");
     return;
   }
   hasInitialized = true;
+
   console.log("👉 setupSovendus gestart");
 
   const containerId = "sovendus-container-1";
   const container = document.getElementById(containerId);
+
   if (!container) {
-    console.warn(`❌ Container #${containerId} niet gevonden`);
+    console.error(`❌ Container ${containerId} niet gevonden`);
     return;
   }
 
-  // Plaats laadbericht
+  // -------------------------------------------------------------
+  // ⏳ Laadbericht plaatsen
+  // -------------------------------------------------------------
   let loadingDiv = document.getElementById("sovendus-loading");
   if (!loadingDiv) {
     loadingDiv = document.createElement("div");
@@ -60,7 +75,9 @@ function setupSovendus() {
     container.parentNode.insertBefore(loadingDiv, container);
   }
 
-  // Basisgegevens ophalen
+  // -------------------------------------------------------------
+  // 🧬 Gebruikersdata uit sessie
+  // -------------------------------------------------------------
   const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
   const gender = sessionStorage.getItem("gender") || "";
   const firstname = sessionStorage.getItem("firstname") || "";
@@ -68,9 +85,13 @@ function setupSovendus() {
   const email = sessionStorage.getItem("email") || "";
   const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
 
-  console.log("📦 Sovendus data:", { t_id, gender, firstname, lastname, email, timestamp });
+  console.log("📦 Sovendus data:", {
+    t_id, gender, firstname, lastname, email, timestamp
+  });
 
-  // Global consumer + iframe config
+  // -------------------------------------------------------------
+  // 🌍 Globale configs voor Sovendus API script
+  // -------------------------------------------------------------
   window.sovConsumer = {
     consumerSalutation: gender,
     consumerFirstName: firstname,
@@ -91,26 +112,34 @@ function setupSovendus() {
     iframeContainerId: containerId,
   });
 
-  // extern script laden
+  // -------------------------------------------------------------
+  // 📥 Extern iframe-script injecteren
+  // -------------------------------------------------------------
   const script = document.createElement("script");
   script.src = "https://api.sovendus.com/sovabo/common/js/flexibleIframe.js";
   script.async = true;
 
   script.onload = () => {
-    console.log("✅ Sovendus → flexibleIframe.js geladen");
+    console.log("✅ flexibleIframe.js geladen");
 
-    // 👀 Observeer iframe om laadbericht te verwijderen
+    // -------------------------------------------------------------
+    // 👀 Detectie van iframe render
+    // -------------------------------------------------------------
     const observer = new MutationObserver((mutations, obs) => {
       const iframe = container.querySelector("iframe");
-      if (iframe) {
-        console.log("🎯 Sovendus-iframe gedetecteerd → laadbericht verwijderen");
-        document.getElementById("sovendus-loading")?.remove();
 
-        // ⏱️ Start timeout pas nu (na iframe-detectie)
+      if (iframe) {
+        console.log("🎯 Sovendus-iframe geladen → laadbericht weg");
+        const loader = document.getElementById("sovendus-loading");
+        if (loader) loader.remove();
+
+        // Pas NU start timeout
         setTimeout(() => {
           const section = document.getElementById("sovendus-section");
-          if (section && window.getComputedStyle(section).display !== "none") {
-            console.log(`⏰ Timeout (${SOV_TIMEOUT_MS} ms) bereikt → door naar volgende sectie`);
+          const visible = section && window.getComputedStyle(section).display !== "none";
+
+          if (visible) {
+            console.log(`⏱️ Timeout (${SOV_TIMEOUT_MS}ms) → automatisch verder`);
             advanceAfterSovendus();
           }
         }, SOV_TIMEOUT_MS);
@@ -123,10 +152,12 @@ function setupSovendus() {
   };
 
   script.onerror = () => {
-    console.error("❌ Fout bij laden van flexibleIframe.js");
+    console.error("❌ Error bij laden flexibleIframe.js");
+
+    // Fallback: direct doorgaan na korte wachttijd
     setTimeout(() => {
       if (!hasAdvanced) {
-        console.log("⚠️ Fallback na laadfout → door naar volgende sectie");
+        console.warn("⚠️ Fallback na Sovendus load error → door");
         advanceAfterSovendus();
       }
     }, 2000);
