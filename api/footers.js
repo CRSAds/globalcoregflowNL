@@ -8,6 +8,12 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  // ✅ Edge caching (1 uur)
+  res.setHeader(
+    "Cache-Control",
+    "s-maxage=3600, stale-while-revalidate"
+  );
+
   try {
     const url = `${process.env.DIRECTUS_URL}/items/footers?fields=name,text,terms_content,privacy_content,actievoorwaarden,logo.id,icon_terms.id,icon_privacy.id`;
 
