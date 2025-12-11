@@ -399,3 +399,31 @@ input.error {
   max-height: none !important;
   overflow: visible !important;
 }
+
+/* ============================================================
+   ACTIEVOORWAARDEN FONT FIX
+   ============================================================ */
+
+/* De hoofdcontainer waarin Directus de tekst zet */
+#actievoorwaarden,
+#actievoorwaarden * {
+  font-family: "Plus Jakarta Sans", sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  color: #444 !important;
+}
+
+/* Tatsu wrapper classes (bevatten soms headings/spans) */
+.typo-actievoorwaarden,
+.typo-actievoorwaarden * {
+  font-family: "Plus Jakarta Sans", sans-serif !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+  color: #444 !important;
+}
+
+/* Tatsu inner title (span) */
+.tatsu-title-inner,
+.tatsu-title-inner * {
+  font-family: "Plus Jakarta Sans", sans-serif !important;
+}
