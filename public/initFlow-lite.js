@@ -1,11 +1,10 @@
 // =============================================================
-// ✅ initFlow-lite.js — productieversie (silent mode)
-// GLOBALCOREGFLOW
+// ✅ initFlow-lite.js — productieversie (globalcoregflowNL)
 // =============================================================
 
-// Debug toggle (false = productie)
+// Debug toggle
 const FLOW_DEBUG = false;
-const flowLog  = (...args) => { if (FLOW_DEBUG) console.log(...args); };
+const flowLog = (...args) => { if (FLOW_DEBUG) console.log(...args); };
 
 window.addEventListener("DOMContentLoaded", initFlowLite);
 
@@ -40,14 +39,14 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // =============================================================
-// 🚀 Hoofdinit — flow controller
+// 🚀 Flow controller
 // =============================================================
 function initFlowLite() {
 
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status") || "online";
 
-  // Alle secties ophalen
+  // Alle flow-secties
   const allSections = Array.from(document.querySelectorAll(".flow-section, .ivr-section"));
   allSections.forEach(el => el.style.display = "none");
 
@@ -55,7 +54,7 @@ function initFlowLite() {
   const coregContainer = document.getElementById("coreg-container");
   if (coregContainer) coregContainer.style.display = "block";
 
-  // Eerste zichtbare sectie tonen
+  // Startsectie
   const firstVisible = allSections.find(el => !el.classList.contains("ivr-section"));
   if (firstVisible) {
     firstVisible.style.display = "block";
@@ -67,21 +66,20 @@ function initFlowLite() {
   const flowButtons = document.querySelectorAll(".flow-next");
   flowButtons.forEach(btn => {
     btn.addEventListener("click", () => {
-      if (btn.closest("#lead-form")) return; // shortform apart
+      if (btn.closest("#lead-form")) return;
 
       const current = btn.closest(".flow-section, .ivr-section");
       if (!current) return;
 
       current.style.display = "none";
-
       let next = current.nextElementSibling;
 
-      // skip ivr if online
+      // Skip IVR indien online
       while (next && next.classList.contains("ivr-section") && status === "online") {
         next = next.nextElementSibling;
       }
 
-      // longform skip
+      // Skip longform indien niet nodig
       if (next && next.id === "long-form-section") {
         const needsLF = sessionStorage.getItem("requiresLongForm") === "true";
         if (!needsLF) next = next.nextElementSibling;
@@ -96,18 +94,16 @@ function initFlowLite() {
     });
   });
 
-  // Event na shortform
+  // Shortform-submit event
   document.addEventListener("shortFormSubmitted", () => {
     const form = document.getElementById("lead-form");
     const current = form.closest(".flow-section");
     let next = current.nextElementSibling;
 
-    // ivr skip
     while (next && next.classList.contains("ivr-section") && status === "online") {
       next = next.nextElementSibling;
     }
 
-    // longform skip
     if (next && next.id === "long-form-section") {
       const showLong = sessionStorage.getItem("requiresLongForm") === "true";
       if (!showLong) next = next.nextElementSibling;
@@ -119,7 +115,7 @@ function initFlowLite() {
     logSectionVisible(next);
   });
 
-  // Event na longform
+  // Longform-submit event
   document.addEventListener("longFormSubmitted", () => {
     const current = document.getElementById("long-form-section");
     let next = current.nextElementSibling;
@@ -133,6 +129,66 @@ function initFlowLite() {
     reloadImages(next);
     logSectionVisible(next);
   });
+
+  // =============================================================
+  // 🎁 SOVENDUS — Lazy Loading (op basis van template 5.2)
+  // =============================================================
+  initSovendusLazyLoader(status);
+}
+
+// =============================================================
+// 🎁 SOVENDUS Lazy Loader functie
+// =============================================================
+function initSovendusLazyLoader(status) {
+
+  const sovendusSection = document.getElementById("sovendus-section");
+  if (!sovendusSection) {
+    console.warn("❗ Geen Sovendus-sectie gevonden.");
+    return;
+  }
+
+  let nextAfterSovendus = sovendusSection.nextElementSibling;
+
+  // Skip IVR secties indien "online"
+  while (nextAfterSovendus && nextAfterSovendus.classList.contains("ivr-section") && status === "online") {
+    nextAfterSovendus = nextAfterSovendus.nextElementSibling;
+  }
+
+  console.log("🔍 Sovendus LazyLoader actief…");
+
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+
+        console.log("🎁 Sovendus sectie in beeld → setupSovendus()");
+        obs.unobserve(entry.target);
+
+        if (typeof window.setupSovendus === "function") {
+          window.setupSovendus();
+        }
+
+        // Automatische doorgang na 10 sec
+        setTimeout(() => {
+          console.log("⏱️ Sovendus timeout → naar volgende sectie");
+          sovendusSection.style.display = "none";
+          nextAfterSovendus.style.display = "block";
+          reloadImages(nextAfterSovendus);
+          logSectionVisible(nextAfterSovendus);
+        }, 10000);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  observer.observe(sovendusSection);
+
+  // FAILSAFE – Als SwP de sectie niet zichtbaar maakt
+  setTimeout(() => {
+    const visible = window.getComputedStyle(sovendusSection).display !== "none";
+    if (visible && typeof window.setupSovendus === "function") {
+      console.warn("⚠️ Fallback: setupSovendus handmatig gestart (observer triggerde niet)");
+      window.setupSovendus();
+    }
+  }, 3000);
 }
 
 // =============================================================
