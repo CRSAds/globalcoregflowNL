@@ -76,7 +76,7 @@
    ============================================================ */
 .coreg-section h3 {
   font-family: "Plus Jakarta Sans", sans-serif !important;
-  font-size: 16px !important;         /* vervangt 1.25rem */
+  font-size: 18px !important;         /* vervangt 1.25rem */
   font-weight: 700 !important;
   margin-bottom: 12px !important;
   color: var(--ld-text-dark) !important;
@@ -85,7 +85,7 @@
 
 .coreg-section p {
   font-family: "Plus Jakarta Sans", sans-serif !important;
-  font-size: 13px !important;         /* vervangt 0.95rem */
+  font-size: 14px !important;         /* vervangt 0.95rem */
   margin-bottom: 22px !important;
   color: #555 !important;
   line-height: 1.55 !important;       /* natuurlijke paragraafhoogte */
