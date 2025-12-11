@@ -385,24 +385,17 @@ input.error {
    FIX: Stabiele SwipePages achtergrond + Coreg scrollbox
    ============================================================ */
 
-/* De Swipe Pages sectie waar het hele coreg-pad in staat */
+/* Houd de SwipePages achtergrond volledig stabiel */
 .coreg-wrapper-fixed {
-  min-height: 100vh !important;   /* Achtergrond blijft stabiel */
+  min-height: 100vh !important;
   height: auto !important;
   position: relative;
-  overflow: hidden;               /* Voorkomt jumps bij vraagwissels */
+  overflow: visible !important; /* geen clipping, geen scrollbox */
 }
 
-/* Het hele coreg-pad scrolt binnen een vaste ruimte */
+/* Zorg dat de coreg-container zelf alles kan tonen zonder scroll */
 #coreg-container {
-  max-height: 75vh;               /* Houdt achtergrond stabiel */
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-bottom: 20px;
-  -webkit-overflow-scrolling: touch; /* Smooth scroll op iPhone */
-}
-
-/* Smooth transitions zonder layout jump */
-.coreg-section {
-  transition: opacity 0.25s ease;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
