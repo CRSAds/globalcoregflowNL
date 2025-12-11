@@ -7,6 +7,12 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  // ✅ Edge caching (1 uur) via Vercel CDN
+  res.setHeader(
+    "Cache-Control",
+    "s-maxage=3600, stale-while-revalidate"
+  );
+
   try {
     const url = `${process.env.DIRECTUS_URL}/items/co_sponsors?filter[is_live][_eq]=true&fields=title,description,logo,address,privacy_url,cid,sid&sort=title`;
 
