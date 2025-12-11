@@ -75,17 +75,20 @@
    TITLES, TEXT & IMAGES
    ============================================================ */
 .coreg-section h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 12px;
-  color: var(--ld-text-dark);
+  font-family: "Plus Jakarta Sans", sans-serif !important;
+  font-size: 16px !important;         /* vervangt 1.25rem */
+  font-weight: 700 !important;
+  margin-bottom: 12px !important;
+  color: var(--ld-text-dark) !important;
+  line-height: 1.35 !important;       /* betere leesbaarheid */
 }
 
 .coreg-section p {
-  font-size: 0.95rem;
-  margin-bottom: 22px;
-  color: #555;
-  line-height: 1.5;
+  font-family: "Plus Jakarta Sans", sans-serif !important;
+  font-size: 13px !important;         /* vervangt 0.95rem */
+  margin-bottom: 22px !important;
+  color: #555 !important;
+  line-height: 1.55 !important;       /* natuurlijke paragraafhoogte */
 }
 
 .coreg-image {
