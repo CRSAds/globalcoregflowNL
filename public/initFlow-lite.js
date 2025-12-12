@@ -1,10 +1,47 @@
 // =============================================================
-// ✅ initFlow-lite.js — productieversie (globalcoregflowNL)
+// ✅ initFlow-lite.js — productieversie (silent mode)
+// GLOBALCOREGFLOW
 // =============================================================
 
-// Debug toggle
+// Debug toggle (false = productie)
 const FLOW_DEBUG = false;
-const flowLog = (...args) => { if (FLOW_DEBUG) console.log(...args); };
+const flowLog  = (...args) => { if (FLOW_DEBUG) console.log(...args); };
+
+// ===== FLOW LOGGING: centraal endpoint =====
+const FLOW_LOG_ENDPOINT =
+  window.FLOW_LOG_ENDPOINT ||
+  "https://globalcoregflow-nl.vercel.app/api/flow-log.js";
+
+function sendFlowLog(event) {
+  try {
+    const payload = {
+      event,
+      ts: Date.now(),
+      url: window.location.href,
+      ua: navigator.userAgent,
+    };
+
+    fetch(FLOW_LOG_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+// ===== sectie-visible logger via log-* class =====
+function logSectionVisible(section) {
+  if (!section) return;
+
+  const cls = Array.from(section.classList).find(c => c.startsWith("log-"));
+  if (!cls) return; // geen logging gewenst
+
+  const name = cls.replace("log-", "");
+  const eventName = `${name}_visible`;
+
+  sendFlowLog(eventName);
+}
 
 window.addEventListener("DOMContentLoaded", initFlowLite);
 
@@ -39,14 +76,14 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // =============================================================
-// 🚀 Flow controller
+// 🚀 Hoofdinit — flow controller
 // =============================================================
 function initFlowLite() {
 
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status") || "online";
 
-  // Alle flow-secties
+  // Alle secties ophalen
   const allSections = Array.from(document.querySelectorAll(".flow-section, .ivr-section"));
   allSections.forEach(el => el.style.display = "none");
 
@@ -54,7 +91,7 @@ function initFlowLite() {
   const coregContainer = document.getElementById("coreg-container");
   if (coregContainer) coregContainer.style.display = "block";
 
-  // Startsectie
+  // Eerste zichtbare sectie tonen
   const firstVisible = allSections.find(el => !el.classList.contains("ivr-section"));
   if (firstVisible) {
     firstVisible.style.display = "block";
@@ -66,20 +103,21 @@ function initFlowLite() {
   const flowButtons = document.querySelectorAll(".flow-next");
   flowButtons.forEach(btn => {
     btn.addEventListener("click", () => {
-      if (btn.closest("#lead-form")) return;
+      if (btn.closest("#lead-form")) return; // shortform apart
 
       const current = btn.closest(".flow-section, .ivr-section");
       if (!current) return;
 
       current.style.display = "none";
+
       let next = current.nextElementSibling;
 
-      // Skip IVR indien online
+      // skip ivr if online
       while (next && next.classList.contains("ivr-section") && status === "online") {
         next = next.nextElementSibling;
       }
 
-      // Skip longform indien niet nodig
+      // longform skip
       if (next && next.id === "long-form-section") {
         const needsLF = sessionStorage.getItem("requiresLongForm") === "true";
         if (!needsLF) next = next.nextElementSibling;
@@ -94,16 +132,18 @@ function initFlowLite() {
     });
   });
 
-  // Shortform-submit event
+  // Event na shortform
   document.addEventListener("shortFormSubmitted", () => {
     const form = document.getElementById("lead-form");
     const current = form.closest(".flow-section");
     let next = current.nextElementSibling;
 
+    // ivr skip
     while (next && next.classList.contains("ivr-section") && status === "online") {
       next = next.nextElementSibling;
     }
 
+    // longform skip
     if (next && next.id === "long-form-section") {
       const showLong = sessionStorage.getItem("requiresLongForm") === "true";
       if (!showLong) next = next.nextElementSibling;
@@ -115,7 +155,7 @@ function initFlowLite() {
     logSectionVisible(next);
   });
 
-  // Longform-submit event
+  // Event na longform
   document.addEventListener("longFormSubmitted", () => {
     const current = document.getElementById("long-form-section");
     let next = current.nextElementSibling;
@@ -129,66 +169,6 @@ function initFlowLite() {
     reloadImages(next);
     logSectionVisible(next);
   });
-
-  // =============================================================
-  // 🎁 SOVENDUS — Lazy Loading (op basis van template 5.2)
-  // =============================================================
-  initSovendusLazyLoader(status);
-}
-
-// =============================================================
-// 🎁 SOVENDUS Lazy Loader functie
-// =============================================================
-function initSovendusLazyLoader(status) {
-
-  const sovendusSection = document.getElementById("sovendus-section");
-  if (!sovendusSection) {
-    console.warn("❗ Geen Sovendus-sectie gevonden.");
-    return;
-  }
-
-  let nextAfterSovendus = sovendusSection.nextElementSibling;
-
-  // Skip IVR secties indien "online"
-  while (nextAfterSovendus && nextAfterSovendus.classList.contains("ivr-section") && status === "online") {
-    nextAfterSovendus = nextAfterSovendus.nextElementSibling;
-  }
-
-  console.log("🔍 Sovendus LazyLoader actief…");
-
-  const observer = new IntersectionObserver((entries, obs) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-
-        console.log("🎁 Sovendus sectie in beeld → setupSovendus()");
-        obs.unobserve(entry.target);
-
-        if (typeof window.setupSovendus === "function") {
-          window.setupSovendus();
-        }
-
-        // Automatische doorgang na 10 sec
-        setTimeout(() => {
-          console.log("⏱️ Sovendus timeout → naar volgende sectie");
-          sovendusSection.style.display = "none";
-          nextAfterSovendus.style.display = "block";
-          reloadImages(nextAfterSovendus);
-          logSectionVisible(nextAfterSovendus);
-        }, 10000);
-      }
-    });
-  }, { threshold: 0.5 });
-
-  observer.observe(sovendusSection);
-
-  // FAILSAFE – Als SwP de sectie niet zichtbaar maakt
-  setTimeout(() => {
-    const visible = window.getComputedStyle(sovendusSection).display !== "none";
-    if (visible && typeof window.setupSovendus === "function") {
-      console.warn("⚠️ Fallback: setupSovendus handmatig gestart (observer triggerde niet)");
-      window.setupSovendus();
-    }
-  }, 3000);
 }
 
 // =============================================================
