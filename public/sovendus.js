@@ -58,6 +58,11 @@ function setupSovendus() {
     return;
   }
 
+  // 🔧 Zorg dat container zichtbaar ruimte heeft
+    container.style.minHeight = "60px";
+    container.style.display = "block";
+    container.style.width = "100%";
+
   // Laadmelding
   let loadingDiv = document.getElementById("sovendus-loading");
   if (!loadingDiv) {
