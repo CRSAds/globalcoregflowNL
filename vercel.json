@@ -23,7 +23,6 @@
       "schedule": "*/5 * * * *"
     }
   ]
-}
   "crons": [
     {
       "path": "/api/reactivate-capped.js",
