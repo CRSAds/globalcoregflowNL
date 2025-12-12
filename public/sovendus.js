@@ -1,28 +1,25 @@
 // =============================================================
-// 🎁 sovendus.js — verbeterde definitieve versie
-// GLOBALCOREGFLOW / TEMPLATE 5.2 COMPATIBLE
+// ✅ sovendus.js — GLOBALCOREG SAFE VERSION
+// - Start Sovendus alleen als sectie zichtbaar is
+// - Beschermt tegen te vroege / dubbele initialisatie
+// - Breekt GEEN bestaande flow-logica
 // =============================================================
 
 let hasInitialized = false;
 let hasAdvanced = false;
 const SOV_TIMEOUT_MS = 10000;
 
-// -------------------------------------------------------------
-// 🔄 Doorgaan naar volgende sectie
-// -------------------------------------------------------------
+// =============================================================
+// ➡️ Flow vervolgen na Sovendus
+// =============================================================
 function advanceAfterSovendus() {
   if (hasAdvanced) return;
   hasAdvanced = true;
 
   const current = document.getElementById("sovendus-section");
-  if (!current) {
-    console.warn("❗ Geen Sovendus-sectie gevonden bij advance()");
-    return;
-  }
+  if (!current) return;
 
   let next = current.nextElementSibling;
-
-  // Skip IVR-secties (zoals NL & 5.2 flows vereisen)
   while (next && next.classList.contains("ivr-section")) {
     next = next.nextElementSibling;
   }
@@ -32,22 +29,22 @@ function advanceAfterSovendus() {
     next.style.display = "block";
 
     if (typeof window.reloadImages === "function") {
-      reloadImages(next);
+      window.reloadImages(next);
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
     console.log("➡️ Flow vervolgd na Sovendus");
   } else {
-    console.log("🏁 Einde Sovendus → geen volgende sectie");
+    console.log("🏁 Geen volgende sectie gevonden na Sovendus");
   }
 }
 
-// -------------------------------------------------------------
-// 🚀 Hoofdfunctie: Sovendus initialiseren
-// -------------------------------------------------------------
+// =============================================================
+// 🚀 Originele setupSovendus (ONGEWIJZIGD gedrag)
+// =============================================================
 function setupSovendus() {
   if (hasInitialized) {
-    console.log("⚠️ setupSovendus() al uitgevoerd → skip");
+    console.log("⚠️ setupSovendus al uitgevoerd — overslaan");
     return;
   }
   hasInitialized = true;
@@ -56,28 +53,23 @@ function setupSovendus() {
 
   const containerId = "sovendus-container-1";
   const container = document.getElementById(containerId);
-
   if (!container) {
-    console.error(`❌ Container ${containerId} niet gevonden`);
+    console.warn(`❌ Container #${containerId} niet gevonden`);
     return;
   }
 
-  // -------------------------------------------------------------
-  // ⏳ Laadbericht plaatsen
-  // -------------------------------------------------------------
+  // Laadmelding
   let loadingDiv = document.getElementById("sovendus-loading");
   if (!loadingDiv) {
     loadingDiv = document.createElement("div");
     loadingDiv.id = "sovendus-loading";
     loadingDiv.style.textAlign = "center";
     loadingDiv.style.padding = "16px";
-    loadingDiv.innerHTML = `<p style="font-size: 16px;">Even geduld… jouw voordeel wordt geladen!</p>`;
+    loadingDiv.innerHTML = `<p style="font-size:16px;">Even geduld… jouw voordeel wordt geladen!</p>`;
     container.parentNode.insertBefore(loadingDiv, container);
   }
 
-  // -------------------------------------------------------------
-  // 🧬 Gebruikersdata uit sessie
-  // -------------------------------------------------------------
+  // Basisgegevens
   const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
   const gender = sessionStorage.getItem("gender") || "";
   const firstname = sessionStorage.getItem("firstname") || "";
@@ -85,13 +77,6 @@ function setupSovendus() {
   const email = sessionStorage.getItem("email") || "";
   const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
 
-  console.log("📦 Sovendus data:", {
-    t_id, gender, firstname, lastname, email, timestamp
-  });
-
-  // -------------------------------------------------------------
-  // 🌍 Globale configs voor Sovendus API script
-  // -------------------------------------------------------------
   window.sovConsumer = {
     consumerSalutation: gender,
     consumerFirstName: firstname,
@@ -104,7 +89,7 @@ function setupSovendus() {
     trafficSourceNumber: "5592",
     trafficMediumNumber: "1",
     sessionId: t_id,
-    timestamp: timestamp,
+    timestamp,
     orderId: "",
     orderValue: "",
     orderCurrency: "",
@@ -112,34 +97,23 @@ function setupSovendus() {
     iframeContainerId: containerId,
   });
 
-  // -------------------------------------------------------------
-  // 📥 Extern iframe-script injecteren
-  // -------------------------------------------------------------
   const script = document.createElement("script");
   script.src = "https://api.sovendus.com/sovabo/common/js/flexibleIframe.js";
   script.async = true;
 
   script.onload = () => {
-    console.log("✅ flexibleIframe.js geladen");
+    console.log("✅ Sovendus script geladen");
 
-    // -------------------------------------------------------------
-    // 👀 Detectie van iframe render
-    // -------------------------------------------------------------
-    const observer = new MutationObserver((mutations, obs) => {
+    const observer = new MutationObserver((_, obs) => {
       const iframe = container.querySelector("iframe");
-
       if (iframe) {
-        console.log("🎯 Sovendus-iframe geladen → laadbericht weg");
-        const loader = document.getElementById("sovendus-loading");
-        if (loader) loader.remove();
+        console.log("🎯 Sovendus iframe gedetecteerd");
+        document.getElementById("sovendus-loading")?.remove();
 
-        // Pas NU start timeout
         setTimeout(() => {
           const section = document.getElementById("sovendus-section");
-          const visible = section && window.getComputedStyle(section).display !== "none";
-
-          if (visible) {
-            console.log(`⏱️ Timeout (${SOV_TIMEOUT_MS}ms) → automatisch verder`);
+          if (section && window.getComputedStyle(section).display !== "none") {
+            console.log("⏰ Sovendus timeout → flow vervolgen");
             advanceAfterSovendus();
           }
         }, SOV_TIMEOUT_MS);
@@ -152,18 +126,53 @@ function setupSovendus() {
   };
 
   script.onerror = () => {
-    console.error("❌ Error bij laden flexibleIframe.js");
-
-    // Fallback: direct doorgaan na korte wachttijd
-    setTimeout(() => {
-      if (!hasAdvanced) {
-        console.warn("⚠️ Fallback na Sovendus load error → door");
-        advanceAfterSovendus();
-      }
-    }, 2000);
+    console.error("❌ Sovendus script laadfout");
+    setTimeout(advanceAfterSovendus, 2000);
   };
 
   document.body.appendChild(script);
 }
 
+// =============================================================
+// 🛡️ SAFE WRAPPER — HET BELANGRIJKSTE DEEL
+// =============================================================
+window.safeStartSovendus = function () {
+  if (window.__sovendusSafeStarted) return;
+
+  const section = document.getElementById("sovendus-section");
+  const container = document.getElementById("sovendus-container-1");
+  if (!section || !container) return;
+
+  const visible = window.getComputedStyle(section).display !== "none";
+  if (!visible) return;
+
+  window.__sovendusSafeStarted = true;
+  console.log("🛡️ safeStartSovendus → voorwaarden ok → start");
+  setupSovendus();
+};
+
+// =============================================================
+// 👀 Observer: start zodra Sovendus-sectie zichtbaar wordt
+// =============================================================
+(function observeSovendusVisibility() {
+  const observer = new MutationObserver(() => {
+    window.safeStartSovendus();
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["style", "class"]
+  });
+
+  // Eerste check (voor het geval hij al zichtbaar is)
+  document.addEventListener("DOMContentLoaded", () => {
+    window.safeStartSovendus();
+  });
+})();
+
+// =============================================================
+// ♻️ Backwards compatibility
+// =============================================================
 window.setupSovendus = setupSovendus;
