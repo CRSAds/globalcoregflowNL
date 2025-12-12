@@ -1,5 +1,4 @@
 // /api/sync-calls.js
-import fetch from "node-fetch";
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL;
 const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
