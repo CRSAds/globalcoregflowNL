@@ -43,6 +43,21 @@ function logSectionVisible(section) {
   sendFlowLog(eventName);
 }
 
+// =============================================================
+// 🟢 Sovendus hook — start pas zodra sectie actief wordt
+// =============================================================
+function maybeStartSovendus(section) {
+  if (!section) return;
+  if (section.id !== "sovendus-section") return;
+
+  if (typeof window.setupSovendus === "function") {
+    console.log("🟢 Sovendus-sectie actief → setupSovendus()");
+    window.setupSovendus();
+  } else {
+    console.warn("⚠️ window.setupSovendus bestaat niet (sovendus.js nog niet geladen?)");
+  }
+}
+
 window.addEventListener("DOMContentLoaded", initFlowLite);
 
 // =============================================================
@@ -97,6 +112,7 @@ function initFlowLite() {
     firstVisible.style.display = "block";
     reloadImages(firstVisible);
     logSectionVisible(firstVisible);
+    maybeStartSovendus(firstVisible); // ✅ toegevoegd
   }
 
   // Navigatieknoppen
@@ -127,6 +143,7 @@ function initFlowLite() {
         next.style.display = "block";
         reloadImages(next);
         logSectionVisible(next);
+        maybeStartSovendus(next); // ✅ toegevoegd
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     });
@@ -153,6 +170,7 @@ function initFlowLite() {
     next.style.display = "block";
     reloadImages(next);
     logSectionVisible(next);
+    maybeStartSovendus(next); // ✅ toegevoegd
   });
 
   // Event na longform
@@ -168,6 +186,7 @@ function initFlowLite() {
     next.style.display = "block";
     reloadImages(next);
     logSectionVisible(next);
+    maybeStartSovendus(next); // ✅ toegevoegd
   });
 }
 
