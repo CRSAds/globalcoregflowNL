@@ -1,11 +1,14 @@
 // =============================================================
-// ✅ sovendus.js — GLOBALCOREG SAFE VERSION
-// + Sovendus impression logging (iframe loaded)
+// ✅ sovendus.js — FLOW CONTROLLED (geen auto-start)
+// - setupSovendus wordt ALLEEN door initFlow aangeroepen
+// - iframe wordt pas geladen bij Sovendus-sectie
+// - impression logging bij iframe injectie
 // =============================================================
 
 let hasInitialized = false;
 let hasAdvanced = false;
 let sovendusLogged = false;
+
 const SOV_TIMEOUT_MS = 10000;
 
 // =============================================================
@@ -39,7 +42,7 @@ function advanceAfterSovendus() {
 }
 
 // =============================================================
-// 📡 Sovendus impression loggen (1x)
+// 📡 Sovendus impression loggen (1x per sessie)
 // =============================================================
 function logSovendusImpression() {
   if (sovendusLogged) return;
@@ -58,7 +61,6 @@ function logSovendusImpression() {
 
   sovendusLogged = true;
 
-  // 🔍 CLIENT-SIDE CONTROLE
   console.log("[Sovendus] Iframe geladen → impression loggen", {
     t_id,
     offer_id,
@@ -68,18 +70,14 @@ function logSovendusImpression() {
   fetch("/api/sovendus-impression", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      t_id,
-      offer_id,
-      sub_id
-    })
+    body: JSON.stringify({ t_id, offer_id, sub_id })
   }).catch(err => {
     console.error("[Sovendus] Impression API fout", err);
   });
 }
 
 // =============================================================
-// 🚀 setupSovendus
+// 🚀 setupSovendus — wordt ALLEEN vanuit initFlow aangeroepen
 // =============================================================
 function setupSovendus() {
   if (hasInitialized) {
@@ -97,7 +95,7 @@ function setupSovendus() {
     return;
   }
 
-  // 🔧 Container zichtbaar maken
+  // 🔧 Zorg dat container zichtbaar ruimte heeft
   container.style.minHeight = "60px";
   container.style.display = "block";
   container.style.width = "100%";
@@ -113,7 +111,7 @@ function setupSovendus() {
     container.parentNode.insertBefore(loadingDiv, container);
   }
 
-  // Basisgegevens
+  // Basisgegevens (zelfde gedrag als jouw huidige versie)
   const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
   const gender = sessionStorage.getItem("gender") || "";
   const firstname = sessionStorage.getItem("firstname") || "";
@@ -152,12 +150,12 @@ function setupSovendus() {
       const iframe = container.querySelector("iframe");
       if (iframe) {
         console.log("🎯 Sovendus iframe gedetecteerd");
-
-        // 🔑 NIEUW: impression loggen
-        logSovendusImpression();
-
         document.getElementById("sovendus-loading")?.remove();
 
+        // ✅ Impression pas als iframe er echt is (en dat kan nu alleen gebeuren op de Sovendus-stap)
+        logSovendusImpression();
+
+        // timeout → flow door
         setTimeout(() => {
           const section = document.getElementById("sovendus-section");
           if (section && window.getComputedStyle(section).display !== "none") {
@@ -182,44 +180,6 @@ function setupSovendus() {
 }
 
 // =============================================================
-// 🛡️ SAFE WRAPPER
-// =============================================================
-window.safeStartSovendus = function () {
-  if (window.__sovendusSafeStarted) return;
-
-  const section = document.getElementById("sovendus-section");
-  const container = document.getElementById("sovendus-container-1");
-  if (!section || !container) return;
-
-  const visible = window.getComputedStyle(section).display !== "none";
-  if (!visible) return;
-
-  window.__sovendusSafeStarted = true;
-  console.log("🛡️ safeStartSovendus → voorwaarden ok → start");
-  setupSovendus();
-};
-
-// =============================================================
-// 👀 Observer: start zodra Sovendus-sectie zichtbaar wordt
-// =============================================================
-(function observeSovendusVisibility() {
-  const observer = new MutationObserver(() => {
-    window.safeStartSovendus();
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["style", "class"]
-  });
-
-  document.addEventListener("DOMContentLoaded", () => {
-    window.safeStartSovendus();
-  });
-})();
-
-// =============================================================
-// ♻️ Backwards compatibility
+// ♻️ Backwards compatibility: initFlow roept deze aan
 // =============================================================
 window.setupSovendus = setupSovendus;
