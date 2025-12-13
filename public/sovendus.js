@@ -1,12 +1,11 @@
 // =============================================================
 // ✅ sovendus.js — GLOBALCOREG SAFE VERSION
-// - Start Sovendus alleen als sectie zichtbaar is
-// - Beschermt tegen te vroege / dubbele initialisatie
-// - Breekt GEEN bestaande flow-logica
+// + Sovendus impression logging (iframe loaded)
 // =============================================================
 
 let hasInitialized = false;
 let hasAdvanced = false;
+let sovendusLogged = false;
 const SOV_TIMEOUT_MS = 10000;
 
 // =============================================================
@@ -40,7 +39,47 @@ function advanceAfterSovendus() {
 }
 
 // =============================================================
-// 🚀 Originele setupSovendus (ONGEWIJZIGD gedrag)
+// 📡 Sovendus impression loggen (1x)
+// =============================================================
+function logSovendusImpression() {
+  if (sovendusLogged) return;
+
+  const t_id = sessionStorage.getItem("t_id");
+  const offer_id = sessionStorage.getItem("offer_id");
+  const sub_id =
+    sessionStorage.getItem("sub_id") ||
+    sessionStorage.getItem("aff_id") ||
+    "unknown";
+
+  if (!t_id) {
+    console.warn("[Sovendus] Geen t_id → impression niet gelogd");
+    return;
+  }
+
+  sovendusLogged = true;
+
+  // 🔍 CLIENT-SIDE CONTROLE
+  console.log("[Sovendus] Iframe geladen → impression loggen", {
+    t_id,
+    offer_id,
+    sub_id
+  });
+
+  fetch("/api/sovendus-impression", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      t_id,
+      offer_id,
+      sub_id
+    })
+  }).catch(err => {
+    console.error("[Sovendus] Impression API fout", err);
+  });
+}
+
+// =============================================================
+// 🚀 setupSovendus
 // =============================================================
 function setupSovendus() {
   if (hasInitialized) {
@@ -58,10 +97,10 @@ function setupSovendus() {
     return;
   }
 
-  // 🔧 Zorg dat container zichtbaar ruimte heeft
-    container.style.minHeight = "60px";
-    container.style.display = "block";
-    container.style.width = "100%";
+  // 🔧 Container zichtbaar maken
+  container.style.minHeight = "60px";
+  container.style.display = "block";
+  container.style.width = "100%";
 
   // Laadmelding
   let loadingDiv = document.getElementById("sovendus-loading");
@@ -113,6 +152,10 @@ function setupSovendus() {
       const iframe = container.querySelector("iframe");
       if (iframe) {
         console.log("🎯 Sovendus iframe gedetecteerd");
+
+        // 🔑 NIEUW: impression loggen
+        logSovendusImpression();
+
         document.getElementById("sovendus-loading")?.remove();
 
         setTimeout(() => {
@@ -139,7 +182,7 @@ function setupSovendus() {
 }
 
 // =============================================================
-// 🛡️ SAFE WRAPPER — HET BELANGRIJKSTE DEEL
+// 🛡️ SAFE WRAPPER
 // =============================================================
 window.safeStartSovendus = function () {
   if (window.__sovendusSafeStarted) return;
@@ -171,7 +214,6 @@ window.safeStartSovendus = function () {
     attributeFilter: ["style", "class"]
   });
 
-  // Eerste check (voor het geval hij al zichtbaar is)
   document.addEventListener("DOMContentLoaded", () => {
     window.safeStartSovendus();
   });
