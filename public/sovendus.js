@@ -67,7 +67,7 @@ function logSovendusImpression() {
     sub_id
   });
 
-  fetch("/api/sovendus-impression.js", {
+  fetch("/api/sovendus-impression", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ t_id, offer_id, sub_id })
