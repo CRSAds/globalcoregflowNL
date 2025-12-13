@@ -18,7 +18,7 @@
   ],
   "crons": [
     {
-      "path": "/api/sync-calls",
+      "path": "/api/sync-calls.js",
       "schedule": "*/5 * * * *"
     },
     {
