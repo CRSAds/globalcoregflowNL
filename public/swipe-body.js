@@ -9,12 +9,12 @@
 
   // === Loader-stijl + structuur ===
   document.addEventListener("DOMContentLoaded", () => {
-    // 🔎 Start loader visible timer (fallback op Date.now)
     const now = (typeof performance !== "undefined" && performance.now)
       ? performance.now()
       : Date.now();
     window.__loaderStart = now;
     console.time?.("loader_visible");
+
     if (typeof performance !== "undefined" && performance.mark) {
       performance.mark("loader:created");
     }
@@ -62,7 +62,6 @@
       if (done) return;
       done = true;
 
-      // 🔎 Loader timing stoppen + bewaren in window.__loaderVisibleMs
       const start = typeof window.__loaderStart === "number" ? window.__loaderStart : null;
       const now = (typeof performance !== "undefined" && performance.now)
         ? performance.now()
@@ -88,23 +87,16 @@
       }
     }
 
-    // Expose lokaal voor fallback
     window.__hidePageLoader = hideLoader;
 
     window.addEventListener("visuals:assets-ready", hideLoader);
     window.addEventListener("load", () => setTimeout(hideLoader, 1200));
 
-    // 🚨 Nood-fallback: forceer verwijdering na 3.5s via dezelfde functie
     setTimeout(() => {
       const loader = document.getElementById("page-loader");
       if (loader) {
-        console.warn("⚠️ Visuals-event niet ontvangen — forceer loader verwijdering via hideLoader()");
-        if (typeof window.__hidePageLoader === "function") {
-          window.__hidePageLoader();
-        } else {
-          loader.classList.add("fade-out");
-          setTimeout(() => loader.remove(), 900);
-        }
+        console.warn("⚠️ Visuals-event niet ontvangen — forceer loader verwijdering");
+        hideLoader();
       }
     }, 3500);
   })();
@@ -123,6 +115,7 @@
         el.style.overflow = "hidden";
       }
     });
+
     console.log(
       isEditor
         ? "✏️ Editor gedetecteerd — helper-secties zichtbaar"
@@ -132,55 +125,102 @@
 
   // === Fonts uit style-settings overnemen ===
   window.addEventListener("load", () => {
-    const getComputedFontStyle = (selector) => {
-      const el = document.querySelector(selector);
+    const getStyle = (sel) => {
+      const el = document.querySelector(sel);
       if (!el) return null;
-      const style = window.getComputedStyle(el);
+      const s = getComputedStyle(el);
       return {
-        fontFamily: style.fontFamily,
-        fontSize: style.fontSize,
-        color: style.color,
-        lineHeight: style.lineHeight,
-        fontWeight: style.fontWeight,
+        fontFamily: s.fontFamily,
+        fontSize: s.fontSize,
+        color: s.color,
+        lineHeight: s.lineHeight,
+        fontWeight: s.fontWeight
       };
     };
 
-    const titleRef = getComputedFontStyle("#style-settings .typo-h1");
-    const bodyRef = getComputedFontStyle("#style-settings .typo-body");
-    const termsRef =
-      getComputedFontStyle("#style-settings .typo-actievoorwaarden") || bodyRef;
+    const titleRef = getStyle("#style-settings .typo-h1");
+    const bodyRef = getStyle("#style-settings .typo-body");
+    const termsRef = getStyle("#style-settings .typo-actievoorwaarden") || bodyRef;
 
     const titleEl = document.getElementById("campaign-title");
-    const paragraphEl = document.getElementById("campaign-paragraph");
+    const paraEl = document.getElementById("campaign-paragraph");
     const actieEl = document.getElementById("actievoorwaarden");
 
     if (titleEl && titleRef) Object.assign(titleEl.style, titleRef);
-    if (paragraphEl && bodyRef) Object.assign(paragraphEl.style, bodyRef);
+    if (paraEl && bodyRef) Object.assign(paraEl.style, bodyRef);
     if (actieEl && termsRef) Object.assign(actieEl.style, termsRef);
 
     console.log("✅ Fontstijlen toegepast vanuit style-settings");
   });
 
-  // === 🎨 Campagnekleur: vaste fallback (geen detectie meer) ===
+  // === 🎨 Campagnekleur ===
   window.addEventListener("load", () => {
-    const fallback = "#14B670"; // standaard groene campagnetint
+    const fallback = "#14B670";
     document.documentElement.style.setProperty("--campaign-primary", fallback);
     console.log("🎨 Campagnekleur standaard ingesteld:", fallback);
   });
 
-  // === Master background (zelfde logica behouden) ===
+  // === Master background ===
   document.addEventListener("DOMContentLoaded", () => {
-    const masterBgImg = document.getElementById("master-bg");
-    if (!masterBgImg) return;
-    const bgUrl = masterBgImg.src;
-    if (!bgUrl) return;
-    document.querySelectorAll(".needs-master-bg").forEach(section => {
-      section.style.backgroundImage = `url('${bgUrl}')`;
-      section.style.backgroundSize = "cover";
-      section.style.backgroundPosition = "center";
-      section.style.backgroundRepeat = "no-repeat";
+    const bg = document.getElementById("master-bg");
+    if (!bg?.src) return;
+    document.querySelectorAll(".needs-master-bg").forEach(sec => {
+      sec.style.backgroundImage = `url('${bg.src}')`;
+      sec.style.backgroundSize = "cover";
+      sec.style.backgroundPosition = "center";
+      sec.style.backgroundRepeat = "no-repeat";
     });
   });
+
+  // =============================================================
+  // 📞 IVR POPUP AUTO-CLOSE NA CALL CLICK
+  // =============================================================
+  (function setupIvrPopupAutoClose() {
+    const CLOSE_AFTER_MS = 10000;
+    let timerStarted = false;
+
+    function isVisible(el) {
+      return el && getComputedStyle(el).display !== "none" && el.offsetParent !== null;
+    }
+
+    function closePopup(popup) {
+      popup.style.display = "none";
+      popup.classList.add("auto-closed");
+      console.log("📞 [IVR] Popup automatisch gesloten na call");
+    }
+
+    function arm(popup) {
+      if (timerStarted) return;
+
+      const callBtn = popup.querySelector(".ivr-call-btn");
+      if (!callBtn) {
+        console.warn("📞 [IVR] .ivr-call-btn niet gevonden");
+        return;
+      }
+
+      callBtn.addEventListener("click", () => {
+        if (timerStarted) return;
+        timerStarted = true;
+        console.log("📞 [IVR] Call geklikt → auto-close timer gestart");
+
+        setTimeout(() => closePopup(popup), CLOSE_AFTER_MS);
+      });
+    }
+
+    const popup = document.querySelector(".call-pop-up");
+    if (!popup) return;
+
+    const observer = new MutationObserver(() => {
+      if (isVisible(popup)) arm(popup);
+    });
+
+    observer.observe(popup, {
+      attributes: true,
+      attributeFilter: ["style", "class"]
+    });
+
+    if (isVisible(popup)) arm(popup);
+  })();
 
   // === Real User Monitoring (RUM) ===
   (function () {
@@ -190,46 +230,25 @@
       if (sent) return;
       sent = true;
 
-      let loaderVisible = null;
-      let initFirstSection = null;
-
-      // 1️⃣ Loader-duur uit eigen variabele of Performance API
-      if (typeof window.__loaderVisibleMs === "number") {
-        loaderVisible = window.__loaderVisibleMs;
-      } else if (typeof performance !== "undefined" && performance.getEntriesByName) {
-        const loaderMeasure = performance.getEntriesByName("loader:duration")[0];
-        if (loaderMeasure) loaderVisible = Math.round(loaderMeasure.duration);
-      }
-
-      // 2️⃣ Time-to-first-section uit eigen variabele of Performance API
-      if (typeof window.__initFirstSectionMs === "number") {
-        initFirstSection = window.__initFirstSectionMs;
-      } else if (typeof performance !== "undefined" && performance.getEntriesByName) {
-        const initMeasure = performance.getEntriesByName("initFlow:time-to-first-section")[0];
-        if (initMeasure) initFirstSection = Math.round(initMeasure.duration);
-      }
+      let loaderVisible = window.__loaderVisibleMs ?? null;
+      let initFirst = window.__initFirstSectionMs ?? null;
 
       const payload = {
         ts: Date.now(),
         url: location.href,
         userAgent: navigator.userAgent,
         loaderVisible,
-        initFirstSection,
-        measures: []
+        initFirstSection: initFirst
       };
 
       fetch("https://globalcoregflow-nl.vercel.app/api/perf-log.js", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       }).catch(() => {});
     }
 
-    // ❗ Alleen na volledige pageload loggen, zodat alle timings gezet zijn
     window.addEventListener("load", () => {
-      // kleine delay zodat hideLoader + initFlow klaar zijn
       setTimeout(sendPerfLog, 4000);
     });
   })();
