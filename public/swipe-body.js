@@ -173,83 +173,39 @@
   });
 
   // =============================================================
-  // 📞 IVR POPUP AUTO-CLOSE NA CALL CLICK
+  // 📞 IVR POPUP AUTO-CLOSE NA CALL CLICK (TATSU POPUP)
   // =============================================================
   (function setupIvrPopupAutoClose() {
-    const CLOSE_AFTER_MS = 10000;
+    const CLOSE_AFTER_MS = 10000; // 10 seconden
     let timerStarted = false;
-
-    function isVisible(el) {
-      return el && getComputedStyle(el).display !== "none" && el.offsetParent !== null;
-    }
-
+  
     function closePopup(popup) {
+      if (!popup) return;
+  
+      popup.classList.remove("tatsu-popup--active");
       popup.style.display = "none";
-      popup.classList.add("auto-closed");
-      console.log("📞 [IVR] Popup automatisch gesloten na call");
+  
+      console.log("📞 [IVR] Tatsu popup automatisch gesloten");
     }
-
-    function arm(popup) {
-      if (timerStarted) return;
-
-      const callBtn = popup.querySelector(".ivr-call-btn");
-      if (!callBtn) {
-        console.warn("📞 [IVR] .ivr-call-btn niet gevonden");
+  
+    document.addEventListener("click", (e) => {
+      const callBtn = e.target.closest(".ivr-call-btn");
+      if (!callBtn) return;
+  
+      const popup = callBtn.closest(".tatsu-popup");
+      if (!popup) {
+        console.warn("📞 [IVR] ivr-call-btn klik, maar geen .tatsu-popup gevonden");
         return;
       }
-
-      callBtn.addEventListener("click", () => {
-        if (timerStarted) return;
-        timerStarted = true;
-        console.log("📞 [IVR] Call geklikt → auto-close timer gestart");
-
-        setTimeout(() => closePopup(popup), CLOSE_AFTER_MS);
-      });
-    }
-
-    const popup = document.querySelector(".call-pop-up");
-    if (!popup) return;
-
-    const observer = new MutationObserver(() => {
-      if (isVisible(popup)) arm(popup);
-    });
-
-    observer.observe(popup, {
-      attributes: true,
-      attributeFilter: ["style", "class"]
-    });
-
-    if (isVisible(popup)) arm(popup);
-  })();
-
-  // === Real User Monitoring (RUM) ===
-  (function () {
-    let sent = false;
-
-    function sendPerfLog() {
-      if (sent) return;
-      sent = true;
-
-      let loaderVisible = window.__loaderVisibleMs ?? null;
-      let initFirst = window.__initFirstSectionMs ?? null;
-
-      const payload = {
-        ts: Date.now(),
-        url: location.href,
-        userAgent: navigator.userAgent,
-        loaderVisible,
-        initFirstSection: initFirst
-      };
-
-      fetch("https://globalcoregflow-nl.vercel.app/api/perf-log.js", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      }).catch(() => {});
-    }
-
-    window.addEventListener("load", () => {
-      setTimeout(sendPerfLog, 4000);
+  
+      if (timerStarted) return;
+      timerStarted = true;
+  
+      console.log("📞 [IVR] Call button geklikt → start auto-close timer");
+  
+      setTimeout(() => {
+        closePopup(popup);
+      }, CLOSE_AFTER_MS);
     });
   })();
 
