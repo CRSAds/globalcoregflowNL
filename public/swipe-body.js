@@ -173,6 +173,98 @@
   });
 
   // =============================================================
+  // 🚪 Exit intent → toon Swipe Pages popup (Sovendus exit)
+  // - géén Sovendus laden in deze stap
+  // =============================================================
+  (function setupSovendusExitPopupTrigger() {
+    const POPUP_CLASS = "sovendus-exit-popup";
+    const INACTIVITY_MS = 25000;
+  
+    let shown = false;
+    let inactivityTimer = null;
+  
+    function getPopupEl() {
+      // SwipePages/Tatsu: popup kan in een container zitten, dus query overal
+      return document.querySelector(`.${POPUP_CLASS}`);
+    }
+  
+    function showPopup(reason) {
+      if (shown) return;
+  
+      const popup = getPopupEl();
+      if (!popup) {
+        console.warn(`[ExitPopup] Popup .${POPUP_CLASS} niet gevonden`);
+        return;
+      }
+  
+      shown = true;
+  
+      // probeer zowel container als element zelf zichtbaar te maken
+      const wrapper = popup.closest(".tatsu-popup-container") || popup;
+      wrapper.style.display = "block";
+      popup.style.display = "block";
+  
+      // vaak zet Tatsu ook classes; we forceren hier alleen zichtbaarheid
+      console.log("🚪 [ExitPopup] Popup geopend via:", reason);
+    }
+  
+    function hidePopup(reason) {
+      const popup = getPopupEl();
+      if (!popup) return;
+  
+      const wrapper = popup.closest(".tatsu-popup-container") || popup;
+      const mask = wrapper.querySelector(".popup-mask");
+  
+      popup.style.display = "none";
+      wrapper.style.display = "none";
+      if (mask) mask.style.display = "none";
+  
+      console.log("🚪 [ExitPopup] Popup gesloten via:", reason);
+    }
+  
+    // ===== Desktop exit intent =====
+    document.addEventListener("mouseleave", (e) => {
+      if (shown) return;
+      if (e.clientY <= 0) showPopup("desktop-exit");
+    });
+  
+    // ===== Mobile inactivity =====
+    function resetInactivity() {
+      if (shown) return;
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => showPopup("mobile-inactive"), INACTIVITY_MS);
+    }
+  
+    ["touchstart", "scroll", "click", "mousemove", "keydown"].forEach(evt => {
+      document.addEventListener(evt, resetInactivity, { passive: true });
+    });
+    resetInactivity();
+  
+    // ===== Close handlers (mask + close icon) =====
+    document.addEventListener("click", (e) => {
+      const popup = getPopupEl();
+      if (!popup) return;
+  
+      // alleen als popup zichtbaar is
+      const wrapper = popup.closest(".tatsu-popup-container") || popup;
+      const visible = window.getComputedStyle(wrapper).display !== "none";
+      if (!visible) return;
+  
+      // mask click
+      if (e.target.classList.contains("popup-mask")) {
+        hidePopup("mask");
+        return;
+      }
+  
+      // close icon click (Tatsu gebruikt vaak .close-icon)
+      if (e.target.closest(".close-icon")) {
+        hidePopup("close-icon");
+        return;
+      }
+    });
+  })();
+
+  // =============================================================
   // 📞 IVR POPUP AUTO-CLOSE NA CALL CLICK (TATSU)
   // =============================================================
   (function setupIvrPopupAutoClose() {
