@@ -172,11 +172,12 @@
     });
   });
 
-  // =============================================================
+ // =============================================================
   // 🚪 Exit intent → toon Swipe Pages popup (Sovendus exit)
-  // + forceer lazy-loaded images (IMG + TATSU BG)
-  // + MINI-SCROLL hack (triggert Tatsu lazy loader)
-  // + Sovendus iframe PAS laden zodra popup opent (1x per sessie)
+  // + forceer lazy-loaded images
+  // + MINI-SCROLL hack
+  // + Sovendus iframe PAS laden zodra popup opent (1x)
+  // + ✅ LOG Sovendus impression zodra iframe echt verschijnt
   // =============================================================
   (function setupSovendusExitPopupTrigger() {
     const POPUP_CLASS = "sovendus-exit-popup";
@@ -188,17 +189,21 @@
     // ✅ Sovendus exit iframe slechts 1x laden
     let sovendusLoaded = false;
   
+    // 🔵 Sovendus exit impression slechts 1x loggen
+    let sovendusExitLogged = false;
+  
     function getPopupEl() {
       return document.querySelector(`.${POPUP_CLASS}`);
     }
   
-    // 🖼️ Forceer lazy-loaded images + Tatsu backgrounds
+    // =============================================================
+    // 🖼️ Forceer lazy-loaded images + mini-scroll
+    // =============================================================
     function forceLoadImages(container) {
       if (!container) return;
   
       let count = 0;
   
-      // 1️⃣ <img data-src>
       container.querySelectorAll("img[data-src]").forEach((img) => {
         if (!img.src || img.src !== img.dataset.src) {
           img.src = img.dataset.src;
@@ -206,7 +211,6 @@
         }
       });
   
-      // 2️⃣ Tatsu background-images (DIVs)
       container.querySelectorAll("[data-bg], [data-background-image]").forEach((el) => {
         const bg =
           el.getAttribute("data-bg") ||
@@ -221,14 +225,76 @@
         }
       });
   
-      // 3️⃣ MINI-SCROLL hack (triggert Tatsu lazy loader)
       window.scrollBy(0, 1);
       setTimeout(() => window.scrollBy(0, -1), 50);
   
       console.log("🖼️ [ExitPopup] Afbeeldingen geforceerd + mini-scroll:", count);
     }
   
+    // =============================================================
+    // 📡 LOG Sovendus exit impression (iframe detectie)
+    // =============================================================
+    function observeAndLogSovendusExitIframe() {
+      if (sovendusExitLogged) return;
+  
+      const container = document.getElementById("sovendus-exit-container");
+      if (!container) return;
+  
+      function logImpression() {
+        if (sovendusExitLogged) return;
+  
+        const t_id = sessionStorage.getItem("t_id");
+        if (!t_id) {
+          console.warn("[SovendusExit] Geen t_id → geen logging");
+          return;
+        }
+  
+        sovendusExitLogged = true;
+  
+        const payload = {
+          t_id,
+          offer_id: sessionStorage.getItem("offer_id") || "unknown",
+          sub_id:
+            sessionStorage.getItem("sub_id") ||
+            sessionStorage.getItem("aff_id") ||
+            "unknown",
+          source: "exit",
+        };
+  
+        const API_BASE = `${location.protocol}//${location.host}`;
+        const url = `${API_BASE}/api/sovendus-impression.js`;
+  
+        console.log("📡 [SovendusExit] Iframe geladen → impression loggen", payload);
+  
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch((err) => {
+          console.error("[SovendusExit] Impression API fout", err);
+        });
+      }
+  
+      // Iframe al aanwezig?
+      if (container.querySelector("iframe")) {
+        logImpression();
+        return;
+      }
+  
+      const observer = new MutationObserver(() => {
+        if (container.querySelector("iframe")) {
+          observer.disconnect();
+          logImpression();
+        }
+      });
+  
+      observer.observe(container, { childList: true, subtree: true });
+    }
+  
+    // =============================================================
     // 🎁 Sovendus pas laden wanneer popup opent
+    // =============================================================
     function loadSovendusExitIframe() {
       if (sovendusLoaded) return;
   
@@ -242,24 +308,18 @@
   
       console.log("🎁 [SovendusExit] Sovendus iframe wordt geladen (exit popup)");
   
-      // container styling (veilig)
       container.style.minHeight = "60px";
       container.style.display = "block";
       container.style.width = "100%";
   
-      // ===== Basisdata (zelfde gedrag als reguliere Sovendus) =====
       const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
-      const gender = sessionStorage.getItem("gender") || "";
-      const firstname = sessionStorage.getItem("firstname") || "";
-      const lastname = sessionStorage.getItem("lastname") || "";
-      const email = sessionStorage.getItem("email") || "";
       const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
   
       window.sovConsumer = {
-        consumerSalutation: gender,
-        consumerFirstName: firstname,
-        consumerLastName: lastname,
-        consumerEmail: email,
+        consumerSalutation: sessionStorage.getItem("gender") || "",
+        consumerFirstName: sessionStorage.getItem("firstname") || "",
+        consumerLastName: sessionStorage.getItem("lastname") || "",
+        consumerEmail: sessionStorage.getItem("email") || "",
       };
   
       window.sovIframes = window.sovIframes || [];
@@ -268,10 +328,6 @@
         trafficMediumNumber: "1",
         sessionId: t_id,
         timestamp,
-        orderId: "",
-        orderValue: "",
-        orderCurrency: "",
-        usedCouponCode: "",
         iframeContainerId: "sovendus-exit-container",
       });
   
@@ -281,17 +337,20 @@
   
       script.onload = () => {
         console.log("✅ [SovendusExit] Sovendus script geladen (exit popup)");
+        observeAndLogSovendusExitIframe(); // 🔵 hier gebeurt het
       };
   
       script.onerror = () => {
         console.error("❌ [SovendusExit] Fout bij laden Sovendus script");
-        // allow retry if needed
         sovendusLoaded = false;
       };
   
       document.body.appendChild(script);
     }
   
+    // =============================================================
+    // 🚪 Popup tonen
+    // =============================================================
     function showPopup(reason) {
       if (shown) return;
   
@@ -307,10 +366,7 @@
       wrapper.style.display = "block";
       popup.style.display = "block";
   
-      // ✅ Lazy-load fix + scroll trigger
       forceLoadImages(wrapper);
-  
-      // ✅ Sovendus pas NU laden
       loadSovendusExitIframe();
   
       console.log("🚪 [ExitPopup] Popup geopend via:", reason);
@@ -330,7 +386,7 @@
       console.log("🚪 [ExitPopup] Popup gesloten via:", reason);
     }
   
-    // ===== Desktop exit intent =====
+    // ===== Desktop exit =====
     document.addEventListener("mouseleave", (e) => {
       if (shown) return;
       if (e.clientY <= 0) showPopup("desktop-exit");
@@ -351,7 +407,7 @@
   
     resetInactivity();
   
-    // ===== Close handlers (mask + close icon) =====
+    // ===== Close handlers =====
     document.addEventListener("click", (e) => {
       const popup = getPopupEl();
       if (!popup) return;
