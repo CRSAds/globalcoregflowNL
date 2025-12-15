@@ -1,14 +1,12 @@
-// =============================================================
-// ✅ Affise Postback → Supabase (Costs / Payouts)
-// - clickid = t_id (uniek)
-// - sub2 = sub_id
-// - affiliate_name opgeslagen als label
-// - date_only leidend voor dag (Y-m-d)
-// - idempotent via unique index op t_id
-// =============================================================
+import querystring from "querystring";
+
+export const config = {
+  api: {
+    bodyParser: false // 👈 nodig voor form-encoded
+  }
+};
 
 export default async function handler(req, res) {
-  // Basic CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -17,37 +15,64 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ ok: false });
 
   try {
-    const body = req.body || {};
+    // -------------------------------------------------
+    // 🔍 Body handmatig uitlezen (Affise-proof)
+    // -------------------------------------------------
+    let rawBody = "";
 
-    // -----------------------------
-    // 🔗 Exacte Affise mapping
-    // -----------------------------
+    await new Promise(resolve => {
+      req.on("data", chunk => {
+        rawBody += chunk.toString();
+      });
+      req.on("end", resolve);
+    });
+
+    let body = {};
+
+    const contentType = req.headers["content-type"] || "";
+
+    if (contentType.includes("application/json")) {
+      body = JSON.parse(rawBody || "{}");
+    } else {
+      // form-urlencoded of plain POST
+      body = querystring.parse(rawBody);
+    }
+
+    // -------------------------------------------------
+    // 🧠 Debug (tijdelijk laten staan)
+    // -------------------------------------------------
+    console.log("[affise-postback] rawBody:", rawBody);
+    console.log("[affise-postback] parsed body:", body);
+
+    // -------------------------------------------------
+    // 🎯 Exacte mapping (zoals afgesproken)
+    // -------------------------------------------------
     const offer_id = body.offer_id;
-    const t_id = body.clickid; // clickid === t_id
-    const payout = body.payout;
-    const sub_id = body.sub_id || "unknown"; // sub2
+    const t_id = body.clickid || body.click_id;
+    const payout = body.payout || body.sum;
+    const sub_id = body.sub_id || body.sub2 || "unknown";
     const affiliate_name = body.affiliate_name || null;
-    const day = body.date_only; // Y-m-d
+    const day = body.date_only;
 
-    // -----------------------------
-    // 🛑 Validatie (strikt & bewust)
-    // -----------------------------
-    if (!offer_id || !t_id || payout === null || !day) {
-      console.error("[affise-postback] missing fields", body);
+    // -------------------------------------------------
+    // 🛑 Validatie
+    // -------------------------------------------------
+    if (!offer_id || !t_id || payout == null || !day) {
+      console.error("[affise-postback] missing fields", {
+        offer_id,
+        t_id,
+        payout,
+        day
+      });
       return res.status(400).json({ ok: false, error: "missing_fields" });
     }
 
-    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABase_URL = process.env.SUPABASE_URL;
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-      console.error("[affise-postback] missing env vars");
-      return res.status(500).json({ ok: false, error: "missing_env" });
-    }
-
-    // -----------------------------
-    // 📦 Rij voor Supabase
-    // -----------------------------
+    // -------------------------------------------------
+    // 📦 Supabase row
+    // -------------------------------------------------
     const row = {
       day,
       offer_id: String(offer_id),
@@ -58,11 +83,8 @@ export default async function handler(req, res) {
       raw: body
     };
 
-    // -----------------------------
-    // ♻️ Upsert (idempotent)
-    // -----------------------------
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/affise_payouts?on_conflict=t_id`,
+    const r = await fetch(
+      `${SUPABase_URL}/rest/v1/affise_payouts?on_conflict=t_id`,
       {
         method: "POST",
         headers: {
@@ -75,15 +97,15 @@ export default async function handler(req, res) {
       }
     );
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("[affise-postback] Supabase error", text);
+    if (!r.ok) {
+      const txt = await r.text();
+      console.error("[affise-postback] Supabase error", txt);
       return res.status(500).json({ ok: false });
     }
 
     return res.json({ ok: true });
-  } catch (err) {
-    console.error("[affise-postback] exception", err);
+  } catch (e) {
+    console.error("[affise-postback] exception", e);
     return res.status(500).json({ ok: false });
   }
 }
