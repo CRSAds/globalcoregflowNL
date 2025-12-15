@@ -175,7 +175,8 @@
   // =============================================================
   // 🚪 Exit intent → toon Swipe Pages popup (Sovendus exit)
   // + forceer lazy-loaded images (IMG + TATSU BG)
-  // + MINI-SCROLL hack (BELANGRIJK)
+  // + MINI-SCROLL hack (triggert Tatsu lazy loader)
+  // + Sovendus iframe PAS laden zodra popup opent (1x per sessie)
   // =============================================================
   (function setupSovendusExitPopupTrigger() {
     const POPUP_CLASS = "sovendus-exit-popup";
@@ -183,6 +184,9 @@
   
     let shown = false;
     let inactivityTimer = null;
+  
+    // ✅ Sovendus exit iframe slechts 1x laden
+    let sovendusLoaded = false;
   
     function getPopupEl() {
       return document.querySelector(`.${POPUP_CLASS}`);
@@ -195,35 +199,97 @@
       let count = 0;
   
       // 1️⃣ <img data-src>
-      container.querySelectorAll("img[data-src]").forEach(img => {
+      container.querySelectorAll("img[data-src]").forEach((img) => {
         if (!img.src || img.src !== img.dataset.src) {
           img.src = img.dataset.src;
           count++;
         }
       });
   
-      // 2️⃣ Tatsu background-images
-      container
-        .querySelectorAll("[data-bg], [data-background-image]")
-        .forEach(el => {
-          const bg =
-            el.getAttribute("data-bg") ||
-            el.getAttribute("data-background-image");
+      // 2️⃣ Tatsu background-images (DIVs)
+      container.querySelectorAll("[data-bg], [data-background-image]").forEach((el) => {
+        const bg =
+          el.getAttribute("data-bg") ||
+          el.getAttribute("data-background-image");
   
-          if (bg && (!el.style.backgroundImage || el.style.backgroundImage === "none")) {
-            el.style.backgroundImage = `url('${bg}')`;
-            el.style.backgroundSize = "cover";
-            el.style.backgroundPosition = "center";
-            el.style.backgroundRepeat = "no-repeat";
-            count++;
-          }
-        });
+        if (bg && (!el.style.backgroundImage || el.style.backgroundImage === "none")) {
+          el.style.backgroundImage = `url('${bg}')`;
+          el.style.backgroundSize = "cover";
+          el.style.backgroundPosition = "center";
+          el.style.backgroundRepeat = "no-repeat";
+          count++;
+        }
+      });
   
-      // 3️⃣ MINI-SCROLL hack (dit triggert Tatsu lazy loader)
+      // 3️⃣ MINI-SCROLL hack (triggert Tatsu lazy loader)
       window.scrollBy(0, 1);
       setTimeout(() => window.scrollBy(0, -1), 50);
   
       console.log("🖼️ [ExitPopup] Afbeeldingen geforceerd + mini-scroll:", count);
+    }
+  
+    // 🎁 Sovendus pas laden wanneer popup opent
+    function loadSovendusExitIframe() {
+      if (sovendusLoaded) return;
+  
+      const container = document.getElementById("sovendus-exit-container");
+      if (!container) {
+        console.warn("[SovendusExit] #sovendus-exit-container niet gevonden");
+        return;
+      }
+  
+      sovendusLoaded = true;
+  
+      console.log("🎁 [SovendusExit] Sovendus iframe wordt geladen (exit popup)");
+  
+      // container styling (veilig)
+      container.style.minHeight = "60px";
+      container.style.display = "block";
+      container.style.width = "100%";
+  
+      // ===== Basisdata (zelfde gedrag als reguliere Sovendus) =====
+      const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
+      const gender = sessionStorage.getItem("gender") || "";
+      const firstname = sessionStorage.getItem("firstname") || "";
+      const lastname = sessionStorage.getItem("lastname") || "";
+      const email = sessionStorage.getItem("email") || "";
+      const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
+  
+      window.sovConsumer = {
+        consumerSalutation: gender,
+        consumerFirstName: firstname,
+        consumerLastName: lastname,
+        consumerEmail: email,
+      };
+  
+      window.sovIframes = window.sovIframes || [];
+      window.sovIframes.push({
+        trafficSourceNumber: "5592",
+        trafficMediumNumber: "1",
+        sessionId: t_id,
+        timestamp,
+        orderId: "",
+        orderValue: "",
+        orderCurrency: "",
+        usedCouponCode: "",
+        iframeContainerId: "sovendus-exit-container",
+      });
+  
+      const script = document.createElement("script");
+      script.src = "https://api.sovendus.com/sovabo/common/js/flexibleIframe.js";
+      script.async = true;
+  
+      script.onload = () => {
+        console.log("✅ [SovendusExit] Sovendus script geladen (exit popup)");
+      };
+  
+      script.onerror = () => {
+        console.error("❌ [SovendusExit] Fout bij laden Sovendus script");
+        // allow retry if needed
+        sovendusLoaded = false;
+      };
+  
+      document.body.appendChild(script);
     }
   
     function showPopup(reason) {
@@ -241,8 +307,11 @@
       wrapper.style.display = "block";
       popup.style.display = "block";
   
-      // 👉 Lazy-load fix + scroll trigger
+      // ✅ Lazy-load fix + scroll trigger
       forceLoadImages(wrapper);
+  
+      // ✅ Sovendus pas NU laden
+      loadSovendusExitIframe();
   
       console.log("🚪 [ExitPopup] Popup geopend via:", reason);
     }
@@ -271,19 +340,18 @@
     function resetInactivity() {
       if (shown) return;
       clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(
-        () => showPopup("mobile-inactive"),
-        INACTIVITY_MS
-      );
+      inactivityTimer = setTimeout(() => {
+        showPopup("mobile-inactive");
+      }, INACTIVITY_MS);
     }
   
-    ["touchstart", "scroll", "click", "mousemove", "keydown"].forEach(evt => {
+    ["touchstart", "scroll", "click", "mousemove", "keydown"].forEach((evt) => {
       document.addEventListener(evt, resetInactivity, { passive: true });
     });
   
     resetInactivity();
   
-    // ===== Close handlers =====
+    // ===== Close handlers (mask + close icon) =====
     document.addEventListener("click", (e) => {
       const popup = getPopupEl();
       if (!popup) return;
