@@ -173,28 +173,31 @@
   });
 
   // =============================================================
-  // 📞 IVR POPUP AUTO-CLOSE NA CALL CLICK (TATSU POPUP)
+  // 📞 IVR POPUP AUTO-CLOSE NA CALL CLICK (TATSU)
   // =============================================================
   (function setupIvrPopupAutoClose() {
     const CLOSE_AFTER_MS = 10000; // 10 seconden
     let timerStarted = false;
   
-    function closePopup(popup) {
-      if (!popup) return;
+    function closePopup(callPopup) {
+      if (!callPopup) return;
   
-      popup.classList.remove("tatsu-popup--active");
-      popup.style.display = "none";
+      const container = callPopup.closest(".tatsu-popup-container");
+      const mask = container?.querySelector(".popup-mask");
   
-      console.log("📞 [IVR] Tatsu popup automatisch gesloten");
+      if (container) container.style.display = "none";
+      if (mask) mask.style.display = "none";
+  
+      console.log("📞 [IVR] Tatsu popup-container automatisch gesloten");
     }
   
     document.addEventListener("click", (e) => {
       const callBtn = e.target.closest(".ivr-call-btn");
       if (!callBtn) return;
   
-      const popup = callBtn.closest(".tatsu-popup");
-      if (!popup) {
-        console.warn("📞 [IVR] ivr-call-btn klik, maar geen .tatsu-popup gevonden");
+      const callPopup = callBtn.closest(".call-pop-up");
+      if (!callPopup) {
+        console.warn("📞 [IVR] ivr-call-btn klik, maar geen .call-pop-up gevonden");
         return;
       }
   
@@ -204,7 +207,7 @@
       console.log("📞 [IVR] Call button geklikt → start auto-close timer");
   
       setTimeout(() => {
-        closePopup(popup);
+        closePopup(callPopup);
       }, CLOSE_AFTER_MS);
     });
   })();
