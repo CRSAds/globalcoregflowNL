@@ -174,7 +174,7 @@
 
   // =============================================================
   // 🚪 Exit intent → toon Swipe Pages popup (Sovendus exit)
-  // + forceer lazy-loaded images bij openen
+  // + forceer lazy-loaded images (IMG + TATSU BACKGROUNDS)
   // (nog GEEN Sovendus laden in deze stap)
   // =============================================================
   (function setupSovendusExitPopupTrigger() {
@@ -188,21 +188,41 @@
       return document.querySelector(`.${POPUP_CLASS}`);
     }
   
-    // 🖼️ Forceer lazy-loaded images binnen popup
+    // 🖼️ Forceer lazy-loaded images & Tatsu backgrounds
     function forceLoadImages(container) {
       if (!container) return;
   
+      let count = 0;
+  
+      // 1️⃣ <img data-src>
       const imgs = container.querySelectorAll("img[data-src]");
       imgs.forEach(img => {
         if (!img.src || img.src !== img.dataset.src) {
           img.src = img.dataset.src;
+          count++;
         }
       });
   
-      // mini reflow om render te forceren
+      // 2️⃣ Tatsu background lazy-load (DIVs)
+      const bgEls = container.querySelectorAll("[data-bg], [data-background-image]");
+      bgEls.forEach(el => {
+        const bg =
+          el.getAttribute("data-bg") ||
+          el.getAttribute("data-background-image");
+  
+        if (bg && (!el.style.backgroundImage || el.style.backgroundImage === "none")) {
+          el.style.backgroundImage = `url('${bg}')`;
+          el.style.backgroundSize = "cover";
+          el.style.backgroundPosition = "center";
+          el.style.backgroundRepeat = "no-repeat";
+          count++;
+        }
+      });
+  
+      // 3️⃣ Reflow trigger (nodig voor Tatsu)
       container.offsetHeight;
   
-      console.log("🖼️ [ExitPopup] Afbeeldingen geforceerd geladen:", imgs.length);
+      console.log("🖼️ [ExitPopup] Afbeeldingen geforceerd geladen:", count);
     }
   
     function showPopup(reason) {
@@ -220,7 +240,7 @@
       wrapper.style.display = "block";
       popup.style.display = "block";
   
-      // 👉 LAZY IMAGES FIX
+      // 👉 BELANGRIJK: lazy-load fix
       forceLoadImages(wrapper);
   
       console.log("🚪 [ExitPopup] Popup geopend via:", reason);
