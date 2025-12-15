@@ -66,7 +66,7 @@ function logSovendusImpression() {
 
   sovendusLogged = true;
 
-  const url = `${API_BASE}/api/sovendus-impression`;
+  const url = `${API_BASE}/api/sovendus-impression.js`;
 
   console.log("[Sovendus] Iframe geladen → impression loggen", {
     t_id,
