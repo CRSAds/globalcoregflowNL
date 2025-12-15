@@ -4,7 +4,7 @@
 // =============================================================
 
 export default async function handler(req, res) {
-  // ✅ CORS HEADERS (dit is de sleutel)
+  // ✅ CORS HEADERS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -19,7 +19,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { t_id, offer_id, sub_id } = req.body || {};
+    // ⬇️ NEW: source met veilige default
+    const {
+      t_id,
+      offer_id,
+      sub_id,
+      source = "flow", // 👈 BELANGRIJK
+    } = req.body || {};
 
     if (!t_id) {
       return res.status(400).json({ ok: false, error: "missing_t_id" });
@@ -37,6 +43,7 @@ export default async function handler(req, res) {
       t_id,
       offer_id: offer_id || "unknown",
       sub_id: sub_id || "unknown",
+      source, // 👈 wordt nu opgeslagen
     };
 
     const r = await fetch(
@@ -55,7 +62,11 @@ export default async function handler(req, res) {
 
     if (!r.ok) {
       const txt = await r.text();
-      console.error("[sovendus-impression] Supabase error", r.status, txt);
+      console.error(
+        "[sovendus-impression] Supabase error",
+        r.status,
+        txt
+      );
       return res.status(500).json({ ok: false });
     }
 
