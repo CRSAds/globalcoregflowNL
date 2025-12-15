@@ -174,7 +174,8 @@
 
   // =============================================================
   // 🚪 Exit intent → toon Swipe Pages popup (Sovendus exit)
-  // - géén Sovendus laden in deze stap
+  // + forceer lazy-loaded images bij openen
+  // (nog GEEN Sovendus laden in deze stap)
   // =============================================================
   (function setupSovendusExitPopupTrigger() {
     const POPUP_CLASS = "sovendus-exit-popup";
@@ -184,8 +185,24 @@
     let inactivityTimer = null;
   
     function getPopupEl() {
-      // SwipePages/Tatsu: popup kan in een container zitten, dus query overal
       return document.querySelector(`.${POPUP_CLASS}`);
+    }
+  
+    // 🖼️ Forceer lazy-loaded images binnen popup
+    function forceLoadImages(container) {
+      if (!container) return;
+  
+      const imgs = container.querySelectorAll("img[data-src]");
+      imgs.forEach(img => {
+        if (!img.src || img.src !== img.dataset.src) {
+          img.src = img.dataset.src;
+        }
+      });
+  
+      // mini reflow om render te forceren
+      container.offsetHeight;
+  
+      console.log("🖼️ [ExitPopup] Afbeeldingen geforceerd geladen:", imgs.length);
     }
   
     function showPopup(reason) {
@@ -199,12 +216,13 @@
   
       shown = true;
   
-      // probeer zowel container als element zelf zichtbaar te maken
       const wrapper = popup.closest(".tatsu-popup-container") || popup;
       wrapper.style.display = "block";
       popup.style.display = "block";
   
-      // vaak zet Tatsu ook classes; we forceren hier alleen zichtbaarheid
+      // 👉 LAZY IMAGES FIX
+      forceLoadImages(wrapper);
+  
       console.log("🚪 [ExitPopup] Popup geopend via:", reason);
     }
   
@@ -225,19 +243,24 @@
     // ===== Desktop exit intent =====
     document.addEventListener("mouseleave", (e) => {
       if (shown) return;
-      if (e.clientY <= 0) showPopup("desktop-exit");
+      if (e.clientY <= 0) {
+        showPopup("desktop-exit");
+      }
     });
   
     // ===== Mobile inactivity =====
     function resetInactivity() {
       if (shown) return;
       clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(() => showPopup("mobile-inactive"), INACTIVITY_MS);
+      inactivityTimer = setTimeout(() => {
+        showPopup("mobile-inactive");
+      }, INACTIVITY_MS);
     }
   
     ["touchstart", "scroll", "click", "mousemove", "keydown"].forEach(evt => {
       document.addEventListener(evt, resetInactivity, { passive: true });
     });
+  
     resetInactivity();
   
     // ===== Close handlers (mask + close icon) =====
@@ -245,18 +268,15 @@
       const popup = getPopupEl();
       if (!popup) return;
   
-      // alleen als popup zichtbaar is
       const wrapper = popup.closest(".tatsu-popup-container") || popup;
       const visible = window.getComputedStyle(wrapper).display !== "none";
       if (!visible) return;
   
-      // mask click
       if (e.target.classList.contains("popup-mask")) {
         hidePopup("mask");
         return;
       }
   
-      // close icon click (Tatsu gebruikt vaak .close-icon)
       if (e.target.closest(".close-icon")) {
         hidePopup("close-icon");
         return;
