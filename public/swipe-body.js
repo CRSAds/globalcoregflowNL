@@ -172,7 +172,7 @@
     });
   });
 
- // =============================================================
+  // =============================================================
   // 🚪 Exit intent → toon Swipe Pages popup (Sovendus exit)
   // + forceer lazy-loaded images
   // + MINI-SCROLL hack
@@ -182,40 +182,40 @@
   (function setupSovendusExitPopupTrigger() {
     const POPUP_CLASS = "sovendus-exit-popup";
     const INACTIVITY_MS = 25000;
-  
+
     let shown = false;
     let inactivityTimer = null;
-  
+
     // ✅ Sovendus exit iframe slechts 1x laden
     let sovendusLoaded = false;
-  
+
     // 🔵 Sovendus exit impression slechts 1x loggen
     let sovendusExitLogged = false;
-  
+
     function getPopupEl() {
       return document.querySelector(`.${POPUP_CLASS}`);
     }
-  
+
     // =============================================================
     // 🖼️ Forceer lazy-loaded images + mini-scroll
     // =============================================================
     function forceLoadImages(container) {
       if (!container) return;
-  
+
       let count = 0;
-  
+
       container.querySelectorAll("img[data-src]").forEach((img) => {
         if (!img.src || img.src !== img.dataset.src) {
           img.src = img.dataset.src;
           count++;
         }
       });
-  
+
       container.querySelectorAll("[data-bg], [data-background-image]").forEach((el) => {
         const bg =
           el.getAttribute("data-bg") ||
           el.getAttribute("data-background-image");
-  
+
         if (bg && (!el.style.backgroundImage || el.style.backgroundImage === "none")) {
           el.style.backgroundImage = `url('${bg}')`;
           el.style.backgroundSize = "cover";
@@ -224,33 +224,47 @@
           count++;
         }
       });
-  
+
       window.scrollBy(0, 1);
       setTimeout(() => window.scrollBy(0, -1), 50);
-  
+
       console.log("🖼️ [ExitPopup] Afbeeldingen geforceerd + mini-scroll:", count);
     }
-  
+
+    // =============================================================
+    // ✅ Bepaal API-origin (NIET via location.host)
+    // - Als FLOW_LOG_ENDPOINT bestaat: pak origin daarvan
+    // - Anders fallback naar globalcoregflow-nl
+    // =============================================================
+    function getApiBase() {
+      try {
+        if (window.FLOW_LOG_ENDPOINT) {
+          return new URL(window.FLOW_LOG_ENDPOINT).origin;
+        }
+      } catch (e) {}
+      return "https://globalcoregflow-nl.vercel.app";
+    }
+
     // =============================================================
     // 📡 LOG Sovendus exit impression (iframe detectie)
     // =============================================================
     function observeAndLogSovendusExitIframe() {
       if (sovendusExitLogged) return;
-  
+
       const container = document.getElementById("sovendus-exit-container");
       if (!container) return;
-  
-      function logImpression() {
+
+      async function logImpression() {
         if (sovendusExitLogged) return;
-  
+
         const t_id = sessionStorage.getItem("t_id");
         if (!t_id) {
           console.warn("[SovendusExit] Geen t_id → geen logging");
           return;
         }
-  
+
         sovendusExitLogged = true;
-  
+
         const payload = {
           t_id,
           offer_id: sessionStorage.getItem("offer_id") || "unknown",
@@ -260,68 +274,75 @@
             "unknown",
           source: "exit",
         };
-  
-        const API_BASE = `${location.protocol}//${location.host}`;
+
+        const API_BASE = getApiBase();
         const url = `${API_BASE}/api/sovendus-impression.js`;
-  
-        console.log("📡 [SovendusExit] Iframe geladen → impression loggen", payload);
-  
-        fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          keepalive: true,
-        }).catch((err) => {
+
+        console.log("📡 [SovendusExit] Iframe geladen → impression loggen", { ...payload, url });
+
+        try {
+          const r = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            keepalive: true,
+          });
+
+          if (!r.ok) {
+            const txt = await r.text().catch(() => "");
+            console.error("[SovendusExit] Impression API non-200", r.status, txt);
+          }
+        } catch (err) {
           console.error("[SovendusExit] Impression API fout", err);
-        });
+        }
       }
-  
+
       // Iframe al aanwezig?
       if (container.querySelector("iframe")) {
         logImpression();
         return;
       }
-  
+
       const observer = new MutationObserver(() => {
         if (container.querySelector("iframe")) {
           observer.disconnect();
           logImpression();
         }
       });
-  
+
       observer.observe(container, { childList: true, subtree: true });
     }
-  
+
     // =============================================================
     // 🎁 Sovendus pas laden wanneer popup opent
     // =============================================================
     function loadSovendusExitIframe() {
       if (sovendusLoaded) return;
-  
+
       const container = document.getElementById("sovendus-exit-container");
       if (!container) {
         console.warn("[SovendusExit] #sovendus-exit-container niet gevonden");
         return;
       }
-  
+
       sovendusLoaded = true;
-  
+
       console.log("🎁 [SovendusExit] Sovendus iframe wordt geladen (exit popup)");
-  
+
       container.style.minHeight = "60px";
       container.style.display = "block";
       container.style.width = "100%";
-  
+
       const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
       const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
-  
+
       window.sovConsumer = {
         consumerSalutation: sessionStorage.getItem("gender") || "",
         consumerFirstName: sessionStorage.getItem("firstname") || "",
         consumerLastName: sessionStorage.getItem("lastname") || "",
         consumerEmail: sessionStorage.getItem("email") || "",
       };
-  
+
       window.sovIframes = window.sovIframes || [];
       window.sovIframes.push({
         trafficSourceNumber: "5592",
@@ -330,68 +351,68 @@
         timestamp,
         iframeContainerId: "sovendus-exit-container",
       });
-  
+
       const script = document.createElement("script");
       script.src = "https://api.sovendus.com/sovabo/common/js/flexibleIframe.js";
       script.async = true;
-  
+
       script.onload = () => {
         console.log("✅ [SovendusExit] Sovendus script geladen (exit popup)");
         observeAndLogSovendusExitIframe(); // 🔵 hier gebeurt het
       };
-  
+
       script.onerror = () => {
         console.error("❌ [SovendusExit] Fout bij laden Sovendus script");
         sovendusLoaded = false;
       };
-  
+
       document.body.appendChild(script);
     }
-  
+
     // =============================================================
     // 🚪 Popup tonen
     // =============================================================
     function showPopup(reason) {
       if (shown) return;
-  
+
       const popup = getPopupEl();
       if (!popup) {
         console.warn(`[ExitPopup] Popup .${POPUP_CLASS} niet gevonden`);
         return;
       }
-  
+
       shown = true;
-  
+
       const wrapper = popup.closest(".tatsu-popup-container") || popup;
       wrapper.style.display = "block";
       popup.style.display = "block";
-  
+
       forceLoadImages(wrapper);
       loadSovendusExitIframe();
-  
+
       console.log("🚪 [ExitPopup] Popup geopend via:", reason);
     }
-  
+
     function hidePopup(reason) {
       const popup = getPopupEl();
       if (!popup) return;
-  
+
       const wrapper = popup.closest(".tatsu-popup-container") || popup;
       const mask = wrapper.querySelector(".popup-mask");
-  
+
       popup.style.display = "none";
       wrapper.style.display = "none";
       if (mask) mask.style.display = "none";
-  
+
       console.log("🚪 [ExitPopup] Popup gesloten via:", reason);
     }
-  
+
     // ===== Desktop exit =====
     document.addEventListener("mouseleave", (e) => {
       if (shown) return;
       if (e.clientY <= 0) showPopup("desktop-exit");
     });
-  
+
     // ===== Mobile inactivity =====
     function resetInactivity() {
       if (shown) return;
@@ -400,27 +421,27 @@
         showPopup("mobile-inactive");
       }, INACTIVITY_MS);
     }
-  
+
     ["touchstart", "scroll", "click", "mousemove", "keydown"].forEach((evt) => {
       document.addEventListener(evt, resetInactivity, { passive: true });
     });
-  
+
     resetInactivity();
-  
+
     // ===== Close handlers =====
     document.addEventListener("click", (e) => {
       const popup = getPopupEl();
       if (!popup) return;
-  
+
       const wrapper = popup.closest(".tatsu-popup-container") || popup;
       const visible = window.getComputedStyle(wrapper).display !== "none";
       if (!visible) return;
-  
+
       if (e.target.classList.contains("popup-mask")) {
         hidePopup("mask");
         return;
       }
-  
+
       if (e.target.closest(".close-icon")) {
         hidePopup("close-icon");
         return;
@@ -434,34 +455,34 @@
   (function setupIvrPopupAutoClose() {
     const CLOSE_AFTER_MS = 10000; // 10 seconden
     let timerStarted = false;
-  
+
     function closePopup(callPopup) {
       if (!callPopup) return;
-  
+
       const container = callPopup.closest(".tatsu-popup-container");
       const mask = container?.querySelector(".popup-mask");
-  
+
       if (container) container.style.display = "none";
       if (mask) mask.style.display = "none";
-  
+
       console.log("📞 [IVR] Tatsu popup-container automatisch gesloten");
     }
-  
+
     document.addEventListener("click", (e) => {
       const callBtn = e.target.closest(".ivr-call-btn");
       if (!callBtn) return;
-  
+
       const callPopup = callBtn.closest(".call-pop-up");
       if (!callPopup) {
         console.warn("📞 [IVR] ivr-call-btn klik, maar geen .call-pop-up gevonden");
         return;
       }
-  
+
       if (timerStarted) return;
       timerStarted = true;
-  
+
       console.log("📞 [IVR] Call button geklikt → start auto-close timer");
-  
+
       setTimeout(() => {
         closePopup(callPopup);
       }, CLOSE_AFTER_MS);
