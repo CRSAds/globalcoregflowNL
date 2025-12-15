@@ -2,7 +2,7 @@
 // ✅ sovendus.js — FLOW CONTROLLED (geen auto-start)
 // - setupSovendus wordt ALLEEN door initFlow aangeroepen
 // - iframe wordt pas geladen bij Sovendus-sectie
-// - impression logging bij iframe injectie
+// - impression logging via Vercel API (cross-domain safe)
 // =============================================================
 
 let hasInitialized = false;
@@ -10,6 +10,11 @@ let hasAdvanced = false;
 let sovendusLogged = false;
 
 const SOV_TIMEOUT_MS = 10000;
+
+// 👉 VASTE API BASE (belangrijk bij funnels op ander domein)
+const API_BASE =
+  window.API_BASE ||
+  "https://globalcoregflow-nl.vercel.app";
 
 // =============================================================
 // ➡️ Flow vervolgen na Sovendus
@@ -61,19 +66,27 @@ function logSovendusImpression() {
 
   sovendusLogged = true;
 
+  const url = `${API_BASE}/api/sovendus-impression`;
+
   console.log("[Sovendus] Iframe geladen → impression loggen", {
     t_id,
     offer_id,
-    sub_id
+    sub_id,
+    url
   });
 
-  fetch("/api/sovendus-impression", {
+  fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ t_id, offer_id, sub_id })
-  }).catch(err => {
-    console.error("[Sovendus] Impression API fout", err);
-  });
+  })
+    .then(async r => {
+      const txt = await r.text();
+      console.log("[Sovendus] API response", r.status, txt);
+    })
+    .catch(err => {
+      console.error("[Sovendus] Impression API fout", err);
+    });
 }
 
 // =============================================================
@@ -107,11 +120,12 @@ function setupSovendus() {
     loadingDiv.id = "sovendus-loading";
     loadingDiv.style.textAlign = "center";
     loadingDiv.style.padding = "16px";
-    loadingDiv.innerHTML = `<p style="font-size:16px;">Even geduld… jouw voordeel wordt geladen!</p>`;
+    loadingDiv.innerHTML =
+      `<p style="font-size:16px;">Even geduld… jouw voordeel wordt geladen!</p>`;
     container.parentNode.insertBefore(loadingDiv, container);
   }
 
-  // Basisgegevens (zelfde gedrag als jouw huidige versie)
+  // Basisgegevens (zelfde gedrag als bestaande versie)
   const t_id = sessionStorage.getItem("t_id") || crypto.randomUUID();
   const gender = sessionStorage.getItem("gender") || "";
   const firstname = sessionStorage.getItem("firstname") || "";
@@ -152,10 +166,10 @@ function setupSovendus() {
         console.log("🎯 Sovendus iframe gedetecteerd");
         document.getElementById("sovendus-loading")?.remove();
 
-        // ✅ Impression pas als iframe er echt is (en dat kan nu alleen gebeuren op de Sovendus-stap)
+        // ✅ Impression loggen (nu altijd juiste timing + juiste API)
         logSovendusImpression();
 
-        // timeout → flow door
+        // ⏰ timeout → flow vervolgen
         setTimeout(() => {
           const section = document.getElementById("sovendus-section");
           if (section && window.getComputedStyle(section).display !== "none") {
@@ -180,6 +194,6 @@ function setupSovendus() {
 }
 
 // =============================================================
-// ♻️ Backwards compatibility: initFlow roept deze aan
+// ♻️ Backwards compatibility — initFlow roept deze aan
 // =============================================================
 window.setupSovendus = setupSovendus;
