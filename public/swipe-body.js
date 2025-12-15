@@ -174,8 +174,8 @@
 
   // =============================================================
   // 🚪 Exit intent → toon Swipe Pages popup (Sovendus exit)
-  // + forceer lazy-loaded images (IMG + TATSU BACKGROUNDS)
-  // (nog GEEN Sovendus laden in deze stap)
+  // + forceer lazy-loaded images (IMG + TATSU BG)
+  // + MINI-SCROLL hack (BELANGRIJK)
   // =============================================================
   (function setupSovendusExitPopupTrigger() {
     const POPUP_CLASS = "sovendus-exit-popup";
@@ -188,41 +188,42 @@
       return document.querySelector(`.${POPUP_CLASS}`);
     }
   
-    // 🖼️ Forceer lazy-loaded images & Tatsu backgrounds
+    // 🖼️ Forceer lazy-loaded images + Tatsu backgrounds
     function forceLoadImages(container) {
       if (!container) return;
   
       let count = 0;
   
       // 1️⃣ <img data-src>
-      const imgs = container.querySelectorAll("img[data-src]");
-      imgs.forEach(img => {
+      container.querySelectorAll("img[data-src]").forEach(img => {
         if (!img.src || img.src !== img.dataset.src) {
           img.src = img.dataset.src;
           count++;
         }
       });
   
-      // 2️⃣ Tatsu background lazy-load (DIVs)
-      const bgEls = container.querySelectorAll("[data-bg], [data-background-image]");
-      bgEls.forEach(el => {
-        const bg =
-          el.getAttribute("data-bg") ||
-          el.getAttribute("data-background-image");
+      // 2️⃣ Tatsu background-images
+      container
+        .querySelectorAll("[data-bg], [data-background-image]")
+        .forEach(el => {
+          const bg =
+            el.getAttribute("data-bg") ||
+            el.getAttribute("data-background-image");
   
-        if (bg && (!el.style.backgroundImage || el.style.backgroundImage === "none")) {
-          el.style.backgroundImage = `url('${bg}')`;
-          el.style.backgroundSize = "cover";
-          el.style.backgroundPosition = "center";
-          el.style.backgroundRepeat = "no-repeat";
-          count++;
-        }
-      });
+          if (bg && (!el.style.backgroundImage || el.style.backgroundImage === "none")) {
+            el.style.backgroundImage = `url('${bg}')`;
+            el.style.backgroundSize = "cover";
+            el.style.backgroundPosition = "center";
+            el.style.backgroundRepeat = "no-repeat";
+            count++;
+          }
+        });
   
-      // 3️⃣ Reflow trigger (nodig voor Tatsu)
-      container.offsetHeight;
+      // 3️⃣ MINI-SCROLL hack (dit triggert Tatsu lazy loader)
+      window.scrollBy(0, 1);
+      setTimeout(() => window.scrollBy(0, -1), 50);
   
-      console.log("🖼️ [ExitPopup] Afbeeldingen geforceerd geladen:", count);
+      console.log("🖼️ [ExitPopup] Afbeeldingen geforceerd + mini-scroll:", count);
     }
   
     function showPopup(reason) {
@@ -240,7 +241,7 @@
       wrapper.style.display = "block";
       popup.style.display = "block";
   
-      // 👉 BELANGRIJK: lazy-load fix
+      // 👉 Lazy-load fix + scroll trigger
       forceLoadImages(wrapper);
   
       console.log("🚪 [ExitPopup] Popup geopend via:", reason);
@@ -263,18 +264,17 @@
     // ===== Desktop exit intent =====
     document.addEventListener("mouseleave", (e) => {
       if (shown) return;
-      if (e.clientY <= 0) {
-        showPopup("desktop-exit");
-      }
+      if (e.clientY <= 0) showPopup("desktop-exit");
     });
   
     // ===== Mobile inactivity =====
     function resetInactivity() {
       if (shown) return;
       clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(() => {
-        showPopup("mobile-inactive");
-      }, INACTIVITY_MS);
+      inactivityTimer = setTimeout(
+        () => showPopup("mobile-inactive"),
+        INACTIVITY_MS
+      );
     }
   
     ["touchstart", "scroll", "click", "mousemove", "keydown"].forEach(evt => {
@@ -283,7 +283,7 @@
   
     resetInactivity();
   
-    // ===== Close handlers (mask + close icon) =====
+    // ===== Close handlers =====
     document.addEventListener("click", (e) => {
       const popup = getPopupEl();
       if (!popup) return;
