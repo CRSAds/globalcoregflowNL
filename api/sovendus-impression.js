@@ -1,6 +1,6 @@
 // =============================================================
 // /api/sovendus-impression.js
-// CORS-safe endpoint voor cross-domain Sovendus logging
+// CORS-safe endpoint voor Sovendus impressions + clicks
 // =============================================================
 
 export default async function handler(req, res) {
@@ -19,12 +19,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ⬇️ NEW: source met veilige default
     const {
       t_id,
       offer_id,
       sub_id,
-      source = "flow", // 👈 BELANGRIJK
+      source = "flow",        // flow | exit
+      event = "impression",   // impression | click
     } = req.body || {};
 
     if (!t_id) {
@@ -35,44 +35,47 @@ export default async function handler(req, res) {
     const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!SUPABASE_URL || !KEY) {
-      console.error("[sovendus-impression] Missing env vars");
+      console.error("[sovendus] Missing env vars");
       return res.status(500).json({ ok: false, error: "missing_env" });
     }
+
+    // 👇 Bepaal doel-tabel op basis van event
+    const table =
+      event === "click"
+        ? "sovendus_clicks"
+        : "sovendus_impressions";
 
     const payload = {
       t_id,
       offer_id: offer_id || "unknown",
       sub_id: sub_id || "unknown",
-      source, // 👈 wordt nu opgeslagen
+      source,
     };
 
-    const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/sovendus_impressions`,
-      {
-        method: "POST",
-        headers: {
-          apikey: KEY,
-          Authorization: `Bearer ${KEY}`,
-          "Content-Type": "application/json",
-          Prefer: "resolution=ignore-duplicates",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method: "POST",
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=ignore-duplicates",
+      },
+      body: JSON.stringify(payload),
+    });
 
     if (!r.ok) {
       const txt = await r.text();
-      console.error(
-        "[sovendus-impression] Supabase error",
-        r.status,
-        txt
-      );
+      console.error(`[sovendus] Supabase error (${table})`, r.status, txt);
       return res.status(500).json({ ok: false });
     }
 
-    return res.json({ ok: true });
+    return res.json({
+      ok: true,
+      event,
+      table,
+    });
   } catch (e) {
-    console.error("[sovendus-impression] Exception", e);
+    console.error("[sovendus] Exception", e);
     return res.status(500).json({ ok: false });
   }
 }
