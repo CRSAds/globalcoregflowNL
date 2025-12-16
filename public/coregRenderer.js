@@ -284,6 +284,10 @@ async function initCoregFlow() {
           sid: opt.dataset.sid
         };
 
+        // ✅ FIX 1: dropdown-keuze ook toevoegen aan gecombineerd coreg answer
+        // (zodat multistep antwoorden altijd in f_2014 terechtkomen)
+        await buildCoregPayload(camp, answerValue);
+
         if (camp.requiresLongForm) {
           sessionStorage.setItem("requiresLongForm", "true");
           const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
@@ -333,6 +337,9 @@ async function initCoregFlow() {
 
         if (!isNegative) {
           const shortDone = sessionStorage.getItem("shortFormCompleted") === "true";
+
+          // ✅ FIX 2: altijd answer opslaan, óók bij longform (geen lead sturen, wel data klaarzetten)
+          await buildCoregPayload(camp, answerValue);
 
           // LONGFORM
           if (camp.requiresLongForm) {
