@@ -26,6 +26,30 @@ function getImageUrl(image) {
 }
 
 // =============================================================
+// ✅ MINIMALE FIX: alleen coreg answer opslaan (geen payload/lead/flow)
+// =============================================================
+function storeCoregAnswerOnly(campaign, answerValue) {
+  if (!campaign) return;
+
+  // zorg dat cid bestaat
+  if (!answerValue?.cid) answerValue.cid = campaign.cid;
+
+  const cid = answerValue.cid;
+  const key = `coreg_answers_${cid}`;
+  const prev = JSON.parse(sessionStorage.getItem(key) || "[]");
+
+  const ans = answerValue?.answer_value;
+  if (ans && !prev.includes(ans)) {
+    prev.push(ans);
+    sessionStorage.setItem(key, JSON.stringify(prev));
+  }
+
+  // altijd string updaten (ook als leeg)
+  const combined = prev.join(" - ");
+  sessionStorage.setItem(`f_2014_coreg_answer_${cid}`, combined);
+}
+
+// =============================================================
 // Renderer
 // =============================================================
 function renderCampaignBlock(campaign, steps) {
@@ -284,9 +308,8 @@ async function initCoregFlow() {
           sid: opt.dataset.sid
         };
 
-        // ✅ FIX 1: dropdown-keuze ook toevoegen aan gecombineerd coreg answer
-        // (zodat multistep antwoorden altijd in f_2014 terechtkomen)
-        await buildCoregPayload(camp, answerValue);
+        // ✅ MINIMALE FIX: ook bij dropdowns coreg answer opslaan (zonder payload/lead)
+        storeCoregAnswerOnly(camp, answerValue);
 
         if (camp.requiresLongForm) {
           sessionStorage.setItem("requiresLongForm", "true");
@@ -338,8 +361,9 @@ async function initCoregFlow() {
         if (!isNegative) {
           const shortDone = sessionStorage.getItem("shortFormCompleted") === "true";
 
-          // ✅ FIX 2: altijd answer opslaan, óók bij longform (geen lead sturen, wel data klaarzetten)
-          await buildCoregPayload(camp, answerValue);
+          // ✅ MINIMALE FIX: altijd coreg answer opslaan, óók bij LONGFORM
+          // (geen lead sturen, geen payload bouwen — alleen sessionStorage)
+          storeCoregAnswerOnly(camp, answerValue);
 
           // LONGFORM
           if (camp.requiresLongForm) {
