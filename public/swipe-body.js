@@ -363,6 +363,39 @@
       );
     }
 
+    function hidePopup(reason) {
+    const popup = getPopupEl();
+    if (!popup) return;
+  
+    const wrapper = popup.closest(".tatsu-popup-container") || popup;
+    const mask = wrapper.querySelector(".popup-mask");
+  
+    popup.style.display = "none";
+    wrapper.style.display = "none";
+    if (mask) mask.style.display = "none";
+  
+    console.log("🚪 [ExitPopup] Popup gesloten via:", reason);
+  }
+  
+  document.addEventListener("click", (e) => {
+    const popup = getPopupEl();
+    if (!popup) return;
+  
+    const wrapper = popup.closest(".tatsu-popup-container") || popup;
+    const visible = window.getComputedStyle(wrapper).display !== "none";
+    if (!visible) return;
+  
+    if (e.target.classList.contains("popup-mask")) {
+      hidePopup("mask");
+      return;
+    }
+  
+    if (e.target.closest(".close-icon")) {
+      hidePopup("close-icon");
+      return;
+    }
+  });
+
     ["touchstart", "scroll", "click", "mousemove", "keydown"].forEach(
       (evt) =>
         document.addEventListener(evt, resetInactivity, {
