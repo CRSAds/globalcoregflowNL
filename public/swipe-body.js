@@ -2,6 +2,13 @@
 (function () {
   console.log("🧩 swipe-body.js gestart");
 
+  // =============================================================
+  // 📊 Sovendus click / impression tracking (NIEUW – add-only)
+  // =============================================================
+  let sovendusVisible = false;
+  let sovendusContext = null; // "exit" | "flow"
+  let sovendusClickLogged = false;
+
   // 🔎 Performance marker — script start
   if (typeof performance !== "undefined" && performance.mark) {
     performance.mark("swipe-body:start");
@@ -347,6 +354,10 @@
       forceLoadImages(wrapper);
       loadSovendusExitIframe();
 
+      // === NIEUW: markeer zichtbaarheid + context
+      sovendusVisible = true;
+      sovendusContext = "exit";
+
       console.log("🚪 [ExitPopup] Popup geopend via:", reason);
     }
 
@@ -364,37 +375,37 @@
     }
 
     function hidePopup(reason) {
-    const popup = getPopupEl();
-    if (!popup) return;
-  
-    const wrapper = popup.closest(".tatsu-popup-container") || popup;
-    const mask = wrapper.querySelector(".popup-mask");
-  
-    popup.style.display = "none";
-    wrapper.style.display = "none";
-    if (mask) mask.style.display = "none";
-  
-    console.log("🚪 [ExitPopup] Popup gesloten via:", reason);
-  }
-  
-  document.addEventListener("click", (e) => {
-    const popup = getPopupEl();
-    if (!popup) return;
-  
-    const wrapper = popup.closest(".tatsu-popup-container") || popup;
-    const visible = window.getComputedStyle(wrapper).display !== "none";
-    if (!visible) return;
-  
-    if (e.target.classList.contains("popup-mask")) {
-      hidePopup("mask");
-      return;
+      const popup = getPopupEl();
+      if (!popup) return;
+
+      const wrapper = popup.closest(".tatsu-popup-container") || popup;
+      const mask = wrapper.querySelector(".popup-mask");
+
+      popup.style.display = "none";
+      wrapper.style.display = "none";
+      if (mask) mask.style.display = "none";
+
+      console.log("🚪 [ExitPopup] Popup gesloten via:", reason);
     }
-  
-    if (e.target.closest(".close-icon")) {
-      hidePopup("close-icon");
-      return;
-    }
-  });
+
+    document.addEventListener("click", (e) => {
+      const popup = getPopupEl();
+      if (!popup) return;
+
+      const wrapper = popup.closest(".tatsu-popup-container") || popup;
+      const visible = window.getComputedStyle(wrapper).display !== "none";
+      if (!visible) return;
+
+      if (e.target.classList.contains("popup-mask")) {
+        hidePopup("mask");
+        return;
+      }
+
+      if (e.target.closest(".close-icon")) {
+        hidePopup("close-icon");
+        return;
+      }
+    });
 
     ["touchstart", "scroll", "click", "mousemove", "keydown"].forEach(
       (evt) =>
@@ -405,5 +416,54 @@
 
     resetInactivity();
   })();
+
+  // =============================================================
+  // 🖱️ Sovendus approx click detectie (NIEUW)
+  // =============================================================
+  function getApiBase() {
+    try {
+      if (window.FLOW_LOG_ENDPOINT) {
+        return new URL(window.FLOW_LOG_ENDPOINT).origin;
+      }
+    } catch (e) {}
+    return "https://globalcoregflow-nl.vercel.app";
+  }
+
+  function logSovendusEvent(event, context) {
+    const t_id = sessionStorage.getItem("t_id");
+    if (!t_id) return;
+
+    const payload = {
+      t_id,
+      offer_id: sessionStorage.getItem("offer_id") || "unknown",
+      sub_id:
+        sessionStorage.getItem("sub_id") ||
+        sessionStorage.getItem("aff_id") ||
+        "unknown",
+      source: "sovendus",
+      event,
+      context,
+      approx: event === "click",
+      ts: Date.now(),
+    };
+
+    fetch(`${getApiBase()}/api/sovendus-impression.js`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {});
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (
+      document.visibilityState === "hidden" &&
+      sovendusVisible &&
+      !sovendusClickLogged
+    ) {
+      sovendusClickLogged = true;
+      logSovendusEvent("click", sovendusContext);
+    }
+  });
 
 })();
