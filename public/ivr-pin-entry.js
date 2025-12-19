@@ -1,223 +1,142 @@
-// =============================================================
-// ✅ IVR PINCODE INVULLEN (LOS / VEILIG / MET request_pin)
-// - Activeert IVR sessie via request_pin.php (zonder tonen)
-// - Raakt bestaande IVR flows NIET
-// - gameName = Memory
-// =============================================================
+(function () {
+  if (window.__IVR_PIN_ENTRY_LOADED) return;
+  window.__IVR_PIN_ENTRY_LOADED = true;
 
-(function IVRPinEntryOnly() {
-  const DEBUG = true;
+  const PIN_LENGTH = 3;
 
-  const POPUP_SELECTOR = ".ivr-pin-popup";
-  const SUBMIT_BTN_SELECTOR = "#submitPinButton";
-
-  const ENDPOINTS = {
-    requestPin: [
-      "https://cdn.909support.com/NL/4.1/assets/php/request_pin.php",
-      "https://cdn.909support.com/NL/4.1/stage/assets/php/request_pin.php",
-    ],
-    submitPin: [
-      "https://cdn.909support.com/NL/4.1/assets/php/SubmitPin.php",
-      "https://cdn.909support.com/NL/4.1/stage/assets/php/SubmitPin.php",
-    ],
+  const state = {
+    pin: null,
+    internalVisitId: null,
+    requested: false
   };
 
-  const log = (...a) => DEBUG && console.log("[IVR-PIN]", ...a);
-  const warn = (...a) => DEBUG && console.warn("[IVR-PIN]", ...a);
-
-  const getStore = (k) =>
-    sessionStorage.getItem(k) ?? localStorage.getItem(k) ?? "";
-  const setStore = (k, v) => sessionStorage.setItem(k, v);
-
-  // Expliciet gameName
-  setStore("gameName", "Memory");
-
-  let pinSessionActivated = false;
-
-  // --------------------------------------------------
-  // Init wanneer popup verschijnt
-  // --------------------------------------------------
-  function initIfPopupExists() {
-    const popup = document.querySelector(POPUP_SELECTOR);
-    if (!popup || popup.dataset.ivrInit === "true") return;
-
-    popup.dataset.ivrInit = "true";
-    log("PIN popup gevonden, initialisatie gestart");
-
-    activatePinSession(); // 👈 NIEUW
-    wireInputs(popup);
-    wireSubmit(popup);
+  function log(...args) {
+    console.log('[IVR-PIN]', ...args);
   }
 
-  const observer = new MutationObserver(initIfPopupExists);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  initIfPopupExists();
+  function getTrackingPayload() {
+    return {
+      affId: localStorage.getItem('aff_id') || '',
+      offerId: localStorage.getItem('offer_id') || '',
+      subId: localStorage.getItem('sub_id') || '',
+      clickId: localStorage.getItem('t_id') || '',
+      gameName: 'Memory',
+      internalVisitId: localStorage.getItem('internalVisitId') || null
+    };
+  }
 
-  // --------------------------------------------------
-  // Activeer IVR PIN sessie (request_pin zonder UI)
-  // --------------------------------------------------
-  async function activatePinSession() {
-    if (pinSessionActivated) return;
-    pinSessionActivated = true;
+  // ============================
+  // 1️⃣ REQUEST PIN (bij popup open)
+  // ============================
+  async function requestPin() {
+    if (state.requested) return;
 
-    const payload = new URLSearchParams({
-      clickId: getStore("t_id"),
-      internalVisitId: getStore("internalVisitId"),
-    });
+    state.requested = true;
 
-    for (const url of ENDPOINTS.requestPin) {
-      try {
-        log("request_pin proberen:", url);
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-          },
-          body: payload,
-        });
+    const payload = getTrackingPayload();
 
-        const text = await res.text();
-        log("request_pin response (genegeerd):", text);
-        return; // één succesvolle call is genoeg
-      } catch (e) {
-        warn("request_pin fout op:", url, e);
+    log('request_pin starten:', payload);
+
+    try {
+      const res = await fetch(
+        'https://cdn.909support.com/NL/4.1/assets/php/request_pin.php',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      const data = await res.json();
+
+      if (!data?.pincode) {
+        throw new Error('Geen pincode ontvangen');
       }
+
+      state.pin = String(data.pincode);
+      state.internalVisitId = data.internalVisitId || payload.internalVisitId;
+
+      log('request_pin OK (intern opgeslagen)');
+    } catch (e) {
+      console.error('[IVR-PIN] request_pin fout:', e);
     }
   }
 
-  // --------------------------------------------------
-  // PIN inputs
-  // --------------------------------------------------
-  function wireInputs(popup) {
-    const inputs = [
-      popup.querySelector("#input1"),
-      popup.querySelector("#input2"),
-      popup.querySelector("#input3"),
-    ];
-    const pinCode = popup.querySelector("#pinCode");
+  // ============================
+  // 2️⃣ PIN INVOER LOGICA
+  // ============================
+  function collectPin() {
+    const inputs = document.querySelectorAll('.pin-input');
+    let code = '';
 
-    if (inputs.some((i) => !i) || !pinCode) {
-      warn("PIN inputs ontbreken");
+    inputs.forEach(i => (code += i.value.trim()));
+
+    return code;
+  }
+
+  // ============================
+  // 3️⃣ SUBMIT PIN
+  // ============================
+  async function submitPin() {
+    const enteredPin = collectPin();
+
+    if (enteredPin.length !== PIN_LENGTH) {
+      alert('Voer de volledige code in');
       return;
     }
 
-    const updatePin = () => {
-      pinCode.value =
-        (inputs[0].value || "") +
-        (inputs[1].value || "") +
-        (inputs[2].value || "");
-      log("pinCode update:", pinCode.value);
+    const payload = {
+      ...getTrackingPayload(),
+      pin: enteredPin,
+      internalVisitId: state.internalVisitId
     };
 
-    inputs.forEach((input, idx) => {
-      input.addEventListener("input", () => {
-        input.value = input.value.replace(/\D/g, "").slice(0, 1);
-        updatePin();
-        if (input.value && inputs[idx + 1]) inputs[idx + 1].focus();
-      });
-    });
+    log('SubmitPin payload:', payload);
 
-    setTimeout(() => inputs[0].focus(), 50);
-  }
-
-  // --------------------------------------------------
-  // Submit PIN
-  // --------------------------------------------------
-  function wireSubmit(popup) {
-    const btn = popup.querySelector(SUBMIT_BTN_SELECTOR);
-    const pinCode = popup.querySelector("#pinCode");
-
-    if (!btn || !pinCode || btn.dataset.ivrBound === "true") return;
-    btn.dataset.ivrBound = "true";
-
-    btn.addEventListener("click", async (e) => {
-      e.preventDefault();
-
-      const pin = pinCode.value.trim();
-      if (!/^\d{3}$/.test(pin)) return;
-
-      btn.disabled = true;
-      btn.classList.add("loading");
-
-      const payload = {
-        affId: getStore("aff_id"),
-        offerId: getStore("offer_id"),
-        subId: getStore("sub_id"),
-        clickId: getStore("t_id"),
-        internalVisitId: getStore("internalVisitId"),
-        pin,
-        gameName: "Memory",
-      };
-
-      log("SubmitPin payload:", payload);
-
-      try {
-        let finalData = null;
-
-        for (const url of ENDPOINTS.submitPin) {
-          try {
-            log("SubmitPin proberen:", url);
-            const res = await fetch(url, {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/x-www-form-urlencoded; charset=UTF-8",
-              },
-              body: new URLSearchParams(payload),
-            });
-
-            const text = await res.text();
-            let data = {};
-            try {
-              data = JSON.parse(text);
-            } catch {}
-
-            log("SubmitPin response:", data || text);
-
-            if (data.callId || data.returnUrl) {
-              finalData = data;
-              break;
-            }
-          } catch (e) {
-            warn("SubmitPin fout op:", url, e);
-          }
+    try {
+      const res = await fetch(
+        'https://cdn.909support.com/NL/4.1/assets/php/SubmitPin.php',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         }
+      );
 
-        if (!finalData) {
-          showError(popup);
-          return;
-        }
+      const data = await res.json();
 
-        if (finalData.callId) {
-          setStore("callId", finalData.callId);
-        }
-
-        if (finalData.returnUrl) {
-          const url = new URL(finalData.returnUrl);
-          url.searchParams.set("call_id", finalData.callId || "");
-
-          ["t_id", "aff_id", "offer_id", "sub_id"].forEach((k) => {
-            const v = getStore(k);
-            if (v) url.searchParams.set(k, v);
-          });
-
-          window.open(url.toString(), "_blank");
-        }
-      } catch (err) {
-        console.error("IVR SubmitPin fout:", err);
-        showError(popup);
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove("loading");
+      if (data?.success) {
+        log('PIN correct → toegang toegestaan');
+        document.dispatchEvent(
+          new CustomEvent('ivr-pin-success', { detail: data })
+        );
+      } else {
+        throw new Error('Onjuiste pincode');
       }
-    });
+    } catch (e) {
+      log('PIN fout');
+      alert('Onjuiste pincode');
+    }
   }
 
-  function showError(popup) {
-    popup.querySelector(".error-input")?.remove();
-    const div = document.createElement("div");
-    div.className = "error-input";
-    div.textContent = "Onjuiste pincode";
-    popup.appendChild(div);
-  }
+  // ============================
+  // 4️⃣ EVENTS
+  // ============================
+
+  // Popup open → request_pin
+  document.addEventListener('click', e => {
+    if (
+      e.target.closest('.ivr-pin-popup') ||
+      e.target.closest('[data-ivr-pin-open]')
+    ) {
+      requestPin();
+    }
+  });
+
+  // Bevestig knop
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-ivr-pin-submit]')) {
+      submitPin();
+    }
+  });
 })();
