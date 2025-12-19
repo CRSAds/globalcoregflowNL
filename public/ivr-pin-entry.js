@@ -1,142 +1,155 @@
 (function () {
-  if (window.__IVR_PIN_ENTRY_LOADED) return;
-  window.__IVR_PIN_ENTRY_LOADED = true;
+  if (window.ivrPinEntryInitialized) return;
+  window.ivrPinEntryInitialized = true;
 
-  const PIN_LENGTH = 3;
+  const log = (...a) => console.log('[IVR-PIN]', ...a);
+  const error = (...a) => console.error('[IVR-PIN]', ...a);
 
-  const state = {
-    pin: null,
-    internalVisitId: null,
-    requested: false
-  };
+  const REQUEST_PIN_URL =
+    'https://cdn.909support.com/NL/4.1/assets/php/request_pin.php';
+  const SUBMIT_PIN_URL =
+    'https://cdn.909support.com/NL/4.1/assets/php/SubmitPin.php';
+  const REGISTER_VISIT_URL =
+    'https://cdn.909support.com/NL/4.1/assets/php/register_visit.php';
 
-  function log(...args) {
-    console.log('[IVR-PIN]', ...args);
-  }
+  // 🔹 helpers
+  const qs = (s) => document.querySelector(s);
 
-  function getTrackingPayload() {
-    return {
-      affId: localStorage.getItem('aff_id') || '',
-      offerId: localStorage.getItem('offer_id') || '',
-      subId: localStorage.getItem('sub_id') || '',
-      clickId: localStorage.getItem('t_id') || '',
-      gameName: 'Memory',
-      internalVisitId: localStorage.getItem('internalVisitId') || null
-    };
-  }
-
-  // ============================
-  // 1️⃣ REQUEST PIN (bij popup open)
-  // ============================
-  async function requestPin() {
-    if (state.requested) return;
-
-    state.requested = true;
-
-    const payload = getTrackingPayload();
-
-    log('request_pin starten:', payload);
-
-    try {
-      const res = await fetch(
-        'https://cdn.909support.com/NL/4.1/assets/php/request_pin.php',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }
-      );
-
-      const data = await res.json();
-
-      if (!data?.pincode) {
-        throw new Error('Geen pincode ontvangen');
-      }
-
-      state.pin = String(data.pincode);
-      state.internalVisitId = data.internalVisitId || payload.internalVisitId;
-
-      log('request_pin OK (intern opgeslagen)');
-    } catch (e) {
-      console.error('[IVR-PIN] request_pin fout:', e);
-    }
-  }
-
-  // ============================
-  // 2️⃣ PIN INVOER LOGICA
-  // ============================
-  function collectPin() {
-    const inputs = document.querySelectorAll('.pin-input');
-    let code = '';
-
-    inputs.forEach(i => (code += i.value.trim()));
-
-    return code;
-  }
-
-  // ============================
-  // 3️⃣ SUBMIT PIN
-  // ============================
-  async function submitPin() {
-    const enteredPin = collectPin();
-
-    if (enteredPin.length !== PIN_LENGTH) {
-      alert('Voer de volledige code in');
+  // 🔹 register visit (vereist voor IVR)
+  async function registerVisitIfNeeded() {
+    if (localStorage.getItem('internalVisitId')) {
+      log('internalVisitId al aanwezig:', localStorage.getItem('internalVisitId'));
       return;
     }
 
+    log('register_visit starten');
+
+    const res = await fetch(REGISTER_VISIT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clickId: localStorage.getItem('t_id'),
+        affId: localStorage.getItem('aff_id'),
+        offerId: localStorage.getItem('offer_id'),
+        subId: localStorage.getItem('sub_id'),
+        subId2: localStorage.getItem('sub1'),
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!data?.internalVisitId) {
+      throw new Error('Geen internalVisitId ontvangen');
+    }
+
+    localStorage.setItem('internalVisitId', data.internalVisitId);
+    log('internalVisitId opgeslagen:', data.internalVisitId);
+  }
+
+  // 🔹 request pin (reserveert call-context)
+  async function requestPin() {
+    await registerVisitIfNeeded();
+
+    log('request_pin starten');
+
     const payload = {
-      ...getTrackingPayload(),
-      pin: enteredPin,
-      internalVisitId: state.internalVisitId
+      affId: localStorage.getItem('aff_id'),
+      offerId: localStorage.getItem('offer_id'),
+      subId: localStorage.getItem('sub_id'),
+      clickId: localStorage.getItem('t_id'),
+      gameName: 'Memory',
+      internalVisitId: localStorage.getItem('internalVisitId'),
+    };
+
+    const res = await fetch(REQUEST_PIN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await res.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = {};
+    }
+
+    if (!data?.pincode) {
+      throw new Error('Geen pincode ontvangen');
+    }
+
+    log('request_pin OK (pincode gegenereerd)');
+  }
+
+  // 🔹 pincode submit
+  async function submitPin(pin) {
+    const payload = {
+      affId: localStorage.getItem('aff_id'),
+      offerId: localStorage.getItem('offer_id'),
+      subId: localStorage.getItem('sub_id'),
+      clickId: localStorage.getItem('t_id'),
+      gameName: 'Memory',
+      internalVisitId: localStorage.getItem('internalVisitId'),
+      pin,
     };
 
     log('SubmitPin payload:', payload);
 
-    try {
-      const res = await fetch(
-        'https://cdn.909support.com/NL/4.1/assets/php/SubmitPin.php',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }
+    const res = await fetch(SUBMIT_PIN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    log('SubmitPin response:', data);
+
+    if (data?.returnUrl) {
+      window.open(
+        `${data.returnUrl}?call_id=${data.callId}&t_id=${payload.clickId}`,
+        '_blank'
       );
-
-      const data = await res.json();
-
-      if (data?.success) {
-        log('PIN correct → toegang toegestaan');
-        document.dispatchEvent(
-          new CustomEvent('ivr-pin-success', { detail: data })
-        );
-      } else {
-        throw new Error('Onjuiste pincode');
-      }
-    } catch (e) {
-      log('PIN fout');
-      alert('Onjuiste pincode');
+      return;
     }
+
+    throw new Error('Onjuiste pincode');
   }
 
-  // ============================
-  // 4️⃣ EVENTS
-  // ============================
+  // 🔹 popup hooks (Swipe Pages)
+  document.addEventListener('click', async (e) => {
+    if (!e.target.closest('.open-ivr-pin-popup')) return;
 
-  // Popup open → request_pin
-  document.addEventListener('click', e => {
-    if (
-      e.target.closest('.ivr-pin-popup') ||
-      e.target.closest('[data-ivr-pin-open]')
-    ) {
-      requestPin();
+    try {
+      await requestPin();
+    } catch (err) {
+      error(err.message);
     }
   });
 
-  // Bevestig knop
-  document.addEventListener('click', e => {
-    if (e.target.closest('[data-ivr-pin-submit]')) {
-      submitPin();
+  document.addEventListener('click', async (e) => {
+    if (!e.target.closest('#submitPinButton')) return;
+
+    const pin =
+      qs('#input1')?.value +
+      qs('#input2')?.value +
+      qs('#input3')?.value;
+
+    if (!/^\d{3}$/.test(pin)) {
+      error('Ongeldige pincode');
+      return;
+    }
+
+    try {
+      await submitPin(pin);
+    } catch (err) {
+      error(err.message);
+      qs('.error-input')?.remove();
+      qs('.inputGrid')?.insertAdjacentHTML(
+        'afterend',
+        '<div class="error-input">Onjuiste pincode</div>'
+      );
     }
   });
 })();
