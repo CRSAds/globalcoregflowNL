@@ -508,12 +508,14 @@ input.error {
   transition: opacity 0.2s ease;
 }
 
-.ivr-pin-wrapper .ivr-submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+/* Disabled / loading feel */
+.ivr-pin-wrapper .ivr-submit-btn:disabled,
+.ivr-pin-wrapper .ivr-submit-btn.loading {
+  opacity: 0.7;
+  cursor: wait;
 }
 
-/* Loading state */
+/* Button text & loader */
 .ivr-pin-wrapper .ivr-submit-btn.loading .btn-text {
   visibility: hidden;
 }
@@ -522,6 +524,7 @@ input.error {
   opacity: 1;
 }
 
+/* Loader */
 .ivr-pin-wrapper .btn-loader {
   position: absolute;
   top: 50%;
@@ -534,6 +537,19 @@ input.error {
   border-radius: 50%;
   animation: ivr-spin 0.8s linear infinite;
   opacity: 0;
+}
+
+/* 👇 UX-TEKST ONDER DE KNOP TIJDENS LOADING */
+.ivr-pin-wrapper .ivr-submit-btn.loading::after {
+  content: "We controleren de code…";
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 100%;
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+  font-weight: 500;
 }
 
 /* Scoped animation */
