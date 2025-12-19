@@ -41,6 +41,32 @@
     }
   }
 
+  (function () {
+    const POPUP_SELECTOR = '.call-pop-up-desktop.memory-pop-up';
+  
+    const observer = new MutationObserver(() => {
+      const popup = document.querySelector(POPUP_SELECTOR);
+  
+      if (!popup) return;
+  
+      const isVisible =
+        popup.offsetParent !== null &&
+        window.getComputedStyle(popup).display !== 'none';
+  
+      if (isVisible && !popup.dataset.ivrStarted) {
+        popup.dataset.ivrStarted = 'true';
+        console.log('[IVR-PIN] Popup zichtbaar → start IVR flow');
+        window.startIVRPinFlow?.();
+      }
+    });
+  
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    });
+  })();
+  
   // --------------------------------
   // 2️⃣ PIN INPUT HANDLING
   // --------------------------------
