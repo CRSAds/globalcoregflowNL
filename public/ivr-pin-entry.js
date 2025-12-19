@@ -9,9 +9,9 @@
     console.error(LOG_PREFIX, ...args);
   }
 
-  // -------------------------------
-  // PIN INPUT HANDLING
-  // -------------------------------
+  // --------------------------------------------------
+  // PIN INPUT HANDLING (3 losse velden → 1 pinCode)
+  // --------------------------------------------------
   function updatePinCode() {
     const pin =
       ($('#input1').val() || '') +
@@ -43,9 +43,9 @@
       $(this).attr('placeholder', $(this).data('placeholder'));
     });
 
-  // -------------------------------
-  // SUBMIT PIN (ENIGE BACKEND CALL)
-  // -------------------------------
+  // --------------------------------------------------
+  // SUBMIT PIN — ENIGE BACKEND CALL
+  // --------------------------------------------------
   $('#submitPinButton').on('click', function () {
     const pin = $('#pinCode').val();
 
@@ -60,8 +60,8 @@
       subId: localStorage.getItem('sub_id'),
       internalVisitId: localStorage.getItem('internalVisitId'),
       clickId: localStorage.getItem('t_id'),
-      pin,
-      gameName: localStorage.getItem('gameName'),
+      pin: pin,
+      gameName: 'memory', // 🔒 bewust hardcoded
     };
 
     log('SubmitPin payload:', payload);
@@ -84,13 +84,17 @@
             '&aff_id=' + localStorage.getItem('aff_id') +
             '&offer_id=' + localStorage.getItem('offer_id') +
             '&sub_id=' + localStorage.getItem('sub_id') +
-            '&f_2_title=' + localStorage.getItem('f_2_title') +
-            '&f_3_firstname=' + localStorage.getItem('f_3_firstname') +
-            '&f_4_lastname=' + localStorage.getItem('f_4_lastname') +
-            '&f_1_email=' + localStorage.getItem('f_1_email');
+            '&f_2_title=' + (localStorage.getItem('f_2_title') || '') +
+            '&f_3_firstname=' + (localStorage.getItem('f_3_firstname') || '') +
+            '&f_4_lastname=' + (localStorage.getItem('f_4_lastname') || '') +
+            '&f_1_email=' + (localStorage.getItem('f_1_email') || '');
 
           window.open(redirectUrl, '_blank');
-          setTimeout(() => $('.close-icon').trigger('click'), 7500);
+
+          setTimeout(() => {
+            $('.close-icon').trigger('click');
+          }, 7500);
+
           return;
         }
 
