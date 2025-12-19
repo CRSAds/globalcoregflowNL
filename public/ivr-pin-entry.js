@@ -1,108 +1,261 @@
 (function () {
-  const LOG_PREFIX = '[IVR-PIN]';
+  const LOG_PREFIX = "[IVR-PIN]";
+  const POPUP_SELECTOR = ".call-pop-up-desktop.memory-pop-up"; // jouw popup
+  const REQUEST_PIN_URL = "https://cdn.909support.com/NL/4.1/stage/assets/php/request_pin.php";
+  const SUBMIT_PIN_URL  = "https://cdn.909support.com/NL/4.1/stage/assets/php/SubmitPin.php";
 
-  function log(...args) {
-    console.log(LOG_PREFIX, ...args);
+  const GAME_NAME = "memory"; // hard gezet zoals je wilde
+
+  const log = (...a) => console.log(LOG_PREFIX, ...a);
+  const warn = (...a) => console.warn(LOG_PREFIX, ...a);
+  const err = (...a) => console.error(LOG_PREFIX, ...a);
+
+  let isSubmitting = false;
+
+  // ------------------------------------------------------------
+  // Helpers
+  // ------------------------------------------------------------
+  function getLS(key, fallback = null) {
+    const v = localStorage.getItem(key);
+    return (v === undefined || v === null || v === "") ? fallback : v;
   }
 
-  function error(...args) {
-    console.error(LOG_PREFIX, ...args);
+  function setButtonLoading(isLoading) {
+    const btn = document.getElementById("submitPinButton");
+    if (!btn) return;
+
+    btn.disabled = !!isLoading;
+    btn.classList.toggle("is-loading", !!isLoading);
+
+    const textEl = btn.querySelector(".btn-text");
+    const loaderEl = btn.querySelector(".btn-loader");
+
+    if (textEl) textEl.style.opacity = isLoading ? "0.6" : "1";
+    if (loaderEl) loaderEl.style.display = isLoading ? "inline-block" : "none";
   }
 
-  // --------------------------------------------------
-  // PIN INPUT HANDLING (3 losse velden → 1 pinCode)
-  // --------------------------------------------------
-  function updatePinCode() {
-    const pin =
-      ($('#input1').val() || '') +
-      ($('#input2').val() || '') +
-      ($('#input3').val() || '');
+  function showError(msg = "Onjuiste pincode") {
+    // voorkom stapels errors
+    document.querySelectorAll(".ivr-pin-wrapper .error-input").forEach(n => n.remove());
 
-    $('#pinCode').val(pin);
+    const wrap = document.querySelector(".ivr-pin-wrapper");
+    if (!wrap) return;
+
+    const div = document.createElement("div");
+    div.className = "error-input";
+    div.textContent = msg;
+
+    const group = wrap.querySelector(".pin-input-group") || wrap.querySelector(".inputGrid");
+    (group || wrap).insertAdjacentElement("afterend", div);
   }
 
-  $('.pin-input').on('input', function () {
-    const maxLength = this.maxLength;
+  function clearError() {
+    document.querySelectorAll(".ivr-pin-wrapper .error-input").forEach(n => n.remove());
+  }
 
-    $('.error-input').remove();
-    localStorage.removeItem('errorShown');
-
-    if (this.value.length >= maxLength) {
-      $(this).next('.pin-input').focus();
-    }
-
-    updatePinCode();
-  });
-
-  $('.pin-input')
-    .on('focus', function () {
-      $(this).data('placeholder', $(this).attr('placeholder'));
-      $(this).attr('placeholder', '');
-    })
-    .on('blur', function () {
-      $(this).attr('placeholder', $(this).data('placeholder'));
+  function clearInputs() {
+    ["input1", "input2", "input3", "pinCode"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
     });
+    const i1 = document.getElementById("input1");
+    if (i1) i1.focus();
+  }
 
-  // --------------------------------------------------
-  // SUBMIT PIN — ENIGE BACKEND CALL
-  // --------------------------------------------------
-  $('#submitPinButton').on('click', function () {
-    const pin = $('#pinCode').val();
+  function updatePinCode() {
+    const a = (document.getElementById("input1")?.value || "").trim();
+    const b = (document.getElementById("input2")?.value || "").trim();
+    const c = (document.getElementById("input3")?.value || "").trim();
+    const pin = `${a}${b}${c}`.replace(/\D/g, "").slice(0, 3);
 
+    const hidden = document.getElementById("pinCode");
+    if (hidden) hidden.value = pin;
+
+    return pin;
+  }
+
+  function isPopupVisible() {
+    const popup = document.querySelector(POPUP_SELECTOR);
+    if (!popup) return false;
+    return popup.offsetParent !== null && window.getComputedStyle(popup).display !== "none";
+  }
+
+  // ------------------------------------------------------------
+  // 1) request_pin bij popup open (maar toon pincode NIET)
+  // ------------------------------------------------------------
+  async function requestPin() {
+    const clickId = getLS("t_id");
+    const internalVisitId = getLS("internalVisitId");
+
+    const payload = { clickId, internalVisitId };
+    log("request_pin starten:", payload);
+
+    if (!clickId) warn("clickId (t_id) ontbreekt in localStorage");
+    if (!internalVisitId) warn("internalVisitId ontbreekt in localStorage (kan request_pin breken)");
+
+    try {
+      const res = await $.ajax({
+        url: REQUEST_PIN_URL,
+        type: "POST",
+        data: payload,
+        cache: false
+      });
+
+      const data = typeof res === "string" ? JSON.parse(res) : res;
+
+      // We tonen de pincode niet, maar we checken wel of de endpoint OK is
+      if (!data || !data.pincode) {
+        throw new Error("Geen pincode ontvangen uit request_pin");
+      }
+
+      log("request_pin succesvol (pincode gegenereerd)");
+      return true;
+    } catch (e) {
+      err("request_pin fout:", e?.message || e);
+      return false;
+    }
+  }
+
+  // ------------------------------------------------------------
+  // 2) SubmitPin
+  // ------------------------------------------------------------
+  async function submitPin() {
+    if (isSubmitting) return;
+
+    clearError();
+
+    const pin = updatePinCode();
     if (!/^\d{3}$/.test(pin)) {
-      error('Ongeldige pincode');
+      showError("Vul een geldige 3-cijferige code in");
       return;
     }
 
     const payload = {
-      affId: localStorage.getItem('aff_id'),
-      offerId: localStorage.getItem('offer_id'),
-      subId: localStorage.getItem('sub_id'),
-      internalVisitId: localStorage.getItem('internalVisitId'),
-      clickId: localStorage.getItem('t_id'),
-      pin: pin,
-      gameName: 'memory', // 🔒 bewust hardcoded
+      affId: getLS("aff_id") || "unknown",
+      offerId: getLS("offer_id") || "unknown",
+      subId: getLS("sub_id") || "unknown",
+      internalVisitId: getLS("internalVisitId") || "",
+      clickId: getLS("t_id") || "",
+      pin,
+      gameName: GAME_NAME
     };
 
-    log('SubmitPin payload:', payload);
+    log("SubmitPin payload:", payload);
 
-    $.ajax({
-      url: 'https://cdn.909support.com/NL/4.1/stage/assets/php/SubmitPin.php',
-      type: 'POST',
-      data: payload,
-      success: function (response) {
-        const data = JSON.parse(response);
-        log('SubmitPin response:', data);
+    isSubmitting = true;
+    setButtonLoading(true);
 
-        if (data.callId && data.returnUrl) {
-          localStorage.setItem('callId', data.callId);
+    try {
+      const res = await $.ajax({
+        url: SUBMIT_PIN_URL,
+        type: "POST",
+        data: payload,
+        cache: false
+      });
 
-          const redirectUrl =
-            data.returnUrl +
-            '?call_id=' + data.callId +
-            '&t_id=' + localStorage.getItem('t_id') +
-            '&aff_id=' + localStorage.getItem('aff_id') +
-            '&offer_id=' + localStorage.getItem('offer_id') +
-            '&sub_id=' + localStorage.getItem('sub_id') +
-            '&f_2_title=' + (localStorage.getItem('f_2_title') || '') +
-            '&f_3_firstname=' + (localStorage.getItem('f_3_firstname') || '') +
-            '&f_4_lastname=' + (localStorage.getItem('f_4_lastname') || '') +
-            '&f_1_email=' + (localStorage.getItem('f_1_email') || '');
+      const data = typeof res === "string" ? JSON.parse(res) : res;
+      log("SubmitPin response:", data);
 
-          window.open(redirectUrl, '_blank');
+      if (data?.callId && data?.returnUrl) {
+        localStorage.setItem("callId", data.callId);
 
-          setTimeout(() => {
-            $('.close-icon').trigger('click');
-          }, 7500);
+        const redirectUrl =
+          data.returnUrl +
+          "?call_id=" + encodeURIComponent(data.callId) +
+          "&t_id=" + encodeURIComponent(getLS("t_id") || "") +
+          "&aff_id=" + encodeURIComponent(getLS("aff_id") || "") +
+          "&offer_id=" + encodeURIComponent(getLS("offer_id") || "") +
+          "&sub_id=" + encodeURIComponent(getLS("sub_id") || "") +
+          "&f_2_title=" + encodeURIComponent(getLS("f_2_title") || "") +
+          "&f_3_firstname=" + encodeURIComponent(getLS("f_3_firstname") || "") +
+          "&f_4_lastname=" + encodeURIComponent(getLS("f_4_lastname") || "") +
+          "&f_1_email=" + encodeURIComponent(getLS("f_1_email") || "");
 
-          return;
-        }
+        window.open(redirectUrl, "_blank");
+        setTimeout(() => $(".close-icon").trigger("click"), 7500);
+        return;
+      }
 
-        throw new Error('Onjuiste pincode');
-      },
-      error: function () {
-        error('SubmitPin request failed');
-      },
-    });
+      // Als er geen callId/returnUrl is, is de code “niet goed”
+      showError("Onjuiste pincode");
+      setTimeout(clearInputs, 350);
+    } catch (e) {
+      err("SubmitPin request error:", e?.message || e);
+      showError("Controle duurt langer / verzoek mislukt. Probeer opnieuw.");
+    } finally {
+      isSubmitting = false;
+      setButtonLoading(false);
+    }
+  }
+
+  // ------------------------------------------------------------
+  // 3) Start flow wanneer popup zichtbaar wordt
+  // ------------------------------------------------------------
+  async function startFlowIfNeeded() {
+    const popup = document.querySelector(POPUP_SELECTOR);
+    if (!popup) return;
+
+    if (!isPopupVisible()) return;
+
+    // maar 1x per open
+    if (popup.dataset.ivrStarted === "true") return;
+    popup.dataset.ivrStarted = "true";
+
+    log("Popup geopend → IVR flow starten");
+    await requestPin();
+  }
+
+  // observe DOM changes zodat we ook werken als popup later injected wordt
+  const observer = new MutationObserver(() => {
+    startFlowIfNeeded();
   });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true
+  });
+
+  // fallback bij load
+  document.addEventListener("DOMContentLoaded", () => {
+    startFlowIfNeeded();
+  });
+
+  // ------------------------------------------------------------
+  // 4) Event delegation (BELANGRIJK: werkt ook als HTML later verschijnt)
+  // ------------------------------------------------------------
+  // Alleen cijfers toestaan + auto-focus naar volgende input
+  $(document).on("input", ".pin-input", function () {
+    clearError();
+
+    // alleen 0-9
+    this.value = (this.value || "").replace(/\D/g, "").slice(0, 1);
+
+    updatePinCode();
+
+    if (this.value.length === 1) {
+      const next = this.nextElementSibling;
+      if (next && next.classList.contains("pin-input")) next.focus();
+    }
+  });
+
+  // backspace = terug
+  $(document).on("keydown", ".pin-input", function (e) {
+    if (e.key === "Backspace" && !this.value) {
+      const prev = this.previousElementSibling;
+      if (prev && prev.classList.contains("pin-input")) prev.focus();
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitPin();
+    }
+  });
+
+  // submit button
+  $(document).on("click", "#submitPinButton", function () {
+    submitPin();
+  });
+
+  // expose (optioneel, als jij ergens handmatig wil starten)
+  window.startIVRPinFlow = startFlowIfNeeded;
 })();
