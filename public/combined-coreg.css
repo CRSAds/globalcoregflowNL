@@ -508,20 +508,9 @@ input.error {
   transition: opacity 0.2s ease;
 }
 
-/* Disabled / loading feel */
-.ivr-pin-wrapper .ivr-submit-btn:disabled,
-.ivr-pin-wrapper .ivr-submit-btn.loading {
-  opacity: 0.7;
-  cursor: wait;
-}
-
-/* Button text & loader */
-.ivr-pin-wrapper .ivr-submit-btn.loading .btn-text {
-  visibility: hidden;
-}
-
-.ivr-pin-wrapper .ivr-submit-btn.loading .btn-loader {
-  opacity: 1;
+.ivr-pin-wrapper .ivr-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Loader */
@@ -536,20 +525,35 @@ input.error {
   border-top-color: #fff;
   border-radius: 50%;
   animation: ivr-spin 0.8s linear infinite;
-  opacity: 0;
+  display: none;
 }
 
-/* 👇 UX-TEKST ONDER DE KNOP TIJDENS LOADING */
-.ivr-pin-wrapper .ivr-submit-btn.loading::after {
-  content: "We controleren de code…";
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
-  width: 100%;
+/* Loading state button */
+.ivr-pin-wrapper .ivr-submit-btn.is-loading {
+  cursor: wait;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.ivr-pin-wrapper .ivr-submit-btn.is-loading .btn-text {
+  visibility: hidden;
+}
+
+.ivr-pin-wrapper .ivr-submit-btn.is-loading .btn-loader {
+  display: block;
+}
+
+/* Loading text onder button */
+.ivr-pin-wrapper .ivr-loading-text {
   font-size: 13px;
-  color: #666;
-  text-align: center;
-  font-weight: 500;
+  color: #555;
+  margin-top: 12px;
+  display: none;
+}
+
+/* Toon tekst alleen tijdens loading */
+.ivr-pin-wrapper .ivr-submit-btn.is-loading + .ivr-loading-text {
+  display: block;
 }
 
 /* Scoped animation */
