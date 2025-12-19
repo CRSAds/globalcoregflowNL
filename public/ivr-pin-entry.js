@@ -1,56 +1,25 @@
 // public/ivr-pin-entry.js
-// ============================================================
-// ✅ IVR PIN entry (Memory) — productie versie
-// - Breekt bestaande IVR niet (staat los)
-// - Start flow zodra popup zichtbaar is (geen device-detectie)
-// - Doet: register_visit -> request_pin (niet tonen) -> SubmitPin
-// - POST als application/x-www-form-urlencoded (zoals legacy jQuery)
-// - Fallback naar /stage endpoints
-// ============================================================
-
 (() => {
   if (window.__IVR_PIN_ENTRY_INIT__) return;
   window.__IVR_PIN_ENTRY_INIT__ = true;
 
-  // ============================
-  // Config
-  // ============================
   const GAME_NAME = "Memory";
-  const PIN_LENGTH = 3;
-
-  // Activeer alléén op deze popup container (pas dit aan als je popup-classes anders zijn)
-  // Jij noemde: "call-pop-up-desktop memory-pop-up"
   const POPUP_SELECTOR = ".call-pop-up-desktop.memory-pop-up";
 
-  // Endpoints (prod + stage fallback)
-  const REGISTER_VISIT_URLS = [
-    "https://cdn.909support.com/NL/4.1/assets/php/register_visit.php",
-    "https://cdn.909support.com/NL/4.1/stage/assets/php/register_visit.php",
+  // We proberen STAGE eerst (vaak gekoppeld aan de IVR lijn), daarna PROD
+  const ENV_BASES = [
+    "https://cdn.909support.com/NL/4.1/stage/assets/php",
+    "https://cdn.909support.com/NL/4.1/assets/php",
   ];
 
-  const REQUEST_PIN_URLS = [
-    "https://cdn.909support.com/NL/4.1/assets/php/request_pin.php",
-    "https://cdn.909support.com/NL/4.1/stage/assets/php/request_pin.php",
-  ];
-
-  const SUBMIT_PIN_URLS = [
-    "https://cdn.909support.com/NL/4.1/assets/php/SubmitPin.php",
-    "https://cdn.909support.com/NL/4.1/stage/assets/php/SubmitPin.php",
-  ];
-
-  // ============================
-  // State
-  // ============================
   const state = {
-    started: false,        // request_pin flow al gestart
-    internalVisitId: null, // cached
-    lastRequestOk: false,  // request_pin succesvol geweest
-    popupWasOpen: false,   // voor open/close detectie
+    started: false,
+    envBase: null,          // <- we locken hierop zodra request_pin OK is
+    internalVisitId: null,
+    lastRequestOk: false,
+    popupWasOpen: false,
   };
 
-  // ============================
-  // Helpers
-  // ============================
   const log = (...a) => console.log("[IVR-PIN]", ...a);
   const warn = (...a) => console.warn("[IVR-PIN]", ...a);
   const err = (...a) => console.error("[IVR-PIN]", ...a);
@@ -100,9 +69,6 @@
     return r.width > 0 && r.height > 0;
   }
 
-  // ============================
-  // HTTP: form-urlencoded (legacy compatible)
-  // ============================
   async function postForm(url, payload) {
     const body = new URLSearchParams();
     Object.entries(payload || {}).forEach(([k, v]) => {
@@ -117,15 +83,17 @@
 
     const txt = await res.text();
     try {
-      return JSON.parse(txt);
+      const json = JSON.parse(txt);
+      return json;
     } catch {
       return { raw: txt };
     }
   }
 
-  // ============================
-  // API: register_visit (internalVisitId)
-  // ============================
+  function endpoint(envBase, file) {
+    return `${envBase}/${file}`;
+  }
+
   async function ensureInternalVisitId() {
     const existing = localStorage.getItem("internalVisitId");
     if (existing) {
@@ -134,8 +102,10 @@
       return existing;
     }
 
-    const t = getTracking();
+    // Als envBase al gelocked is, gebruik die. Anders proberen we envs op volgorde.
+    const bases = state.envBase ? [state.envBase] : ENV_BASES;
 
+    const t = getTracking();
     const payload = {
       clickId: t.clickId,
       affId: t.affId,
@@ -144,16 +114,22 @@
       subId2: getLocal("sub1"),
     };
 
-    for (const url of REGISTER_VISIT_URLS) {
+    for (const base of bases) {
+      const url = endpoint(base, "register_visit.php");
       try {
         log("register_visit proberen:", url);
         const data = await postForm(url, payload);
+        log("register_visit response:", data);
 
         if (data?.internalVisitId) {
           const id = String(data.internalVisitId);
           localStorage.setItem("internalVisitId", id);
           state.internalVisitId = id;
-          log("internalVisitId opgeslagen:", id);
+
+          // Als nog niet gelocked, lock naar deze base (belangrijk voor consistentie)
+          if (!state.envBase) state.envBase = base;
+
+          log("internalVisitId opgeslagen:", id, "| envBase:", state.envBase);
           return id;
         }
       } catch (e) {
@@ -164,28 +140,27 @@
     throw new Error("Geen internalVisitId ontvangen uit register_visit");
   }
 
-  // ============================
-  // API: request_pin (reserveer call-context, pincode NIET tonen)
-  // ============================
   async function requestPinContext() {
+    // request_pin bepaalt de juiste omgeving -> locken we op success
     const t = getTracking();
 
-    // Legacy endpoint gebruikt (minimaal) clickId + internalVisitId
     const payload = {
       clickId: t.clickId,
       internalVisitId: t.internalVisitId,
-      // gameName soms genegeerd; maar veilig mee te sturen
       gameName: GAME_NAME,
     };
 
-    for (const url of REQUEST_PIN_URLS) {
+    for (const base of ENV_BASES) {
+      const url = endpoint(base, "request_pin.php");
       try {
         log("request_pin proberen:", url);
         const data = await postForm(url, payload);
+        log("request_pin response (genegeerd):", data);
 
         if (data?.pincode) {
           state.lastRequestOk = true;
-          log("request_pin OK (pincode ontvangen maar niet getoond).");
+          state.envBase = base; // <- LOCK HIER
+          log("request_pin OK (pincode ontvangen maar niet getoond). envBase =", state.envBase);
           return true;
         }
       } catch (e) {
@@ -201,6 +176,7 @@
     state.started = true;
 
     try {
+      // eerst visit id, dan request pin (lock envBase)
       await ensureInternalVisitId();
       await requestPinContext();
     } catch (e) {
@@ -209,11 +185,11 @@
     }
   }
 
-  // ============================
-  // API: SubmitPin
-  // ============================
   async function submitPin(pin) {
     const t = getTracking();
+
+    // SubmitPin MOET dezelfde envBase gebruiken als request_pin succes had
+    const bases = state.envBase ? [state.envBase] : ENV_BASES;
 
     const payload = {
       affId: t.affId,
@@ -225,7 +201,8 @@
       gameName: GAME_NAME,
     };
 
-    for (const url of SUBMIT_PIN_URLS) {
+    for (const base of bases) {
+      const url = endpoint(base, "SubmitPin.php");
       try {
         log("SubmitPin proberen:", url);
         log("SubmitPin payload:", payload);
@@ -233,18 +210,10 @@
         const data = await postForm(url, payload);
         log("SubmitPin response:", data);
 
-        // Legacy success shape
-        if (data?.returnUrl || data?.callId) return { ok: true, data };
-        if (data?.success === true) return { ok: true, data };
-
-        // Als de server expliciet zegt dat het fout is, direct stoppen
-        if (data?.error || data?.message) {
-          // ga door naar stage fallback als prod faalt zonder harde error?
-          // hier laten we fallback wel proberen; user ziet uiteindelijk "Onjuiste pincode"
+        if (data?.returnUrl || data?.callId || data?.success === true) {
+          return { ok: true, data };
         }
       } catch (e) {
-        // In jouw logs kwam "{error:'Request failed'}" → dat is server-side json
-        // Maar fetch errors kunnen ook, dus we loggen en proberen de volgende url
         err("SubmitPin error:", e);
       }
     }
@@ -252,9 +221,6 @@
     return { ok: false, data: { error: "Request failed" } };
   }
 
-  // ============================
-  // UX: input handlers (auto focus + numeric)
-  // ============================
   function attachInputHandlers(popupEl) {
     const inputs = popupEl.querySelectorAll(".pin-input");
     if (!inputs.length) return;
@@ -262,19 +228,12 @@
     inputs.forEach((inp, idx) => {
       inp.addEventListener("input", () => {
         clearInlineError(popupEl);
-
         inp.value = (inp.value || "").replace(/\D/g, "").slice(0, 1);
-
-        if (inp.value && idx < inputs.length - 1) {
-          inputs[idx + 1].focus();
-        }
+        if (inp.value && idx < inputs.length - 1) inputs[idx + 1].focus();
       });
     });
   }
 
-  // ============================
-  // Submit handler (button id)
-  // ============================
   function attachSubmitHandler() {
     document.addEventListener("click", async (e) => {
       const btn = e.target.closest("#submitPinButton");
@@ -286,16 +245,14 @@
       const pin = collectPin(popupEl);
 
       if (!/^\d{3}$/.test(pin)) {
-        log("Ongeldige pincode");
         showInlineError(popupEl, "Vul 3 cijfers in");
         return;
       }
 
       if (!state.lastRequestOk) {
-        warn("request_pin was niet OK. Probeer popup opnieuw te openen / opnieuw te bellen.");
+        warn("request_pin was niet OK. Probeer popup opnieuw te openen en opnieuw te bellen.");
       }
 
-      // Disable knop tijdens request
       btn.disabled = true;
       btn.classList.add("loading");
 
@@ -305,9 +262,8 @@
         if (result.ok) {
           clearInlineError(popupEl);
 
-          // Legacy gedrag: open returnUrl in nieuwe tab indien aanwezig
-          const t = getTracking();
           const { data } = result;
+          const t = getTracking();
 
           if (data?.returnUrl) {
             const url =
@@ -321,11 +277,7 @@
             window.open(url, "_blank");
           }
 
-          // Event hook voor integratie (bv memory starten)
-          document.dispatchEvent(
-            new CustomEvent("ivr-pin-success", { detail: result.data })
-          );
-
+          document.dispatchEvent(new CustomEvent("ivr-pin-success", { detail: data }));
           return;
         }
 
@@ -340,10 +292,6 @@
     });
   }
 
-  // ============================
-  // Popup open detectie (Swipe Pages safe)
-  // - Start flow op closed -> open transition
-  // ============================
   function observePopupOpen() {
     const tick = () => {
       const popup = document.querySelector(POPUP_SELECTOR);
@@ -361,13 +309,9 @@
     requestAnimationFrame(tick);
   }
 
-  // ============================
-  // Init
-  // ============================
   function init() {
     observePopupOpen();
 
-    // Bind input handlers zodra popup in DOM verschijnt
     const domObserver = new MutationObserver(() => {
       const popup = document.querySelector(POPUP_SELECTOR);
       if (!popup || popup.dataset.ivrPinBound) return;
