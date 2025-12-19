@@ -1,3 +1,13 @@
+// public/ivr-pin-entry.js
+// ============================================================
+// ✅ IVR PIN entry (Memory) — productie versie
+// - Breekt bestaande IVR niet (staat los)
+// - Start flow zodra popup zichtbaar is (geen device-detectie)
+// - Doet: register_visit -> request_pin (niet tonen) -> SubmitPin
+// - POST als application/x-www-form-urlencoded (zoals legacy jQuery)
+// - Fallback naar /stage endpoints
+// ============================================================
+
 (() => {
   if (window.__IVR_PIN_ENTRY_INIT__) return;
   window.__IVR_PIN_ENTRY_INIT__ = true;
@@ -8,32 +18,42 @@
   const GAME_NAME = "Memory";
   const PIN_LENGTH = 3;
 
-  // Alleen activeren voor deze popup(s)
-  // (je kunt hier later extra selectors toevoegen)
+  // Activeer alléén op deze popup container (pas dit aan als je popup-classes anders zijn)
+  // Jij noemde: "call-pop-up-desktop memory-pop-up"
   const POPUP_SELECTOR = ".call-pop-up-desktop.memory-pop-up";
 
-  const REGISTER_VISIT_URL =
-    "https://cdn.909support.com/NL/4.1/assets/php/register_visit.php";
-  const REQUEST_PIN_URL =
-    "https://cdn.909support.com/NL/4.1/assets/php/request_pin.php";
-  const SUBMIT_PIN_URL =
-    "https://cdn.909support.com/NL/4.1/assets/php/SubmitPin.php";
+  // Endpoints (prod + stage fallback)
+  const REGISTER_VISIT_URLS = [
+    "https://cdn.909support.com/NL/4.1/assets/php/register_visit.php",
+    "https://cdn.909support.com/NL/4.1/stage/assets/php/register_visit.php",
+  ];
+
+  const REQUEST_PIN_URLS = [
+    "https://cdn.909support.com/NL/4.1/assets/php/request_pin.php",
+    "https://cdn.909support.com/NL/4.1/stage/assets/php/request_pin.php",
+  ];
+
+  const SUBMIT_PIN_URLS = [
+    "https://cdn.909support.com/NL/4.1/assets/php/SubmitPin.php",
+    "https://cdn.909support.com/NL/4.1/stage/assets/php/SubmitPin.php",
+  ];
 
   // ============================
   // State
   // ============================
   const state = {
-    started: false,      // request_pin flow al gestart voor deze page sessie
-    internalVisitId: null,
-    lastRequestOk: false // request_pin succesvol geweest
+    started: false,        // request_pin flow al gestart
+    internalVisitId: null, // cached
+    lastRequestOk: false,  // request_pin succesvol geweest
+    popupWasOpen: false,   // voor open/close detectie
   };
 
   // ============================
   // Helpers
   // ============================
-  const log = (...args) => console.log("[IVR-PIN]", ...args);
-  const warn = (...args) => console.warn("[IVR-PIN]", ...args);
-  const err = (...args) => console.error("[IVR-PIN]", ...args);
+  const log = (...a) => console.log("[IVR-PIN]", ...a);
+  const warn = (...a) => console.warn("[IVR-PIN]", ...a);
+  const err = (...a) => console.error("[IVR-PIN]", ...a);
 
   const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -49,21 +69,15 @@
       subId: getLocal("sub_id"),
       clickId: getLocal("t_id"),
       internalVisitId: localStorage.getItem("internalVisitId") || null,
-      gameName: GAME_NAME
+      gameName: GAME_NAME,
     };
   }
 
   function showInlineError(popupEl, message) {
-    // Verwijder oude melding
     popupEl.querySelectorAll(".error-input").forEach((n) => n.remove());
-
     const grid = popupEl.querySelector(".inputGrid");
     if (!grid) return;
-
-    grid.insertAdjacentHTML(
-      "afterend",
-      `<div class="error-input">${message}</div>`
-    );
+    grid.insertAdjacentHTML("afterend", `<div class="error-input">${message}</div>`);
   }
 
   function clearInlineError(popupEl) {
@@ -77,17 +91,30 @@
     return `${a}${b}${c}`;
   }
 
+  function isVisible(el) {
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0")
+      return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  }
+
   // ============================
-  // API calls
+  // HTTP: form-urlencoded (legacy compatible)
   // ============================
-  async function postJson(url, payload) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+  async function postForm(url, payload) {
+    const body = new URLSearchParams();
+    Object.entries(payload || {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") body.append(k, String(v));
     });
 
-    // request_pin returns soms geen json-header -> fallback
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
+      body,
+    });
+
     const txt = await res.text();
     try {
       return JSON.parse(txt);
@@ -96,6 +123,9 @@
     }
   }
 
+  // ============================
+  // API: register_visit (internalVisitId)
+  // ============================
   async function ensureInternalVisitId() {
     const existing = localStorage.getItem("internalVisitId");
     if (existing) {
@@ -106,55 +136,64 @@
 
     const t = getTracking();
 
-    // register_visit verwacht soms subId2 (sub1)
     const payload = {
       clickId: t.clickId,
       affId: t.affId,
       offerId: t.offerId,
       subId: t.subId,
-      subId2: getLocal("sub1")
+      subId2: getLocal("sub1"),
     };
 
-    log("register_visit proberen:", REGISTER_VISIT_URL);
+    for (const url of REGISTER_VISIT_URLS) {
+      try {
+        log("register_visit proberen:", url);
+        const data = await postForm(url, payload);
 
-    const data = await postJson(REGISTER_VISIT_URL, payload);
-
-    if (!data?.internalVisitId) {
-      throw new Error("Geen internalVisitId ontvangen uit register_visit");
+        if (data?.internalVisitId) {
+          const id = String(data.internalVisitId);
+          localStorage.setItem("internalVisitId", id);
+          state.internalVisitId = id;
+          log("internalVisitId opgeslagen:", id);
+          return id;
+        }
+      } catch (e) {
+        err("register_visit error:", e);
+      }
     }
 
-    localStorage.setItem("internalVisitId", String(data.internalVisitId));
-    state.internalVisitId = String(data.internalVisitId);
-
-    log("internalVisitId opgeslagen:", state.internalVisitId);
-    return state.internalVisitId;
+    throw new Error("Geen internalVisitId ontvangen uit register_visit");
   }
 
+  // ============================
+  // API: request_pin (reserveer call-context, pincode NIET tonen)
+  // ============================
   async function requestPinContext() {
     const t = getTracking();
 
+    // Legacy endpoint gebruikt (minimaal) clickId + internalVisitId
     const payload = {
-      affId: t.affId,
-      offerId: t.offerId,
-      subId: t.subId,
       clickId: t.clickId,
       internalVisitId: t.internalVisitId,
-      gameName: GAME_NAME
+      // gameName soms genegeerd; maar veilig mee te sturen
+      gameName: GAME_NAME,
     };
 
-    log("request_pin proberen:", REQUEST_PIN_URL);
+    for (const url of REQUEST_PIN_URLS) {
+      try {
+        log("request_pin proberen:", url);
+        const data = await postForm(url, payload);
 
-    const data = await postJson(REQUEST_PIN_URL, payload);
-
-    // We tonen pincode niet, maar willen wel weten of request ok was
-    if (!data?.pincode) {
-      // Sommige responses geven een andere shape; log raw voor debug
-      throw new Error("Geen pincode ontvangen uit request_pin");
+        if (data?.pincode) {
+          state.lastRequestOk = true;
+          log("request_pin OK (pincode ontvangen maar niet getoond).");
+          return true;
+        }
+      } catch (e) {
+        err("request_pin error:", e);
+      }
     }
 
-    state.lastRequestOk = true;
-    log("request_pin OK (pincode ontvangen maar niet getoond).");
-    return true;
+    throw new Error("Geen pincode ontvangen uit request_pin");
   }
 
   async function startIvrPinFlowOnce() {
@@ -170,7 +209,10 @@
     }
   }
 
-  async function submitPin(popupEl, pin) {
+  // ============================
+  // API: SubmitPin
+  // ============================
+  async function submitPin(pin) {
     const t = getTracking();
 
     const payload = {
@@ -179,76 +221,39 @@
       subId: t.subId,
       clickId: t.clickId,
       internalVisitId: t.internalVisitId,
+      pin,
       gameName: GAME_NAME,
-      pin
     };
 
-    log("SubmitPin proberen:", SUBMIT_PIN_URL);
-    log("SubmitPin payload:", payload);
+    for (const url of SUBMIT_PIN_URLS) {
+      try {
+        log("SubmitPin proberen:", url);
+        log("SubmitPin payload:", payload);
 
-    const data = await postJson(SUBMIT_PIN_URL, payload);
-    log("SubmitPin response:", data);
+        const data = await postForm(url, payload);
+        log("SubmitPin response:", data);
 
-    // Oude 909 scripts geven soms {callId, returnUrl} i.p.v. success:true
-    if (data?.returnUrl) {
-      // Open returnUrl in nieuwe tab zoals legacy gedrag
-      const url =
-        `${data.returnUrl}` +
-        `?call_id=${encodeURIComponent(data.callId || "")}` +
-        `&t_id=${encodeURIComponent(t.clickId)}` +
-        `&aff_id=${encodeURIComponent(t.affId)}` +
-        `&offer_id=${encodeURIComponent(t.offerId)}` +
-        `&sub_id=${encodeURIComponent(t.subId)}`;
+        // Legacy success shape
+        if (data?.returnUrl || data?.callId) return { ok: true, data };
+        if (data?.success === true) return { ok: true, data };
 
-      window.open(url, "_blank");
-      return { ok: true, data };
-    }
-
-    // Sommige responses bevatten errors
-    if (data?.error) {
-      return { ok: false, data };
-    }
-
-    // fallback: als er geen duidelijke success indicator is
-    return { ok: false, data };
-  }
-
-  // ============================
-  // Popup detectie: start flow bij "open"
-  // ============================
-  function isVisible(el) {
-    if (!el) return false;
-    const style = window.getComputedStyle(el);
-    if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0")
-      return false;
-
-    // Als swipe popup via transform off-screen werkt, check rect
-    const r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0;
-  }
-
-  function observePopupOpen() {
-    let lastWasOpen = false;
-
-    const tick = () => {
-      const popup = document.querySelector(POPUP_SELECTOR);
-      const openNow = popup && isVisible(popup);
-
-      // Trigger alleen op "closed -> open"
-      if (openNow && !lastWasOpen) {
-        log("Popup geopend → IVR flow starten");
-        startIvrPinFlowOnce();
+        // Als de server expliciet zegt dat het fout is, direct stoppen
+        if (data?.error || data?.message) {
+          // ga door naar stage fallback als prod faalt zonder harde error?
+          // hier laten we fallback wel proberen; user ziet uiteindelijk "Onjuiste pincode"
+        }
+      } catch (e) {
+        // In jouw logs kwam "{error:'Request failed'}" → dat is server-side json
+        // Maar fetch errors kunnen ook, dus we loggen en proberen de volgende url
+        err("SubmitPin error:", e);
       }
+    }
 
-      lastWasOpen = !!openNow;
-      requestAnimationFrame(tick);
-    };
-
-    requestAnimationFrame(tick);
+    return { ok: false, data: { error: "Request failed" } };
   }
 
   // ============================
-  // Input UX: auto-focus naar volgende veld
+  // UX: input handlers (auto focus + numeric)
   // ============================
   function attachInputHandlers(popupEl) {
     const inputs = popupEl.querySelectorAll(".pin-input");
@@ -258,7 +263,6 @@
       inp.addEventListener("input", () => {
         clearInlineError(popupEl);
 
-        // alleen 1 char, numeric
         inp.value = (inp.value || "").replace(/\D/g, "").slice(0, 1);
 
         if (inp.value && idx < inputs.length - 1) {
@@ -269,7 +273,7 @@
   }
 
   // ============================
-  // Submit handler
+  // Submit handler (button id)
   // ============================
   function attachSubmitHandler() {
     document.addEventListener("click", async (e) => {
@@ -287,35 +291,84 @@
         return;
       }
 
-      // Als request_pin nooit OK is geweest, heeft submit weinig kans van slagen
       if (!state.lastRequestOk) {
         warn("request_pin was niet OK. Probeer popup opnieuw te openen / opnieuw te bellen.");
-        // we proberen alsnog, maar tonen wel nette melding als het faalt
       }
 
-      const result = await submitPin(popupEl, pin);
+      // Disable knop tijdens request
+      btn.disabled = true;
+      btn.classList.add("loading");
 
-      if (result.ok) {
-        clearInlineError(popupEl);
-        // optioneel: markeer succes / disable button
-        btn.disabled = true;
-        btn.classList.add("loading");
-        return;
+      try {
+        const result = await submitPin(pin);
+
+        if (result.ok) {
+          clearInlineError(popupEl);
+
+          // Legacy gedrag: open returnUrl in nieuwe tab indien aanwezig
+          const t = getTracking();
+          const { data } = result;
+
+          if (data?.returnUrl) {
+            const url =
+              `${data.returnUrl}` +
+              `?call_id=${encodeURIComponent(data.callId || "")}` +
+              `&t_id=${encodeURIComponent(t.clickId)}` +
+              `&aff_id=${encodeURIComponent(t.affId)}` +
+              `&offer_id=${encodeURIComponent(t.offerId)}` +
+              `&sub_id=${encodeURIComponent(t.subId)}`;
+
+            window.open(url, "_blank");
+          }
+
+          // Event hook voor integratie (bv memory starten)
+          document.dispatchEvent(
+            new CustomEvent("ivr-pin-success", { detail: result.data })
+          );
+
+          return;
+        }
+
+        showInlineError(popupEl, "Onjuiste pincode");
+      } catch (e2) {
+        err(e2);
+        showInlineError(popupEl, "Onjuiste pincode");
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove("loading");
       }
-
-      showInlineError(popupEl, "Onjuiste pincode");
     });
+  }
+
+  // ============================
+  // Popup open detectie (Swipe Pages safe)
+  // - Start flow op closed -> open transition
+  // ============================
+  function observePopupOpen() {
+    const tick = () => {
+      const popup = document.querySelector(POPUP_SELECTOR);
+      const openNow = popup && isVisible(popup);
+
+      if (openNow && !state.popupWasOpen) {
+        log("Popup geopend -> IVR flow starten");
+        startIvrPinFlowOnce();
+      }
+
+      state.popupWasOpen = !!openNow;
+      requestAnimationFrame(tick);
+    };
+
+    requestAnimationFrame(tick);
   }
 
   // ============================
   // Init
   // ============================
   function init() {
-    // Start observer die wacht tot popup zichtbaar wordt
     observePopupOpen();
 
-    // Voeg handlers toe zodra popup in DOM staat
-    const observer = new MutationObserver(() => {
+    // Bind input handlers zodra popup in DOM verschijnt
+    const domObserver = new MutationObserver(() => {
       const popup = document.querySelector(POPUP_SELECTOR);
       if (!popup || popup.dataset.ivrPinBound) return;
 
@@ -324,9 +377,8 @@
       log("Handlers gekoppeld aan IVR PIN popup");
     });
 
-    observer.observe(document.body, { childList: true, subtree: true });
+    domObserver.observe(document.body, { childList: true, subtree: true });
 
-    // Submit handler is document-wide
     attachSubmitHandler();
   }
 
