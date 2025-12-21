@@ -600,3 +600,127 @@ input.error {
 .consent-link:hover {
   text-decoration: none;
 }
+
+/* =====================================================
+   Short Form V2 – modern, geïsoleerd
+   ===================================================== */
+
+.modern-form-v2 {
+  background: #ffffff;
+  padding: 28px 24px;
+  border-radius: 16px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.08);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+/* Fields */
+.modern-form-v2 .field-group {
+  margin-bottom: 18px;
+}
+
+.modern-form-v2 label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f2d2f;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.modern-form-v2 input[type="text"],
+.modern-form-v2 input[type="email"] {
+  height: 52px;
+  width: 100%;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1.5px solid #d6e2e1;
+  font-size: 16px;
+}
+
+.modern-form-v2 input:focus {
+  border-color: var(--campaign-primary);
+  box-shadow: 0 0 0 3px rgba(20,182,112,.15);
+  outline: none;
+}
+
+/* Gender pills */
+.gender-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.radio-pill {
+  flex: 1;
+  border: 1.5px solid #d6e2e1;
+  border-radius: 14px;
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.radio-pill input {
+  display: none;
+}
+
+.radio-pill input:checked + span {
+  color: #fff;
+  background: var(--campaign-primary);
+  border-radius: 10px;
+  padding: 10px;
+  display: block;
+}
+
+/* Consent cards */
+.consent-module {
+  margin: 24px 0;
+}
+
+.consent-card {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1.5px solid #e1eceb;
+  background: #f8fbfb;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.consent-card + .consent-card {
+  margin-top: 12px;
+}
+
+.consent-card:hover {
+  border-color: var(--campaign-primary);
+  background: rgba(20,182,112,.06);
+}
+
+.consent-card input {
+  width: 22px;
+  height: 22px;
+  margin-top: 3px;
+}
+
+/* Links */
+.consent-card button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-weight: 600;
+  color: var(--campaign-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* CTA */
+.cta-primary {
+  width: 100%;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--campaign-primary);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  border: none;
+  box-shadow: 0 14px 26px rgba(20,182,112,.35);
+}
