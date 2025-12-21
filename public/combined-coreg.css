@@ -602,8 +602,7 @@ input.error {
 }
 
 /* =====================================================
-   Short Form V2.1 — DEFINITIEVE VERSIE
-   Alles gescoped onder .modern-form-v2
+   Short Form V2.2 — compact, Stripe-achtig
    ===================================================== */
 
 .modern-form-v2 {
@@ -616,186 +615,156 @@ input.error {
    ================================ */
 
 .modern-form-v2 .form-title {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 
 /* =====================================================
-   GENDER TOGGLE — HARD FIX (NO FALLBACK)
+   GENDER — SEGMENTED CONTROL
    ===================================================== */
 
-.modern-form-v2 .gender-toggle {
+.modern-form-v2 .gender-segment {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 26px;
+  border: 1.5px solid #d6e2e1;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
 }
 
-.modern-form-v2 .gender-toggle label {
+.modern-form-v2 .gender-segment label {
   position: relative;
   cursor: pointer;
 }
 
-/* ❗ Radio inputs ALTIJD verbergen */
-.modern-form-v2 .gender-toggle input[type="radio"] {
+.modern-form-v2 .gender-segment input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
-/* Button look */
-.modern-form-v2 .gender-toggle span {
+.modern-form-v2 .gender-segment span {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 50px;
-  border-radius: 14px;
-  border: 2px solid #d6e2e1;
+  height: 44px;
   font-size: 15px;
+  font-weight: 500;
+  background: #fff;
+  transition: background .2s ease, color .2s ease;
+}
+
+/* Divider */
+.modern-form-v2 .gender-segment label:first-child span {
+  border-right: 1.5px solid #d6e2e1;
+}
+
+/* Active */
+.modern-form-v2 .gender-segment input:checked + span {
+  background: rgba(20,182,112,0.12);
+  color: var(--campaign-primary);
   font-weight: 600;
-  background: #ffffff;
-  transition: all 0.2s ease;
-}
-
-/* Hover */
-.modern-form-v2 .gender-toggle span:hover {
-  border-color: var(--campaign-primary);
-}
-
-/* Actief */
-.modern-form-v2 .gender-toggle input:checked + span {
-  background: var(--campaign-primary);
-  border-color: var(--campaign-primary);
-  color: #ffffff;
 }
 
 /* =====================================================
-   INPUT FIELDS
+   INPUT FIELDS — COMPACT
    ===================================================== */
 
 .modern-form-v2 .field-group {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .modern-form-v2 .field-group label {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
   display: block;
 }
 
 .modern-form-v2 .field-group input {
   width: 100%;
-  height: 52px;
-  padding: 0 14px;
-  border-radius: 14px;
-  border: 2px solid #d6e2e1;
-  font-size: 16px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1.5px solid #d6e2e1;
+  font-size: 15px;
 }
 
 /* Focus */
 .modern-form-v2 .field-group input:focus {
   outline: none;
   border-color: var(--campaign-primary);
-  box-shadow: 0 0 0 3px rgba(20,182,112,0.15);
+  box-shadow: 0 0 0 2px rgba(20,182,112,0.15);
 }
 
 /* =====================================================
-   CONSENT MODULE — HARD FIX
+   CONSENT — GELIJK, COMPACT, DUIDELIJK
    ===================================================== */
 
 .modern-form-v2 .consent-module {
-  margin: 24px 0 28px;
+  margin: 18px 0 22px;
 }
 
-/* Card */
 .modern-form-v2 .consent-row {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  border: 2px solid #e1eceb;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #e1eceb;
   background: #f9fbfb;
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: 13.5px;
+  line-height: 1.4;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .modern-form-v2 .consent-row + .consent-row {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
-/* Verplicht */
+/* Required */
 .modern-form-v2 .consent-row.required {
-  border-color: #cfe6e3;
+  border-color: #d0e6e3;
 }
 
-/* Sponsor = nadruk */
+/* Sponsor highlight (zelfde hoogte!) */
 .modern-form-v2 .consent-row.highlight {
   border-color: var(--campaign-primary);
-  background: rgba(20,182,112,0.1);
-}
-
-/* Hover */
-.modern-form-v2 .consent-row:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+  background: rgba(20,182,112,0.08);
 }
 
 /* Checkbox */
 .modern-form-v2 .consent-row input[type="checkbox"] {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   margin-top: 2px;
   accent-color: var(--campaign-primary);
+  flex-shrink: 0;
 }
 
-/* =====================================================
-   INLINE BUTTON RESET (ZWARTE KADERS FIX)
-   ===================================================== */
-
+/* Inline links reset */
 .modern-form-v2 .consent-row button {
   all: unset;
-  display: inline;
   font-weight: 600;
   color: var(--campaign-primary);
   cursor: pointer;
   text-decoration: underline;
 }
 
-.modern-form-v2 .consent-row button:focus {
-  outline: none;
-}
-
 /* =====================================================
-   CTA — Dwingender maar clean
+   CTA — COMPACT MAAR KRACHTIG
    ===================================================== */
 
 .modern-form-v2 .cta-primary {
   width: 100%;
-  height: 56px;
-  border-radius: 16px;
+  height: 48px;
+  border-radius: 14px;
   background: var(--campaign-primary);
-  color: #ffffff;
-  font-size: 17px;
+  color: #fff;
+  font-size: 16px;
   font-weight: 700;
   border: none;
   cursor: pointer;
-  letter-spacing: 0.2px;
-  box-shadow: 0 14px 26px rgba(20,182,112,0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.modern-form-v2 .cta-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 18px 32px rgba(20,182,112,0.45);
-}
-
-.modern-form-v2 .cta-primary:active {
-  transform: translateY(0);
-  box-shadow: 0 10px 18px rgba(20,182,112,0.35);
+  letter-spacing: .2px;
 }
