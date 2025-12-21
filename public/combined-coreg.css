@@ -562,3 +562,41 @@ input.error {
     transform: rotate(360deg);
   }
 }
+
+/* ================================
+   Consent module (geïsoleerd)
+   ================================ */
+
+.consent-module {
+  margin-top: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.consent-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.consent-line input[type="checkbox"] {
+  margin-top: 3px;
+  accent-color: var(--campaign-primary);
+}
+
+.consent-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-weight: 600;
+  color: var(--campaign-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.consent-link:hover {
+  text-decoration: none;
+}
