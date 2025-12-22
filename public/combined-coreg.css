@@ -602,12 +602,12 @@ input.error {
 }
 
 /* =====================================================
-   Short Form V2.3 — COMPACT & STRAK (definitief)
+   Short Form V2.4 — Pixel-polished
    ===================================================== */
 
 .modern-form-v2 {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #111; /* harder zwart */
+  color: #111;
 }
 
 /* ================================
@@ -617,21 +617,17 @@ input.error {
 .modern-form-v2 .form-title {
   font-size: 24px;
   font-weight: 700;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 /* =====================================================
-   GENDER — SEGMENTED CONTROL (FIX)
+   GENDER — SEGMENTED (ZONDER OUTER KADER)
    ===================================================== */
 
 .modern-form-v2 .gender-segment {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 1px solid #d5e0df;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 16px;
-  background: #fff;
+  margin-bottom: 14px;
 }
 
 .modern-form-v2 .gender-segment label {
@@ -649,20 +645,16 @@ input.error {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 38px;
+  height: 36px;
   font-size: 14px;
   font-weight: 500;
   color: #111;
-  background: #fff;
+  background: transparent;
+  border-radius: 8px;
   transition: all .15s ease;
 }
 
-/* Subtiele divider */
-.modern-form-v2 .gender-segment label:first-child span {
-  border-right: 1px solid #e3eceb;
-}
-
-/* Actief = Stripe-achtig */
+/* Actief */
 .modern-form-v2 .gender-segment input:checked + span {
   background: rgba(20,182,112,.12);
   color: #0b5f46;
@@ -671,7 +663,7 @@ input.error {
 }
 
 /* =====================================================
-   INPUT FIELDS — COMPACT
+   INPUT FIELDS — STRAK
    ===================================================== */
 
 .modern-form-v2 .field-group {
@@ -682,15 +674,15 @@ input.error {
   font-size: 13px;
   font-weight: 600;
   color: #111;
-  margin-bottom: 3px;
+  margin-bottom: 2px; /* dichter op input */
   display: block;
 }
 
 .modern-form-v2 .field-group input {
   width: 100%;
-  height: 40px;
+  height: 42px; /* iets hoger */
   padding: 0 11px;
-  border-radius: 8px;
+  border-radius: 7px; /* iets minder radius */
   border: 1.5px solid #d5e0df;
   font-size: 14.5px;
 }
@@ -703,11 +695,11 @@ input.error {
 }
 
 /* =====================================================
-   CONSENT — COMPACT, GELIJK, STRAK
+   CONSENT — COMPACT
    ===================================================== */
 
 .modern-form-v2 .consent-module {
-  margin: 14px 0 18px;
+  margin: 12px 0 16px;
 }
 
 .modern-form-v2 .consent-row {
@@ -715,7 +707,7 @@ input.error {
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 9px;
   border: 1.5px solid #e1eceb;
   background: #fafcfc;
   font-size: 13px;
@@ -732,7 +724,7 @@ input.error {
   border-color: #d0e6e3;
 }
 
-/* Sponsor highlight (zelfde hoogte!) */
+/* Sponsor */
 .modern-form-v2 .consent-row.highlight {
   border-color: var(--campaign-primary);
   background: rgba(20,182,112,.07);
@@ -747,7 +739,7 @@ input.error {
   flex-shrink: 0;
 }
 
-/* Inline links */
+/* Links */
 .modern-form-v2 .consent-row button {
   all: unset;
   font-weight: 600;
@@ -757,12 +749,12 @@ input.error {
 }
 
 /* =====================================================
-   CTA — COMPACT
+   CTA — GECENTREERD & KRACHTIGER
    ===================================================== */
 
 .modern-form-v2 .cta-primary {
   width: 100%;
-  height: 44px;
+  height: 48px; /* iets groter */
   border-radius: 12px;
   background: var(--campaign-primary);
   color: #fff;
@@ -770,4 +762,10 @@ input.error {
   font-weight: 700;
   border: none;
   cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  line-height: 48px;
 }
