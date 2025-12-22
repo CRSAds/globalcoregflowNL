@@ -1,17 +1,13 @@
 // =============================================================
-// consent-module.js — uitgebreid
+// consent-module.js — DEFINITIEF (SwipePages compatible)
 // =============================================================
 
 (function () {
 
-  document.addEventListener("DOMContentLoaded", () => {
-    initSponsorConsent();
-  });
-
   /* -----------------------------------------------------------
      Sponsor consent opslaan
      ----------------------------------------------------------- */
-  function initSponsorConsent() {
+  document.addEventListener("DOMContentLoaded", () => {
     const checkbox = document.getElementById("consent-sponsors");
     if (!checkbox) return;
 
@@ -23,45 +19,48 @@
         checkbox.checked ? "true" : "false"
       );
     });
+  });
+
+  /* -----------------------------------------------------------
+     Helper: popup openen (Swipe-safe)
+     ----------------------------------------------------------- */
+  function openPopup(selector) {
+    const popup =
+      document.querySelector(selector) ||
+      document.getElementById(selector.replace("#", ""));
+
+    if (!popup) {
+      console.warn("⚠️ Popup niet gevonden:", selector);
+      return;
+    }
+
+    // Meest compatibele manier
+    popup.style.display = "block";
+    popup.setAttribute("aria-hidden", "false");
+
+    // Voor eventuele listeners
+    popup.dispatchEvent(new Event("open", { bubbles: true }));
   }
 
   /* -----------------------------------------------------------
-     Popups openen (event delegation)
+     Click handling
      ----------------------------------------------------------- */
   document.addEventListener("click", (e) => {
 
     /* 🎯 Actievoorwaarden */
-    const voorwaardenBtn = e.target.closest("#open-actievoorwaarden-inline");
-    if (voorwaardenBtn) {
+    if (e.target.closest("#open-actievoorwaarden-inline")) {
       e.preventDefault();
-
-      const popup =
-        document.querySelector(".voorwaarden-popup") ||
-        document.getElementById("voorwaarden-popup");
-
-      if (popup) {
-        popup.classList.add("open");
-      } else {
-        console.warn("⚠️ voorwaarden-popup niet gevonden");
-      }
+      openPopup(".voorwaarden-popup");
       return;
     }
 
     /* 🎯 Sponsors */
-    const sponsorBtn = e.target.closest("#open-sponsor-popup");
-    if (sponsorBtn) {
+    if (e.target.closest("#open-sponsor-popup")) {
       e.preventDefault();
-
-      const popup =
-        document.querySelector(".sponsor-popup") ||
-        document.getElementById("sponsor-popup");
-
-      if (popup) {
-        popup.classList.add("open");
-      } else {
-        console.warn("⚠️ sponsor-popup niet gevonden");
-      }
+      openPopup(".sponsor-popup");
+      return;
     }
+
   });
 
 })();
