@@ -1,28 +1,20 @@
 // =============================================================
-// consent-module.js
-// -------------------------------------------------------------
-// Geïsoleerde consent-module voor short form
-// - Sponsor-optin opslaan in sessionStorage
-// - Actievoorwaarden openen via bestaande footer popup
-// - Geen impact op form submit, flow of Databowl
+// consent-module.js — uitgebreid
 // =============================================================
 
 (function () {
-  // ---------------------------------------------
-  // Init na DOM load
-  // ---------------------------------------------
+
   document.addEventListener("DOMContentLoaded", () => {
     initSponsorConsent();
   });
 
-  // ---------------------------------------------
-  // Sponsor consent (checkbox)
-  // ---------------------------------------------
+  /* -----------------------------------------------------------
+     Sponsor consent opslaan
+     ----------------------------------------------------------- */
   function initSponsorConsent() {
     const checkbox = document.getElementById("consent-sponsors");
     if (!checkbox) return;
 
-    // Default altijd expliciet false (compliance)
     sessionStorage.setItem("sponsorsAccepted", "false");
 
     checkbox.addEventListener("change", () => {
@@ -33,24 +25,43 @@
     });
   }
 
-  // ---------------------------------------------
-  // Actievoorwaarden popup (hergebruik footer)
-  // ---------------------------------------------
+  /* -----------------------------------------------------------
+     Popups openen (event delegation)
+     ----------------------------------------------------------- */
   document.addEventListener("click", (e) => {
-    const trigger = e.target.closest("#open-actievoorwaarden-inline");
-    if (!trigger) return;
 
-    e.preventDefault();
+    /* 🎯 Actievoorwaarden */
+    const voorwaardenBtn = e.target.closest("#open-actievoorwaarden-inline");
+    if (voorwaardenBtn) {
+      e.preventDefault();
 
-    // Footer-loader injecteert deze knop dynamisch
-    const footerTrigger = document.getElementById("open-terms");
+      const popup =
+        document.querySelector(".voorwaarden-popup") ||
+        document.getElementById("voorwaarden-popup");
 
-    if (footerTrigger) {
-      footerTrigger.click();
-    } else {
-      console.warn(
-        "⚠️ consent-module: footer terms-trigger (#open-terms) nog niet beschikbaar"
-      );
+      if (popup) {
+        popup.classList.add("open");
+      } else {
+        console.warn("⚠️ voorwaarden-popup niet gevonden");
+      }
+      return;
+    }
+
+    /* 🎯 Sponsors */
+    const sponsorBtn = e.target.closest("#open-sponsor-popup");
+    if (sponsorBtn) {
+      e.preventDefault();
+
+      const popup =
+        document.querySelector(".sponsor-popup") ||
+        document.getElementById("sponsor-popup");
+
+      if (popup) {
+        popup.classList.add("open");
+      } else {
+        console.warn("⚠️ sponsor-popup niet gevonden");
+      }
     }
   });
+
 })();
