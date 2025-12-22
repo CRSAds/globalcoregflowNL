@@ -748,6 +748,11 @@ input.error {
   text-decoration: underline;
 }
 
+/* Geen outer padding forceren */
+.modern-form-v2 {
+  padding: 0 !important;
+}
+
 /* =====================================================
    CTA — GECENTREERD & KRACHTIGER
    ===================================================== */
