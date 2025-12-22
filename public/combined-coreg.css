@@ -774,3 +774,86 @@ input.error {
 
   line-height: 48px;
 }
+
+/* =====================================================
+   popup-module.css — 2 modals (sponsors + voorwaarden)
+   ===================================================== */
+
+.pb-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 999999; /* boven Swipe/Tatsu */
+}
+
+.pb-modal-overlay.is-open {
+  display: flex;
+}
+
+.pb-modal {
+  width: 100%;
+  max-width: 520px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 18px 60px rgba(0,0,0,.22);
+  overflow: hidden;
+}
+
+.pb-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e8efee;
+}
+
+.pb-modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+}
+
+.pb-modal-close {
+  all: unset;
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #111;
+}
+
+.pb-modal-close:hover {
+  background: rgba(0,0,0,.06);
+}
+
+.pb-modal-body {
+  padding: 14px 16px 18px;
+  max-height: min(70vh, 520px);
+  overflow: auto;
+}
+
+/* Sponsor list container */
+#cosponsor-popup {
+  /* jouw inhoud, maar zonder “los” design */
+}
+
+#cosponsor-popup h2 {
+  display: none; /* titel pakken we in modal header */
+}
+
+/* Actievoorwaarden wrapper: laat je eigen scroll styling bestaan */
+#actievoorwaarden-wrapper {
+  border: none !important;      /* modal heeft al kader */
+  border-radius: 0 !important;
+  padding: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  background: transparent !important;
+}
