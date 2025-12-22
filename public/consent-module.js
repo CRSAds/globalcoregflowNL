@@ -1,5 +1,5 @@
 // =============================================================
-// consent-module.js — SwipePages DEFINITIEF
+// consent-module.js — DEFINITIEF (trigger-onafhankelijk)
 // =============================================================
 
 (function () {
@@ -22,31 +22,28 @@
   });
 
   /* -----------------------------------------------------------
-     Helper: open popup via Swipe trigger
+     Popup openen — universeel
      ----------------------------------------------------------- */
-  function openPopupByClass(popupClass) {
-    // 1️⃣ Zoek popup
-    const popup = document.querySelector(popupClass);
+  function openPopup(selector) {
+    const popup = document.querySelector(selector);
     if (!popup) {
-      console.warn("⚠️ Popup niet gevonden:", popupClass);
+      console.warn("⚠️ Popup niet gevonden:", selector);
       return;
     }
 
-    // 2️⃣ Zoek mogelijke trigger die deze popup opent
-    const popupId = popup.id;
+    // 1️⃣ CSS visibility
+    popup.style.display = "block";
+    popup.style.visibility = "visible";
+    popup.style.opacity = "1";
 
-    let trigger =
-      (popupId && document.querySelector(`[href="#${popupId}"]`)) ||
-      (popupId && document.querySelector(`[data-target="#${popupId}"]`)) ||
-      document.querySelector(`[data-popup="${popupClass.replace(".", "")}"]`);
+    // 2️⃣ ARIA (Swipe / accessibility)
+    popup.setAttribute("aria-hidden", "false");
 
-    if (!trigger) {
-      console.warn("⚠️ Geen Swipe trigger gevonden voor popup:", popupClass);
-      return;
-    }
+    // 3️⃣ Veelgebruikte open-classes (veilig)
+    popup.classList.add("open", "active", "is-open", "visible");
 
-    // 3️⃣ Simuleer echte klik (Swipe JS handelt de rest af)
-    trigger.click();
+    // 4️⃣ Custom event (voor eventuele listeners)
+    popup.dispatchEvent(new Event("open", { bubbles: true }));
   }
 
   /* -----------------------------------------------------------
@@ -57,14 +54,14 @@
     /* 🎯 Actievoorwaarden */
     if (e.target.closest("#open-actievoorwaarden-inline")) {
       e.preventDefault();
-      openPopupByClass(".voorwaarden-popup");
+      openPopup(".voorwaarden-popup");
       return;
     }
 
     /* 🎯 Sponsors */
     if (e.target.closest("#open-sponsor-popup")) {
       e.preventDefault();
-      openPopupByClass(".sponsor-popup");
+      openPopup(".sponsor-popup");
       return;
     }
 
