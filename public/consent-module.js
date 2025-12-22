@@ -130,6 +130,18 @@
 
           moveContentIntoModal(body, contentEl);
           openModal(overlay);
+          
+          // 🔄 Sponsor lijst opnieuw initialiseren
+          if (key === "sponsors") {
+            if (typeof window.initCosponsors === "function") {
+              window.initCosponsors();
+            } else if (typeof window.loadCosponsors === "function") {
+              window.loadCosponsors();
+            } else {
+              // fallback: dispatch event
+              document.dispatchEvent(new Event("cosponsor:open"));
+            }
+          }
         }
       });
     });
