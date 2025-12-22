@@ -163,21 +163,19 @@
       "click",
       (e) => {
         const trigger =
-          e.target.closest('[data-open="sponsors"]') ||
+          e.target.closest(".open-sponsor-popup") ||
           e.target.closest("#open-sponsor-popup");
-
-        // Openen
+    
         if (trigger) {
           e.preventDefault();
           e.stopPropagation();
-
+    
           popup.style.display = "flex";
           lockScroll();
           loadSponsors();
           return;
         }
-
-        // Sluiten
+    
         if (
           e.target.id === "close-cosponsor-popup" ||
           e.target.classList.contains("cosponsor-overlay")
