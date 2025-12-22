@@ -1,31 +1,15 @@
 // =============================================================
 // consent-module.js — DEFINITIEF
-// - sponsor consent
-// - sponsor popup
-// - actievoorwaarden popup
+// - sponsor consent state
+// - sponsor popup (bestaande cosponsors.js)
+// - actievoorwaarden popup (eigen modal)
 // =============================================================
 
 (function () {
 
-  /* -----------------------------------------------------------
-     CONFIG
-     ----------------------------------------------------------- */
-  const POPUPS = {
-    sponsors: {
-      title: "Onze partners",
-      contentSelector: "#cosponsor-popup",
-      openSelector: "#open-sponsor-popup",
-    },
-    voorwaarden: {
-      title: "Actievoorwaarden",
-      contentSelector: "#actievoorwaarden-wrapper",
-      openSelector: "#open-actievoorwaarden-inline",
-    },
-  };
-
-  /* -----------------------------------------------------------
-     Sponsor consent state
-     ----------------------------------------------------------- */
+  /* ============================================================
+     1. Sponsor consent state
+     ============================================================ */
   function initSponsorConsent() {
     const checkbox = document.getElementById("consent-sponsors");
     if (!checkbox) return;
@@ -40,19 +24,35 @@
     });
   }
 
-  /* -----------------------------------------------------------
-     Modal creation
-     ----------------------------------------------------------- */
-  function createModalShell(id, title) {
+  /* ============================================================
+     2. Sponsor popup — HERGEBRUIK BESTAANDE cosponsors.js
+     ============================================================ */
+  function openSponsorPopup() {
+    const popup = document.getElementById("sponsor-popup");
+    if (!popup) {
+      console.warn("⚠️ sponsor-popup niet gevonden (cosponsors.js)");
+      return;
+    }
+
+    popup.style.display = "flex";
+  }
+
+  /* ============================================================
+     3. Actievoorwaarden modal — eigen, lichtgewicht
+     ============================================================ */
+  let voorwaardenModal = null;
+
+  function createVoorwaardenModal() {
+    if (voorwaardenModal) return voorwaardenModal;
+
     const overlay = document.createElement("div");
     overlay.className = "pb-modal-overlay";
-    overlay.id = id;
     overlay.setAttribute("aria-hidden", "true");
 
     overlay.innerHTML = `
       <div class="pb-modal" role="dialog" aria-modal="true">
         <div class="pb-modal-header">
-          <h3 class="pb-modal-title">${title}</h3>
+          <h3 class="pb-modal-title">Actievoorwaarden</h3>
           <button type="button" class="pb-modal-close" aria-label="Sluiten">✕</button>
         </div>
         <div class="pb-modal-body"></div>
@@ -63,96 +63,80 @@
 
     // sluiten via X
     overlay.querySelector(".pb-modal-close").addEventListener("click", () => {
-      closeModal(overlay);
+      closeVoorwaardenModal();
     });
 
     // sluiten via backdrop
     overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) closeModal(overlay);
+      if (e.target === overlay) closeVoorwaardenModal();
     });
 
+    // ESC
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeVoorwaardenModal();
+    });
+
+    voorwaardenModal = overlay;
     return overlay;
   }
 
-  function openModal(overlay) {
+  function openVoorwaardenModal() {
+    const content = document.getElementById("actievoorwaarden-wrapper");
+    if (!content) {
+      console.warn("⚠️ #actievoorwaarden-wrapper niet gevonden");
+      return;
+    }
+
+    const overlay = createVoorwaardenModal();
+    const body = overlay.querySelector(".pb-modal-body");
+
+    // content verplaatsen (1x)
+    if (!body.contains(content)) {
+      body.appendChild(content);
+    }
+
     overlay.classList.add("is-open");
     overlay.setAttribute("aria-hidden", "false");
     document.documentElement.style.overflow = "hidden";
   }
 
-  function closeModal(overlay) {
-    overlay.classList.remove("is-open");
-    overlay.setAttribute("aria-hidden", "true");
+  function closeVoorwaardenModal() {
+    if (!voorwaardenModal) return;
+
+    voorwaardenModal.classList.remove("is-open");
+    voorwaardenModal.setAttribute("aria-hidden", "true");
     document.documentElement.style.overflow = "";
   }
 
-  /* -----------------------------------------------------------
-     Content handling
-     ----------------------------------------------------------- */
-  function moveContentIntoModal(modalBody, contentEl) {
-    if (!contentEl) return;
-    if (modalBody.contains(contentEl)) return;
-
-    modalBody.appendChild(contentEl);
-  }
-
-  /* -----------------------------------------------------------
-     Init
-     ----------------------------------------------------------- */
-  function initPopups() {
-    const shells = {};
-
-    Object.entries(POPUPS).forEach(([key, cfg]) => {
-      shells[key] = createModalShell(`pb-modal-${key}`, cfg.title);
-    });
-
-    // ESC sluit popup
-    document.addEventListener("keydown", (e) => {
-      if (e.key !== "Escape") return;
-      const open = document.querySelector(".pb-modal-overlay.is-open");
-      if (open) closeModal(open);
-    });
-
-    // Open triggers
+  /* ============================================================
+     4. Click handling (event delegation)
+     ============================================================ */
+  function initClickHandlers() {
     document.addEventListener("click", (e) => {
-      Object.entries(POPUPS).forEach(([key, cfg]) => {
-        if (e.target.closest(cfg.openSelector)) {
-          e.preventDefault();
 
-          const overlay = shells[key];
-          const body = overlay.querySelector(".pb-modal-body");
-          const contentEl = document.querySelector(cfg.contentSelector);
+      /* 🎯 Sponsor popup */
+      if (e.target.closest("#open-sponsor-popup")) {
+        e.preventDefault();
+        openSponsorPopup();
+        return;
+      }
 
-          if (!contentEl) {
-            console.warn(`⚠️ Content niet gevonden: ${cfg.contentSelector}`);
-            return;
-          }
+      /* 🎯 Actievoorwaarden */
+      if (e.target.closest("#open-actievoorwaarden-inline")) {
+        e.preventDefault();
+        openVoorwaardenModal();
+        return;
+      }
 
-          moveContentIntoModal(body, contentEl);
-          openModal(overlay);
-          
-          // 🔄 Sponsor lijst opnieuw initialiseren
-          if (key === "sponsors") {
-            if (typeof window.initCosponsors === "function") {
-              window.initCosponsors();
-            } else if (typeof window.loadCosponsors === "function") {
-              window.loadCosponsors();
-            } else {
-              // fallback: dispatch event
-              document.dispatchEvent(new Event("cosponsor:open"));
-            }
-          }
-        }
-      });
     });
   }
 
-  /* -----------------------------------------------------------
+  /* ============================================================
      Boot
-     ----------------------------------------------------------- */
+     ============================================================ */
   document.addEventListener("DOMContentLoaded", () => {
     initSponsorConsent();
-    initPopups();
+    initClickHandlers();
   });
 
 })();
