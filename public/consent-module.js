@@ -1,8 +1,5 @@
 // =============================================================
-// consent-module.js — DEFINITIEF
-// - sponsor consent state
-// - sponsor popup (bestaande cosponsors.js)
-// - actievoorwaarden popup (eigen modal)
+// consent-module.js — DEFINITIEF & PRODUCTIE-VEILIG
 // =============================================================
 
 (function () {
@@ -26,19 +23,30 @@
 
   /* ============================================================
      2. Sponsor popup — HERGEBRUIK BESTAANDE cosponsors.js
+     ------------------------------------------------------------
+     ❗ Belangrijk:
+     - We openen GEEN popup zelf
+     - We triggeren exact dezelfde click-chain
      ============================================================ */
-  function openSponsorPopup() {
-    const popup = document.getElementById("sponsor-popup");
-    if (!popup) {
-      console.warn("⚠️ sponsor-popup niet gevonden (cosponsors.js)");
+  function triggerSponsorPopup() {
+    const btn = document.getElementById("open-sponsor-popup");
+    if (!btn) {
+      console.warn("⚠️ #open-sponsor-popup niet gevonden");
       return;
     }
 
-    popup.style.display = "flex";
+    // Gebruik exact dezelfde codepath als bestaande funnels
+    btn.dispatchEvent(
+      new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      })
+    );
   }
 
   /* ============================================================
-     3. Actievoorwaarden modal — eigen, lichtgewicht
+     3. Actievoorwaarden modal — eigen modal
      ============================================================ */
   let voorwaardenModal = null;
 
@@ -61,17 +69,15 @@
 
     document.body.appendChild(overlay);
 
-    // sluiten via X
-    overlay.querySelector(".pb-modal-close").addEventListener("click", () => {
-      closeVoorwaardenModal();
-    });
+    // Sluiten via X
+    overlay.querySelector(".pb-modal-close").addEventListener("click", closeVoorwaardenModal);
 
-    // sluiten via backdrop
+    // Sluiten via backdrop
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) closeVoorwaardenModal();
     });
 
-    // ESC
+    // Sluiten via ESC
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeVoorwaardenModal();
     });
@@ -90,7 +96,7 @@
     const overlay = createVoorwaardenModal();
     const body = overlay.querySelector(".pb-modal-body");
 
-    // content verplaatsen (1x)
+    // Content verplaatsen (eenmalig)
     if (!body.contains(content)) {
       body.appendChild(content);
     }
@@ -109,22 +115,26 @@
   }
 
   /* ============================================================
-     4. Click handling (event delegation)
+     4. Click handling (ZEER BELANGRIJK)
+     ------------------------------------------------------------
+     - GEEN preventDefault op sponsor
+     - WEL preventDefault op voorwaarden
      ============================================================ */
   function initClickHandlers() {
     document.addEventListener("click", (e) => {
 
-      /* 🎯 Sponsor popup */
-      if (e.target.closest("#open-sponsor-popup")) {
-        e.preventDefault();
-        openSponsorPopup();
+      /* 🎯 Actievoorwaarden → eigen modal */
+      if (e.target.closest("#open-actievoorwaarden-inline")) {
+        e.preventDefault(); // veilig: dit is onze eigen modal
+        openVoorwaardenModal();
         return;
       }
 
-      /* 🎯 Actievoorwaarden */
-      if (e.target.closest("#open-actievoorwaarden-inline")) {
-        e.preventDefault();
-        openVoorwaardenModal();
+      /* 🎯 Sponsor → laat cosponsors.js zijn werk doen */
+      if (e.target.closest("#open-sponsor-popup")) {
+        // ❗ GEEN preventDefault
+        // ❗ GEEN eigen open-logica
+        // cosponsors.js vangt deze click zelf af
         return;
       }
 
