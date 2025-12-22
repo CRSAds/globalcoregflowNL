@@ -849,8 +849,9 @@ input.error {
 }
 
 /* Actievoorwaarden wrapper: laat je eigen scroll styling bestaan */
-#actievoorwaarden-wrapper {
-  border: none !important;      /* modal heeft al kader */
+/* Alleen actievoorwaarden BINNEN de popup aanpassen */
+.pb-modal .pb-modal-body #actievoorwaarden-wrapper {
+  border: none !important;
   border-radius: 0 !important;
   padding: 0 !important;
   max-height: none !important;
