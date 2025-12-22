@@ -31,16 +31,14 @@
     const popup = document.getElementById("sponsor-popup");
     const sponsorList = document.getElementById("sponsor-list");
 
-    // Popup gedrag
-    const openBtn = document.getElementById("open-sponsor-popup");
-    if (openBtn) {
-      openBtn.addEventListener("click", () => {
-        popup.style.display = "flex";
-        log("📢 Sponsor-popup geopend");
-      });
-    } else {
-      warn("⚠️ Geen #open-sponsor-popup knop gevonden");
-    }
+    // Popup gedrag — delegated (werkt ook bij dynamische DOM)
+    document.addEventListener("click", (e) => {
+      const trigger = e.target.closest("#open-sponsor-popup");
+      if (!trigger) return;
+    
+      popup.style.display = "flex";
+      log("📢 Sponsor-popup geopend (delegated)");
+    });
 
     document.getElementById("close-popup").addEventListener("click", () => {
       popup.style.display = "none";
