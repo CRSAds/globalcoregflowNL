@@ -1,5 +1,5 @@
 // =============================================================
-// consent-module.js — DEFINITIEF (SwipePages compatible)
+// consent-module.js — SwipePages DEFINITIEF
 // =============================================================
 
 (function () {
@@ -22,24 +22,31 @@
   });
 
   /* -----------------------------------------------------------
-     Helper: popup openen (Swipe-safe)
+     Helper: open popup via Swipe trigger
      ----------------------------------------------------------- */
-  function openPopup(selector) {
-    const popup =
-      document.querySelector(selector) ||
-      document.getElementById(selector.replace("#", ""));
-
+  function openPopupByClass(popupClass) {
+    // 1️⃣ Zoek popup
+    const popup = document.querySelector(popupClass);
     if (!popup) {
-      console.warn("⚠️ Popup niet gevonden:", selector);
+      console.warn("⚠️ Popup niet gevonden:", popupClass);
       return;
     }
 
-    // Meest compatibele manier
-    popup.style.display = "block";
-    popup.setAttribute("aria-hidden", "false");
+    // 2️⃣ Zoek mogelijke trigger die deze popup opent
+    const popupId = popup.id;
 
-    // Voor eventuele listeners
-    popup.dispatchEvent(new Event("open", { bubbles: true }));
+    let trigger =
+      (popupId && document.querySelector(`[href="#${popupId}"]`)) ||
+      (popupId && document.querySelector(`[data-target="#${popupId}"]`)) ||
+      document.querySelector(`[data-popup="${popupClass.replace(".", "")}"]`);
+
+    if (!trigger) {
+      console.warn("⚠️ Geen Swipe trigger gevonden voor popup:", popupClass);
+      return;
+    }
+
+    // 3️⃣ Simuleer echte klik (Swipe JS handelt de rest af)
+    trigger.click();
   }
 
   /* -----------------------------------------------------------
@@ -50,14 +57,14 @@
     /* 🎯 Actievoorwaarden */
     if (e.target.closest("#open-actievoorwaarden-inline")) {
       e.preventDefault();
-      openPopup(".voorwaarden-popup");
+      openPopupByClass(".voorwaarden-popup");
       return;
     }
 
     /* 🎯 Sponsors */
     if (e.target.closest("#open-sponsor-popup")) {
       e.preventDefault();
-      openPopup(".sponsor-popup");
+      openPopupByClass(".sponsor-popup");
       return;
     }
 
