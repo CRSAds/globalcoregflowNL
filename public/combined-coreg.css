@@ -671,10 +671,10 @@ input.error {
 }
 
 .modern-form-v2 .field-group label {
-  font-size: 13px;
+  font-size: 14px;        /* iets groter */
   font-weight: 600;
   color: #111;
-  margin-bottom: 2px; /* dichter op input */
+  margin-bottom: 1px;    /* dichter op input */
   display: block;
 }
 
