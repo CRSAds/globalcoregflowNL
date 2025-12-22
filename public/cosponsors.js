@@ -157,13 +157,17 @@
     }
 
     // =========================
-    // Globale click-delegatie
+    // Globale click-delegatie (ROBUST)
     // =========================
     document.addEventListener(
       "click",
       (e) => {
+        const trigger =
+          e.target.closest('[data-open="sponsors"]') ||
+          e.target.closest("#open-sponsor-popup");
+
         // Openen
-        if (e.target.closest("#open-sponsor-popup")) {
+        if (trigger) {
           e.preventDefault();
           e.stopPropagation();
 
