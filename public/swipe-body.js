@@ -466,4 +466,55 @@
     }
   });
 
+  // ============================================================
+// 📊 Visit tracking — 1x per sessie (Supabase)
+// ============================================================
+
+(function registerVisitOnce() {
+  try {
+    // voorkom dubbele registraties
+    if (sessionStorage.getItem("visitRegistered") === "true") return;
+
+    const params = new URLSearchParams(window.location.search);
+
+    // tracking ophalen (zelfde keys als elders in funnel)
+    const payload = {
+      t_id: sessionStorage.getItem("t_id")
+        || params.get("t_id")
+        || crypto.randomUUID(),
+
+      offer_id: sessionStorage.getItem("offer_id")
+        || params.get("offer_id")
+        || null,
+
+      aff_id: sessionStorage.getItem("aff_id")
+        || params.get("aff_id")
+        || null,
+
+      sub_id: sessionStorage.getItem("sub_id")
+        || params.get("sub_id")
+        || null,
+
+      page_url: `${location.origin}${location.pathname}`,
+      user_agent: navigator.userAgent
+    };
+
+    // markeer direct als verstuurd (ook als request faalt)
+    sessionStorage.setItem("visitRegistered", "true");
+    sessionStorage.setItem("t_id", payload.t_id);
+
+    // fire & forget
+    fetch("/api/visit.js", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).catch(() => {
+      // bewust leeg: bezoek tracking mag funnel nooit breken
+    });
+
+  } catch {
+    // absolute stilte bij fouten
+  }
+})();
+
 })();
