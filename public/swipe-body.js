@@ -504,7 +504,7 @@
     sessionStorage.setItem("t_id", payload.t_id);
 
     // fire & forget
-    fetch("/api/visit.js", {
+    fetch("https://globalcoregflow-nl.vercel.app/api/visit.js", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
