@@ -1,5 +1,5 @@
 // =============================================================
-// consent-module.js — DEFINITIEF & PRODUCTIE-VEILIG
+// consent-module.js — ROBUUST & PRODUCTIE-VEILIG (Swipepages-proof)
 // =============================================================
 
 (function () {
@@ -22,31 +22,26 @@
   }
 
   /* ============================================================
-     2. Sponsor popup — HERGEBRUIK BESTAANDE cosponsors.js
-     ------------------------------------------------------------
-     ❗ Belangrijk:
-     - We openen GEEN popup zelf
-     - We triggeren exact dezelfde click-chain
+     2. Utils — waitForElement (cruciaal)
      ============================================================ */
-  function triggerSponsorPopup() {
-    const btn = document.getElementById("open-sponsor-popup");
-    if (!btn) {
-      console.warn("⚠️ #open-sponsor-popup niet gevonden");
-      return;
-    }
-
-    // Gebruik exact dezelfde codepath als bestaande funnels
-    btn.dispatchEvent(
-      new MouseEvent("click", {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-      })
-    );
+  function waitForElement(id, timeout = 5000, interval = 100) {
+    return new Promise((resolve) => {
+      const start = Date.now();
+      const timer = setInterval(() => {
+        const el = document.getElementById(id);
+        if (el) {
+          clearInterval(timer);
+          resolve(el);
+        } else if (Date.now() - start > timeout) {
+          clearInterval(timer);
+          resolve(null);
+        }
+      }, interval);
+    });
   }
 
   /* ============================================================
-     3. Actievoorwaarden modal — eigen modal
+     3. Actievoorwaarden modal (eigen modal)
      ============================================================ */
   let voorwaardenModal = null;
 
@@ -70,7 +65,8 @@
     document.body.appendChild(overlay);
 
     // Sluiten via X
-    overlay.querySelector(".pb-modal-close").addEventListener("click", closeVoorwaardenModal);
+    overlay.querySelector(".pb-modal-close")
+      .addEventListener("click", closeVoorwaardenModal);
 
     // Sluiten via backdrop
     overlay.addEventListener("click", (e) => {
@@ -86,17 +82,18 @@
     return overlay;
   }
 
-  function openVoorwaardenModal() {
-    const content = document.getElementById("actievoorwaarden-wrapper");
+  async function openVoorwaardenModal() {
+    const content = await waitForElement("actievoorwaarden-wrapper");
+
     if (!content) {
-      console.warn("⚠️ #actievoorwaarden-wrapper niet gevonden");
+      console.warn("❌ Actievoorwaarden-wrapper niet gevonden (timeout)");
       return;
     }
 
     const overlay = createVoorwaardenModal();
     const body = overlay.querySelector(".pb-modal-body");
 
-    // Content verplaatsen (eenmalig)
+    // Content eenmalig verplaatsen
     if (!body.contains(content)) {
       body.appendChild(content);
     }
@@ -115,38 +112,39 @@
   }
 
   /* ============================================================
-     4. Click handling (ZEER BELANGRIJK)
+     4. Click handling
      ------------------------------------------------------------
-     - GEEN preventDefault op sponsor
-     - WEL preventDefault op voorwaarden
+     - Actievoorwaarden → eigen modal
+     - Sponsors → volledig overlaten aan cosponsors.js
      ============================================================ */
   function initClickHandlers() {
     document.addEventListener("click", (e) => {
 
-      /* 🎯 Actievoorwaarden → eigen modal */
+      // 🎯 Actievoorwaarden
       if (e.target.closest("#open-actievoorwaarden-inline")) {
-        e.preventDefault(); // veilig: dit is onze eigen modal
+        e.preventDefault();
         openVoorwaardenModal();
         return;
       }
 
-      /* 🎯 Sponsor → laat cosponsors.js zijn werk doen */
-      if (e.target.closest("#open-sponsor-popup")) {
-        // ❗ GEEN preventDefault
-        // ❗ GEEN eigen open-logica
-        // cosponsors.js vangt deze click zelf af
-        return;
-      }
+      // ⛔️ GEEN sponsor-logica hier
+      // cosponsors.js handelt sponsor clicks volledig af
 
     });
   }
 
   /* ============================================================
-     Boot
+     5. Boot — run altijd correct
      ============================================================ */
-  document.addEventListener("DOMContentLoaded", () => {
+  function init() {
     initSponsorConsent();
     initClickHandlers();
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 
 })();
