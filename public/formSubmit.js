@@ -237,6 +237,30 @@ if (!window.formSubmitInitialized) {
         sessionStorage.setItem("shortFormCompleted", "true");
         document.dispatchEvent(new Event("shortFormSubmitted"));
 
+        // =====================================
+        // 🔹 Flush pending SHORTFORM coregs
+        // =====================================
+        (async () => {
+          try {
+            const pending = JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
+            if (!pending.length) return;
+        
+            for (const ans of pending) {
+              const payload = await window.buildPayload({
+                cid: ans.cid,
+                sid: ans.sid,
+                is_shortform: true,
+                f_2014_coreg_answer: ans.answer_value
+              });
+              await window.fetchLead(payload);
+            }
+        
+            sessionStorage.removeItem("pendingShortCoreg");
+          } catch (e) {
+            console.error("❌ Pending shortform coreg flush failed:", e);
+          }
+        })();
+
       } catch (err) {
         error("❌ Shortform fout:", err);
       } finally {
