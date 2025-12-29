@@ -4,7 +4,9 @@
 // =============================================================
 
 export default async function handler(req, res) {
-  // ✅ CORS HEADERS
+  // =============================================================
+  // CORS HEADERS
+  // =============================================================
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -23,7 +25,7 @@ export default async function handler(req, res) {
       t_id,
       offer_id,
       sub_id,
-      source = "flow",        // flow | exit
+      source = "flow",        // verwacht: flow | exit
       event = "impression",   // impression | click
     } = req.body || {};
 
@@ -39,19 +41,32 @@ export default async function handler(req, res) {
       return res.status(500).json({ ok: false, error: "missing_env" });
     }
 
-    // 👇 Bepaal doel-tabel op basis van event
+    // =============================================================
+    // Normaliseer source (DB accepteert alleen flow | exit)
+    // =============================================================
+    const normalizedSource = source === "exit" ? "exit" : "flow";
+
+    // =============================================================
+    // Bepaal doel-tabel
+    // =============================================================
     const table =
       event === "click"
         ? "sovendus_clicks"
         : "sovendus_impressions";
 
+    // =============================================================
+    // Payload
+    // =============================================================
     const payload = {
       t_id,
       offer_id: offer_id || "unknown",
       sub_id: sub_id || "unknown",
-      source,
+      source: normalizedSource,
     };
 
+    // =============================================================
+    // Insert in Supabase
+    // =============================================================
     const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
       method: "POST",
       headers: {
@@ -73,6 +88,7 @@ export default async function handler(req, res) {
       ok: true,
       event,
       table,
+      source: normalizedSource,
     });
   } catch (e) {
     console.error("[sovendus] Exception", e);
