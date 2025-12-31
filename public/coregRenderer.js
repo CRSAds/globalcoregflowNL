@@ -217,7 +217,7 @@ async function initCoregFlow() {
           <span class="progress-value text-primary">25%</span>
         </div>
         <div class="ld-progress" role="progressbar" data-progress="25">
-          <div class="progress-bar" style="width:25%"></div>
+          <div class="progress-bar" style="width:0%"></div>
         </div>
       </div>
       <div id="coreg-sections"></div>
