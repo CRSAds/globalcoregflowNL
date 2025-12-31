@@ -223,6 +223,12 @@ async function initCoregFlow() {
       <div id="coreg-sections"></div>
     </div>`;
 
+  // 🔑 Start progress-animatie direct na render
+  const progressEl = container.querySelector(".ld-progress");
+  if (progressEl && window.animateProgressBar) {
+    window.animateProgressBar(progressEl);
+  }
+
   const sectionsContainer = container.querySelector("#coreg-sections");
 
   ordered.forEach((camp, idx) => {
