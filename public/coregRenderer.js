@@ -253,8 +253,14 @@ async function initCoregFlow() {
     const val = container.querySelector(".progress-value");
     const mot = container.querySelector("#coreg-motivation");
 
-    if (wrap) wrap.querySelector(".progress-bar").style.width = pct + "%";
-    if (val) val.textContent = pct + "%";
+    if (wrap) {
+    wrap.setAttribute("data-progress", pct);
+    if (window.animateProgressBar) {
+      window.animateProgressBar(wrap);
+    }
+  }
+  
+  if (val) val.textContent = pct + "%";
 
     if (mot) {
       if (pct < 90) {
