@@ -209,15 +209,15 @@ async function initCoregFlow() {
   container.innerHTML = `
     <div class="coreg-inner">
       <div class="coreg-header">
-        <h2 id="coreg-motivation" class="coreg-motivation">Beantwoord nu deze vragen 🎯</h2>
+        <h2 id="coreg-motivation" class="coreg-motivation">Nog enkele vragen om je deelname af te ronden 🎯</h2>
       </div>
       <div class="ld-progress-wrap mb-25">
         <div class="ld-progress-info">
-          <span class="progress-label">Voortgang</span>
-          <span class="progress-value text-primary">0%</span>
+          <span class="progress-label">Afronden van je deelname</span>
+          <span class="progress-value text-primary">25%</span>
         </div>
-        <div class="ld-progress" role="progressbar" data-progress="0">
-          <div class="progress-bar" style="width:0%"></div>
+        <div class="ld-progress" role="progressbar" data-progress="25">
+          <div class="progress-bar" style="width:25%"></div>
         </div>
       </div>
       <div id="coreg-sections"></div>
@@ -242,7 +242,12 @@ async function initCoregFlow() {
   // Progress bar + next-step logic (ongewijzigd behalve logs)
   function updateProgressBar(idx) {
     const total = sections.length;
-    const pct = Math.round(((idx + 1) / total) * 100);
+    const START = 25;
+    const END = 90;
+    
+    const pct = Math.round(
+      START + ((idx + 1) / total) * (END - START)
+    );
 
     const wrap = container.querySelector(".ld-progress");
     const val = container.querySelector(".progress-value");
@@ -252,11 +257,13 @@ async function initCoregFlow() {
     if (val) val.textContent = pct + "%";
 
     if (mot) {
-      if (pct < 25) mot.textContent = "Beantwoord nu deze vragen 🎯";
-      else if (pct < 50) mot.textContent = "Top! Nog maar een paar vragen ⚡️";
-      else if (pct < 75) mot.textContent = "Over de helft — even volhouden! 🚀";
-      else if (pct < 100) mot.textContent = "Bijna klaar — laatste vragen 🙌";
-      else mot.textContent = "Geweldig! Laatste vraag! 🎉";
+      if (pct < 90) {
+        mot.textContent =
+          "Beantwoord nog enkele vragen om je deelname af te ronden";
+      } else {
+        mot.textContent =
+          "Bijna klaar — laatste stap 🙌";
+      }
     }
   }
 
