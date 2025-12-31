@@ -259,7 +259,7 @@ async function initCoregFlow() {
     if (mot) {
       if (pct < 90) {
         mot.textContent =
-          "Beantwoord nog enkele vragen om je deelname af te ronden";
+          "Nog enkele vragen om je deelname af te ronden";
       } else {
         mot.textContent =
           "Bijna klaar — laatste stap 🙌";
