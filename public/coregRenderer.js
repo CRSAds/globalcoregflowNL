@@ -226,7 +226,9 @@ async function initCoregFlow() {
   // 🔑 Start progress-animatie direct na render
   const progressEl = container.querySelector(".ld-progress");
   if (progressEl && window.animateProgressBar) {
+    requestAnimationFrame(() => {
     window.animateProgressBar(progressEl);
+  });
   }
 
   const sectionsContainer = container.querySelector("#coreg-sections");
