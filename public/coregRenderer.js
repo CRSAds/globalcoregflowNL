@@ -33,27 +33,24 @@ const activeCoregPathKey =
 //   + belangrijk: als een campaign meerdere stappen heeft (zelfde cid),
 //     dan nemen we ALLE stappen mee zodra 1 stap/campaign binnen de keys valt.
 function applyCoregPathFilter(campaigns, coregPath) {
-  // 🟢 STANDAARD PAD
-  // alles tonen, behalve campagnes die expliciet zijn uitgesloten
-  if (!coregPath || coregPath.mode === "all") {
+  // ✅ Alleen standaard pad mag uitsluiten toepassen
+  if (activeCoregPathKey === "default") {
     return campaigns.filter(c => !c.uitsluiten_standaardpad);
   }
 
-  if (coregPath.mode === "keys") {
+  // ✅ Alle niet-default paden: NOOIT uitsluiten_standaardpad toepassen
+  if (coregPath && coregPath.mode === "keys") {
     const keys = coregPath.steps || [];
 
-    // 1) bepaal welke cids zijn toegestaan op basis van coreg_key matches
     const allowedCids = new Set(
       campaigns
         .filter(c => c.coreg_key && keys.includes(c.coreg_key))
         .map(c => c.cid)
     );
 
-    // 2) neem alle stappen mee van die cids
     const filtered = campaigns.filter(c => allowedCids.has(c.cid));
 
-    // 3) optioneel: volgorde van keys afdwingen (op cid-niveau)
-    //    Dit is veilig, maar alleen als je 1 key gebruikt is het altijd ok.
+    // (optionele sort blijft prima)
     if (keys.length > 0) {
       const cidOrder = keys
         .map(k => campaigns.find(c => c.coreg_key === k)?.cid)
@@ -62,7 +59,6 @@ function applyCoregPathFilter(campaigns, coregPath) {
       filtered.sort((a, b) => {
         const ai = cidOrder.indexOf(a.cid);
         const bi = cidOrder.indexOf(b.cid);
-        // items zonder match achteraan (zou in praktijk niet gebeuren)
         return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
       });
     }
@@ -70,6 +66,7 @@ function applyCoregPathFilter(campaigns, coregPath) {
     return filtered;
   }
 
+  // fallback: als iemand een onbekend pad meegeeft, toon alles (zonder uitsluiten)
   return campaigns;
 }
 
