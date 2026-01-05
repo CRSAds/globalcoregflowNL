@@ -245,8 +245,15 @@ async function initCoregFlow() {
   const container = document.getElementById("coreg-container");
   if (!container) return;
 
-  const campaigns = await fetchCampaigns();
+  let campaigns = await fetchCampaigns();
+  campaigns = applyCoregPathFilter(campaigns, activeCoregPath);
+  
   window.allCampaigns = campaigns;
+  
+  if (DEBUG) {
+    log("🧭 Actief coregpad:", activeCoregPathKey);
+    log("📌 Campaigns na filter:", campaigns.length);
+  }
 
   // Normalize longform
   campaigns.forEach(c => {
