@@ -8,6 +8,68 @@ if (typeof window.API_COREG === "undefined") {
 const API_COREG = window.API_COREG;
 
 // =============================================================
+// ✅ COREG PAD SELECTIE (via URL) + FILTER HELPER
+// =============================================================
+const COREG_PATHS = window.coregPaths || {
+  default: { mode: "all" }
+};
+
+const urlParams = new URLSearchParams(window.location.search);
+const coregParam = urlParams.get("coreg");
+
+const activeCoregPath =
+  coregParam && COREG_PATHS[coregParam]
+    ? COREG_PATHS[coregParam]
+    : COREG_PATHS.default;
+
+const activeCoregPathKey =
+  coregParam && COREG_PATHS[coregParam]
+    ? coregParam
+    : "default";
+
+// Filter campaigns obv pad:
+// - default (mode: all): alles laten staan
+// - keys: alleen campaigns met coreg_key in steps
+//   + belangrijk: als een campaign meerdere stappen heeft (zelfde cid),
+//     dan nemen we ALLE stappen mee zodra 1 stap/campaign binnen de keys valt.
+function applyCoregPathFilter(campaigns, coregPath) {
+  if (!coregPath || coregPath.mode === "all") return campaigns;
+
+  if (coregPath.mode === "keys") {
+    const keys = coregPath.steps || [];
+
+    // 1) bepaal welke cids zijn toegestaan op basis van coreg_key matches
+    const allowedCids = new Set(
+      campaigns
+        .filter(c => c.coreg_key && keys.includes(c.coreg_key))
+        .map(c => c.cid)
+    );
+
+    // 2) neem alle stappen mee van die cids
+    const filtered = campaigns.filter(c => allowedCids.has(c.cid));
+
+    // 3) optioneel: volgorde van keys afdwingen (op cid-niveau)
+    //    Dit is veilig, maar alleen als je 1 key gebruikt is het altijd ok.
+    if (keys.length > 0) {
+      const cidOrder = keys
+        .map(k => campaigns.find(c => c.coreg_key === k)?.cid)
+        .filter(Boolean);
+
+      filtered.sort((a, b) => {
+        const ai = cidOrder.indexOf(a.cid);
+        const bi = cidOrder.indexOf(b.cid);
+        // items zonder match achteraan (zou in praktijk niet gebeuren)
+        return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
+      });
+    }
+
+    return filtered;
+  }
+
+  return campaigns;
+}
+
+// =============================================================
 // 🔧 Logging toggle
 // =============================================================
 const DEBUG = false; // Zet op true tijdens testen
