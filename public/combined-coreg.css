@@ -712,22 +712,71 @@ input.error {
 }
 
 /* =====================================================
-   GENDER / KEUZE — VISUEEL KADER
+   GENDER — 2 BUTTONS NAAST ELKAAR
    ===================================================== */
 
+/* container: geen outer kader meer, gewoon 2 knoppen */
 .modern-form-v2 .gender-segment {
   display: flex;
   gap: 12px;
-  padding: 12px;
   margin-bottom: 16px;
 
-  border: 1px solid var(--input-border);
-  border-radius: 8px;
-  background: rgba(255,255,255,0.02);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
-.modern-form-v2 .gender-segment:focus-within {
+/* label neemt helft */
+.modern-form-v2 .gender-segment label {
+  flex: 1;
+  margin: 0;
+  position: relative;
+  cursor: pointer;
+}
+
+/* native radio verbergen */
+.modern-form-v2 .gender-segment input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* span = “button” */
+.modern-form-v2 .gender-segment label span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 52px;
+  padding: 0 12px;
+
+  background: #fff;
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+
+  color: var(--label-color);
+  font-size: 16px;
+  font-weight: 700;
+
+  user-select: none;
+}
+
+/* hover (subtiel) */
+.modern-form-v2 .gender-segment label:hover span {
+  border-color: rgba(0,0,0,0.18);
+}
+
+/* geselecteerd: dun primary kader + zachte glow */
+.modern-form-v2 .gender-segment input[type="radio"]:checked + span {
   border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(20,182,112,.12);
+}
+
+/* focus via toetsenbord */
+.modern-form-v2 .gender-segment label:focus-within span {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(20,182,112,.12);
 }
 
 /* =====================================================
