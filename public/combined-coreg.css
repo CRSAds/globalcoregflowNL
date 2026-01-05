@@ -748,16 +748,16 @@ input.error {
   justify-content: center;
 
   width: 100%;
-  height: 52px;
-  padding: 0 12px;
+  min-height: 44px;        /* touch-friendly, niet CTA-hoog */
+  padding: 10px 12px;     /* bepaalt hoogte */
 
   background: #fff;
   border: 1px solid var(--input-border);
   border-radius: 10px;
 
   color: var(--label-color);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;        /* kleiner & rustiger */
+  font-weight: 600;       /* minder CTA-achtig */
 
   user-select: none;
 }
