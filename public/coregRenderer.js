@@ -33,7 +33,11 @@ const activeCoregPathKey =
 //   + belangrijk: als een campaign meerdere stappen heeft (zelfde cid),
 //     dan nemen we ALLE stappen mee zodra 1 stap/campaign binnen de keys valt.
 function applyCoregPathFilter(campaigns, coregPath) {
-  if (!coregPath || coregPath.mode === "all") return campaigns;
+  // 🟢 STANDAARD PAD
+  // alles tonen, behalve campagnes die expliciet zijn uitgesloten
+  if (!coregPath || coregPath.mode === "all") {
+    return campaigns.filter(c => !c.uitsluiten_standaardpad);
+  }
 
   if (coregPath.mode === "keys") {
     const keys = coregPath.steps || [];
