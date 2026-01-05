@@ -748,7 +748,7 @@ input.error {
   justify-content: center;
 
   width: 100%;
-  min-height: 38px;        /* touch-friendly, niet CTA-hoog */
+  height: auto;
   padding: 8px 10px;     /* bepaalt hoogte */
 
   background: #fff;
