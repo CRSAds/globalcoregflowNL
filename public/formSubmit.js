@@ -271,6 +271,13 @@ document.addEventListener("DOMContentLoaded", () => {
                   })
                 );
               }
+
+              // 🔁 NIEUW: exact 1x extra roulatie-cosponsor
+              await fetch("https://globalcoregflow-nl.vercel.app/api/lead-rotation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(basePayload) // zelfde payload als shortform lead
+              });
             }
           } catch {}
         })();
