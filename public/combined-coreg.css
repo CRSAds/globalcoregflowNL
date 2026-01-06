@@ -637,6 +637,11 @@ input.error {
   --primary-color: #14B670;
   --primary-hover: #10935a;
   --primary-text: #ffffff;
+
+     /* Gender / choice buttons */
+  --choice-bg: #ffffff;
+  --choice-border: var(--input-border);
+  --choice-text: var(--label-color);
 }
 
 /* =========================
@@ -656,6 +661,11 @@ input.error {
   --primary-color: #5bb77a;
   --primary-hover: #4aa96a;
   --primary-text: #ffffff;
+
+     /* Gender / choice buttons */
+  --choice-bg: transparent;
+  --choice-border: rgba(255,255,255,0.35);
+  --choice-text: #ffffff;
 }
 
 /* =====================================================
