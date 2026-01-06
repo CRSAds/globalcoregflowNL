@@ -620,6 +620,15 @@ input.error {
 }
 
 /* =========================
+   FORM RESET — COMPACT
+   ========================= */
+
+.modern-form-v2 {
+  padding: 0;            /* override oude form padding */
+  margin: 0 auto;
+}
+
+/* =========================
    DEFAULT / LIGHT THEME
    (geen setting nodig)
    ========================= */
@@ -682,6 +691,7 @@ input.error {
   font-size: 14px;
   font-weight: 600;
   margin: 0 0 4px 0; /* compacter & voorspelbaar */
+  padding: 0;
   display: block;
 }
 
@@ -753,8 +763,8 @@ input.error {
   justify-content: center;
 
   width: 100%;
-  min-height: 42px;
-  padding: 9px 12px;
+  min-height: 40px;
+  padding: 7px 12px;
 
   background: var(--choice-bg);
   color: var(--choice-text);
