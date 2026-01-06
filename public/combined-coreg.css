@@ -1010,3 +1010,20 @@ input.error {
   color: var(--choice-text) !important;
   box-sizing: border-box !important;
 }
+
+/* =====================================================
+   DARK THEME — GENDER SELECT HIGHLIGHT (EXTRA DUIDELIJK)
+   ===================================================== */
+
+.modern-form-v2[data-theme="dark"]
+.gender-segment input[type="radio"]:checked + span {
+  border-color: var(--primary-color) !important;
+
+  /* extra zichtbare glow */
+  box-shadow:
+    0 0 0 2px rgba(91,183,122,0.35),
+    0 0 0 6px rgba(91,183,122,0.12) !important;
+
+  /* subtiele ingevulde achtergrond */
+  background: rgba(91,183,122,0.08) !important;
+}
