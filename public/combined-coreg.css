@@ -970,3 +970,43 @@ input.error {
   overflow: visible !important;
   background: transparent !important;
 }
+
+/* =====================================================
+   FINAL OVERRIDES — modern-form-v2 MOET altijd winnen
+   PLAATS DIT HELEMAAL ONDERAAN JE CSS
+   ===================================================== */
+
+.modern-form-v2 { padding: 0 !important; }
+
+/* kill globale label spacing */
+.modern-form-v2 label {
+  margin-top: 0 !important;
+  margin-bottom: 4px !important;
+}
+
+/* kill globale input spacing */
+.modern-form-v2 input[type="text"],
+.modern-form-v2 input[type="email"],
+.modern-form-v2 input[type="tel"],
+.modern-form-v2 select,
+.modern-form-v2 textarea {
+  margin-bottom: 0 !important;
+  padding: 0 11px !important;
+}
+
+/* compact spacing */
+.modern-form-v2 .field-group { margin-bottom: 8px !important; }
+
+/* gender buttons: hoogte + kader afdwingen */
+.modern-form-v2 .gender-segment { display: flex !important; gap: 12px !important; }
+.modern-form-v2 .gender-segment label { flex: 1 !important; display: flex !important; }
+
+.modern-form-v2 .gender-segment label span {
+  min-height: 40px !important;
+  padding: 7px 12px !important;
+  border: 1px solid var(--choice-border) !important;
+  border-radius: 10px !important;
+  background: var(--choice-bg) !important;
+  color: var(--choice-text) !important;
+  box-sizing: border-box !important;
+}
