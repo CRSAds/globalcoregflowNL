@@ -728,7 +728,7 @@ input.error {
 .modern-form-v2 .gender-segment {
   display: flex;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .modern-form-v2 .gender-segment label {
