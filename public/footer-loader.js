@@ -165,7 +165,21 @@
     try {
       const res = await fetch("https://globalcoregflow-nl.vercel.app/api/footers.js");
       const { data } = await res.json();
-      footerData = data.find(f => f.name === footerName) || null;
+      const coregPathKey = window.activeCoregPathKey || "default";
+      
+      // 1️⃣ Eerst proberen: coreg-specifieke footer
+      footerData = data.find(f =>
+        f.name === footerName &&
+        f.coreg_path === coregPathKey
+      );
+      
+      // 2️⃣ Fallback: default / leeg
+      if (!footerData) {
+        footerData = data.find(f =>
+          f.name === footerName &&
+          (!f.coreg_path || f.coreg_path === "default")
+        );
+      }
       if (!footerData) {
         console.warn(`⚠️ Geen footer gevonden met naam '${footerName}'`);
         return;
