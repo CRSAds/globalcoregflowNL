@@ -711,7 +711,7 @@ input.error {
   box-shadow: 0 0 0 2px rgba(20,182,112,.12);
 }
 
-//* =====================================================
+/* =====================================================
    GENDER — 2 BUTTONS NAAST ELKAAR (THEME AWARE)
    ===================================================== */
 
@@ -730,6 +730,8 @@ input.error {
   margin: 0;
   position: relative;
   cursor: pointer;
+
+  display: flex; /* ← essentieel */
 }
 
 .modern-form-v2 .gender-segment input[type="radio"] {
@@ -738,7 +740,6 @@ input.error {
   pointer-events: none;
 }
 
-/* Button */
 .modern-form-v2 .gender-segment label span {
   display: flex;
   align-items: center;
@@ -759,18 +760,18 @@ input.error {
   user-select: none;
 }
 
-/* Hover */
+/* hover */
 .modern-form-v2 .gender-segment label:hover span {
   border-color: var(--primary-color);
 }
 
-/* Selected */
+/* selected */
 .modern-form-v2 .gender-segment input[type="radio"]:checked + span {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(20,182,112,.25);
 }
 
-/* Focus (keyboard) */
+/* keyboard focus */
 .modern-form-v2 .gender-segment label:focus-within span {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(20,182,112,.25);
