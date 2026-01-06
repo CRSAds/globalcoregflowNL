@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/**/*.js", "use": "@vercel/node" },
+    { "src": "public/**/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Cache-Control, Authorization"
+      },
+      "dest": "/api/$1"
+    },
+    { "src": "/(.*)", "dest": "public/$1" }
+  ],
+  "crons": [
+    {
+      "path": "/api/sync-calls.js",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/reactivate-capped.js",
+      "schedule": "0 5 * * *"
+    }
+  ]
+}
