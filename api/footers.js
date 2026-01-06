@@ -23,6 +23,7 @@ export default async function handler(req, res) {
 
     const data = (json.data || []).map((f) => ({
       name: f.name || "",
+      coreg_path: f.coreg_path || "",
       text: f.text || "",
       terms_content: f.terms_content || "",
       privacy_content: f.privacy_content || "",
