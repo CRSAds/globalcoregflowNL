@@ -712,17 +712,13 @@ input.error {
 }
 
 /* =====================================================
-   GENDER — 2 BUTTONS NAAST ELKAAR (THEME AWARE)
+   GENDER — 2 BUTTONS NAAST ELKAAR (FINAL / SAFE)
    ===================================================== */
 
 .modern-form-v2 .gender-segment {
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
-
-  padding: 0;
-  border: 0;
-  background: transparent;
 }
 
 .modern-form-v2 .gender-segment label {
@@ -730,16 +726,17 @@ input.error {
   margin: 0;
   position: relative;
   cursor: pointer;
-
-  display: flex; /* ← essentieel */
+  display: flex;
 }
 
+/* radio weg */
 .modern-form-v2 .gender-segment input[type="radio"] {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
+/* 👇 HIER ZIT DE FIX */
 .modern-form-v2 .gender-segment label span {
   display: flex;
   align-items: center;
@@ -750,13 +747,15 @@ input.error {
   padding: 9px 12px;
 
   background: var(--choice-bg);
+  color: var(--choice-text);
+
+  /* expliciet kader, cascade-proof */
   border: 1px solid var(--choice-border);
   border-radius: 10px;
+  box-sizing: border-box;
 
-  color: var(--choice-text);
   font-size: 14px;
   font-weight: 600;
-
   user-select: none;
 }
 
