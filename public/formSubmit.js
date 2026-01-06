@@ -140,37 +140,79 @@ if (!window.formSubmitInitialized) {
   }
   window.fetchLead = fetchLead;
 
-  // -----------------------------------------------------------
-  // 🔹 DOB autoformatting (blijft ongewijzigd)
-  // -----------------------------------------------------------
-  document.addEventListener("DOMContentLoaded", () => {
-    const dobInput = document.getElementById("dob");
-    if (!dobInput) return;
+// -----------------------------------------------------------
+// 🔹 DOB input — masked, auto-advance, persistent placeholders
+// -----------------------------------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("dob");
+  if (!input) return;
 
-    dobInput.placeholder = "dd / mm / jjjj";
-    dobInput.inputMode = "numeric";
-    dobInput.maxLength = 14;
+  const TEMPLATE = "dd / mm / jjjj";
 
-    const format = digits => {
-      let o = "";
-      if (digits.length >= 1) o += digits[0];
-      if (digits.length >= 2) o += digits[1] + " / ";
-      if (digits.length >= 3) o += digits[2];
-      if (digits.length >= 4) o += digits[3] + " / ";
-      if (digits.length >= 5) o += digits[4];
-      if (digits.length >= 6) o += digits[5];
-      if (digits.length >= 7) o += digits[6];
-      if (digits.length >= 8) o += digits[7];
-      return o;
-    };
+  // init
+  input.value = TEMPLATE;
+  input.inputMode = "numeric";
 
-    dobInput.addEventListener("input", e => {
-      let v = e.target.value.replace(/\D/g, "").slice(0, 8);
-      const formatted = format(v);
-      e.target.value = formatted;
-      sessionStorage.setItem("dob", formatted.replace(/\s/g, ""));
-    });
+  const setCursor = pos =>
+    requestAnimationFrame(() => input.setSelectionRange(pos, pos));
+
+  const getDigits = () => input.value.replace(/\D/g, "").split("");
+
+  const render = digits => {
+    const d = [...digits, "", "", "", "", "", "", "", ""];
+    return (
+      `${d[0] || "d"}${d[1] || "d"} / ` +
+      `${d[2] || "m"}${d[3] || "m"} / ` +
+      `${d[4] || "j"}${d[5] || "j"}${d[6] || "j"}${d[7] || "j"}`
+    );
+  };
+
+  input.addEventListener("focus", () => {
+    if (input.value === "") input.value = TEMPLATE;
+    setCursor(0);
   });
+
+  input.addEventListener("keydown", e => {
+    const key = e.key;
+    const digits = getDigits();
+
+    // allow navigation
+    if (["ArrowLeft", "ArrowRight", "Tab"].includes(key)) return;
+
+    e.preventDefault();
+
+    // BACKSPACE
+    if (key === "Backspace") {
+      digits.pop();
+    }
+
+    // DIGIT
+    if (/^\d$/.test(key) && digits.length < 8) {
+      // dag
+      if (digits.length === 0 && key >= "4") {
+        digits.push("0", key);
+      }
+      // maand
+      else if (digits.length === 2 && key >= "2") {
+        digits.push("0", key);
+      }
+      else {
+        digits.push(key);
+      }
+    }
+
+    const value = render(digits);
+    input.value = value;
+
+    // cursor positions per segment
+    const cursorMap = [0, 1, 5, 6, 10, 11, 12, 13];
+    setCursor(cursorMap[digits.length] ?? 14);
+
+    if (digits.length === 8) {
+      sessionStorage.setItem("dob", value.replace(/\s/g, ""));
+    }
+  });
+});
 
   // -----------------------------------------------------------
   // 🔹 Shortform submit
