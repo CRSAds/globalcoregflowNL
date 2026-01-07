@@ -215,6 +215,23 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
   // -----------------------------------------------------------
+  // 🔹 Telefoon input — alleen cijfers, max 10 (long form)
+  // -----------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const phoneInput = document.getElementById("telefoon");
+    if (!phoneInput) return;
+  
+    phoneInput.inputMode = "numeric";
+    phoneInput.maxLength = 10;
+  
+    phoneInput.addEventListener("input", () => {
+      phoneInput.value = phoneInput.value
+        .replace(/\D/g, "")   // alleen cijfers
+        .slice(0, 10);        // max 10
+    });
+  });
+  
+  // -----------------------------------------------------------
   // 🔹 Shortform submit
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
@@ -338,6 +355,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const fields = ["postcode", "straat", "huisnummer", "woonplaats", "telefoon"];
     const invalid = fields.filter(id => !document.getElementById(id)?.value.trim());
     if (invalid.length) return alert("Vul alle verplichte velden in.");
+
+    // 🔒 Telefoonnummer validatie — exact 10 cijfers
+    const phoneRaw = document.getElementById("telefoon").value;
+    const phone = phoneRaw.replace(/\D/g, "");
+    
+    if (phone.length !== 10) {
+      alert("Vul een geldig telefoonnummer in (10 cijfers).");
+      document.getElementById("telefoon").focus();
+      return;
+    }
 
     // Server-side adrescheck
     const pc = document.getElementById("postcode").value.replace(/\s+/g, "");
