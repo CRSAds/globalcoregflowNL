@@ -429,7 +429,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // 🔹 Longform submit
   // -----------------------------------------------------------
   document.addEventListener("click", async e => {
-    if (!e.target?.matches("#submit-long-form")) return;
+    if (
+      !e.target?.matches("#submit-long-form") &&
+      !e.target?.matches(".flow-next") // 👈 oude formulier knop
+    ) return;
     e.preventDefault();
     e.stopImmediatePropagation();
 
