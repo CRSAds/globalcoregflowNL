@@ -214,6 +214,56 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// -----------------------------------------------------------
+// 🔹 Postcode lookup — alleen modern-form-v2 long forms
+// -----------------------------------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("long-form");
+
+  // Alleen nieuwe modern v2 long forms
+  if (!form || !form.classList.contains("modern-form-v2")) return;
+
+  const postcode   = document.getElementById("postcode");
+  const huisnummer = document.getElementById("huisnummer");
+  const straat     = document.getElementById("straat");
+  const woonplaats = document.getElementById("woonplaats");
+
+  if (!postcode || !huisnummer || !straat || !woonplaats) return;
+
+  // Postcode formatteren
+  postcode.addEventListener("input", () => {
+    let v = postcode.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+    if (v.length > 4) v = v.slice(0, 4) + " " + v.slice(4);
+    postcode.value = v;
+  });
+
+  const lookup = async () => {
+    const pc = postcode.value.replace(/\s+/g, "");
+    const hn = huisnummer.value.trim();
+    if (pc.length !== 6 || !hn) return;
+
+    try {
+      const res = await fetch(
+        "https://globalcoregflow-nl.vercel.app/api/validateAddressNL.js",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postcode: pc, huisnummer: hn })
+        }
+      );
+
+      const data = await res.json();
+      if (!data.valid) return;
+
+      straat.value     = data.street || "";
+      woonplaats.value = data.city   || "";
+    } catch {}
+  };
+
+  postcode.addEventListener("input", lookup);
+  huisnummer.addEventListener("input", lookup);
+});
+
   // -----------------------------------------------------------
   // 🔹 Telefoon input — alleen cijfers, max 10 (long form)
   // -----------------------------------------------------------
@@ -248,21 +298,35 @@ document.addEventListener("DOMContentLoaded", () => {
       e.stopPropagation();
       e.stopImmediatePropagation();
 
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-      }
-
       if (submitting) return;
       submitting = true;
       btn.disabled = true;
+      
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        submitting = false;
+        btn.disabled = false;
+        return;
+      }
+
+      // 🔒 DOB verplicht + volledig
+      const dobRaw = sessionStorage.getItem("dob") || "";
+      const dobDigits = dobRaw.replace(/\D/g, "");
+      
+      if (dobDigits.length !== 8) {
+        alert("Vul je volledige geboortedatum in.");
+        document.getElementById("dob")?.focus();
+        submitting = false;
+        btn.disabled = false;
+        return;
+      }
 
       try {
         // Velden opslaan
         const genderEl = form.querySelector("input[name='gender']:checked");
         if (genderEl) sessionStorage.setItem("gender", genderEl.value);
 
-        ["firstname", "lastname", "email", "dob"].forEach(id => {
+        ["firstname", "lastname", "email"].forEach(id => {
           const el = document.getElementById(id);
           if (!el) return;
           sessionStorage.setItem(id, el.value.trim().replace(/\s/g, ""));
