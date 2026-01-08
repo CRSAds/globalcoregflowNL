@@ -3,7 +3,7 @@
 (function () {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");
-  if (status !== "online" && status !== "live") {
+  if (status !== "online" && status !== "live" && status !== "energie") {
     console.warn("🚫 Ongeldige statusparameter — footer-loader.js wordt niet uitgevoerd.");
     return;
   }
@@ -159,7 +159,13 @@
 
     // === Data ophalen ===
     const status = params.get("status") || "online";
-    const footerName = status === "live" ? "Premium Advertising" : "Online Acties";
+
+    const footerName =
+      status === "live"
+        ? "Premium Advertising"
+        : status === "energie"
+          ? "Online Acties ism Trefzeker Energie Direct Campagne"
+          : "Online Acties";
 
     let footerData = null;
     try {
