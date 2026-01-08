@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");
 
-  if (status !== "online" && status !== "live") {
+  if (status !== "online" && status !== "live" && status !== "energie") {
     document.querySelectorAll("section, footer, .sp-section, #dynamic-footer")
       .forEach(el => el.style.display = "none");
 
@@ -129,7 +129,7 @@ function initFlowLite() {
       let next = current.nextElementSibling;
 
       // skip ivr if online
-      while (next && next.classList.contains("ivr-section") && status === "online") {
+      while (next && next.classList.contains("ivr-section") && status === "online" || status === "energie") {
         next = next.nextElementSibling;
       }
 
@@ -156,7 +156,7 @@ function initFlowLite() {
     let next = current.nextElementSibling;
 
     // ivr skip
-    while (next && next.classList.contains("ivr-section") && status === "online") {
+    while (next && next.classList.contains("ivr-section") && status === "online" || status === "energie") {
       next = next.nextElementSibling;
     }
 
@@ -178,7 +178,7 @@ function initFlowLite() {
     const current = document.getElementById("long-form-section");
     let next = current.nextElementSibling;
 
-    while (next && next.classList.contains("ivr-section") && status === "online") {
+    while (next && next.classList.contains("ivr-section") && status === "online" || status === "energie") {
       next = next.nextElementSibling;
     }
 
