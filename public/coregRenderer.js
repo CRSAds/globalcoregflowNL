@@ -15,17 +15,22 @@ const COREG_PATHS = window.coregPaths || {
 };
 
 const urlParams = new URLSearchParams(window.location.search);
+const status = urlParams.get("status");
 const coregParam = urlParams.get("coreg");
 
-const activeCoregPath =
-  coregParam && COREG_PATHS[coregParam]
-    ? COREG_PATHS[coregParam]
-    : COREG_PATHS.default;
+let activeCoregPath = COREG_PATHS.default;
+let activeCoregPathKey = "default";
 
-const activeCoregPathKey =
-  coregParam && COREG_PATHS[coregParam]
-    ? coregParam
-    : "default";
+// 🔑 STATUS-OVERRIDE
+if (status === "energie" && COREG_PATHS.energie_direct) {
+  activeCoregPath = COREG_PATHS.energie_direct;
+  activeCoregPathKey = "energie_direct";
+}
+// 🔁 BACKWARD COMPATIBLE: ?coreg= blijft werken
+else if (coregParam && COREG_PATHS[coregParam]) {
+  activeCoregPath = COREG_PATHS[coregParam];
+  activeCoregPathKey = coregParam;
+}
 
 // Filter campaigns obv pad:
 // - default (mode: all): alles laten staan
