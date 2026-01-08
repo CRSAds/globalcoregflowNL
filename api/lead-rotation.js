@@ -146,6 +146,7 @@ export default async function handler(req, res) {
         `⛔ Roulatie REJECT cid=${sponsor.cid}`,
         json?.msg || json?.error?.msg || text
       );
+      }
 
     // =============================================================
     // ❌ Alles afgewezen
