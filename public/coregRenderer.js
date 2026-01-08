@@ -530,6 +530,8 @@ section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
   });
 });
 
+}
+  
 // ======================================
 // Start renderer + nette eindmelding
 // ======================================
