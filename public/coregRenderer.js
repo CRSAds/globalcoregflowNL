@@ -514,11 +514,11 @@ section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
         const pending =
           JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
 
-        pending.push({
-          cid: camp.cid,
-          sid: camp.sid,
-          answer_value: answer
-        });
+      pending.push({
+        cid: answerValue.cid || camp.cid,
+        sid: answerValue.sid || camp.sid,
+        answer_value: answerValue.answer_value
+      });
 
         sessionStorage.setItem(
           "pendingShortCoreg",
