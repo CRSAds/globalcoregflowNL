@@ -130,7 +130,11 @@ function initFlowLite() {
       current.style.display = "none";
 
       // skip ivr if online
-      while (next && next.classList.contains("ivr-section") && status === "online" || status === "energie") {
+      while (
+        next &&
+        next.classList.contains("ivr-section") &&
+        (status === "online" || status === "energie")
+      ) {
         next = next.nextElementSibling;
       }
 
@@ -162,7 +166,11 @@ function initFlowLite() {
   if (!next) return;
 
     // ivr skip
-    while (next && next.classList.contains("ivr-section") && status === "online" || status === "energie") {
+    while (
+      next &&
+      next.classList.contains("ivr-section") &&
+      (status === "online" || status === "energie")
+    ) {
       next = next.nextElementSibling;
     }
 
@@ -187,7 +195,11 @@ function initFlowLite() {
   let next = current.nextElementSibling;
   if (!next) return;
 
-    while (next && next.classList.contains("ivr-section") && status === "online" || status === "energie") {
+    while (
+      next &&
+      next.classList.contains("ivr-section") &&
+      (status === "online" || status === "energie")
+    ) {
       next = next.nextElementSibling;
     }
 
