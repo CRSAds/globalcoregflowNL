@@ -126,7 +126,11 @@ export default async function handler(req, res) {
       // =========================================================
       // ✅ ACCEPT → STOP
       // =========================================================
-      if (resp.ok && !json?.error) {
+      const isRejected =
+        json?.msg ||
+        json?.error?.msg;
+      
+      if (!isRejected) {
         console.log(
           `✅ Roulatie ACCEPT cid=${sponsor.cid} (tried: ${tried.join(",")})`
         );
@@ -136,12 +140,12 @@ export default async function handler(req, res) {
           tried,
         });
       }
-
+      
+      // Anders: reject → door naar volgende
       console.warn(
         `⛔ Roulatie REJECT cid=${sponsor.cid}`,
-        json?.error || text
+        json?.msg || json?.error?.msg || text
       );
-    }
 
     // =============================================================
     // ❌ Alles afgewezen
