@@ -47,13 +47,9 @@ function applyCoregPathFilter(campaigns, coregPath) {
   if (coregPath && coregPath.mode === "keys") {
     const keys = coregPath.steps || [];
 
-    const allowedCids = new Set(
-      campaigns
-        .filter(c => c.coreg_key && keys.includes(c.coreg_key))
-        .map(c => c.cid)
+    const filtered = campaigns.filter(
+      c => c.coreg_key && keys.includes(c.coreg_key)
     );
-
-    const filtered = campaigns.filter(c => allowedCids.has(c.cid));
 
     // (optionele sort blijft prima)
     if (keys.length > 0) {
