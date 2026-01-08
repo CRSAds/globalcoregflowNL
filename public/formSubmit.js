@@ -504,6 +504,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const payload = await buildPayload({
               cid: camp.cid,
               sid: camp.sid,
+              is_shortform: false, // 🔑 CRUCIAAL
               f_2014_coreg_answer: ans || undefined,
               f_2575_coreg_answer_dropdown: drop || undefined
             });
