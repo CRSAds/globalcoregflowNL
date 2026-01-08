@@ -414,6 +414,25 @@ async function initCoregFlow() {
           return;
         }
 
+        // ⛔ HARD BLOCK — long form campagnes mogen NOOIT direct versturen
+        if (camp.requiresLongForm) {
+          sessionStorage.setItem("requiresLongForm", "true");
+        
+          const pending =
+            JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+        
+          if (!pending.some(p => p.cid === answerValue.cid)) {
+            pending.push({
+              cid: answerValue.cid,
+              sid: answerValue.sid
+            });
+          }
+        
+          sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
+          showNextSection(section);
+          return;
+        }
+
         const shortDone =
           sessionStorage.getItem("shortFormCompleted") === "true";
         
