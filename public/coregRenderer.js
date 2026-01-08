@@ -421,11 +421,11 @@ async function initCoregFlow() {
           const pending =
             JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
         
-          pending.push({
-            cid: camp.cid,
-            sid: camp.sid,
-            answer_value: answerValue.answer_value
-          });
+          ppending.push({
+          cid: answerValue.cid || camp.cid,
+          sid: answerValue.sid || camp.sid,
+          answer_value: answerValue.answer_value
+        });
         
           sessionStorage.setItem(
             "pendingShortCoreg",
