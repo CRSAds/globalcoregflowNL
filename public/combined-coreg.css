@@ -1012,6 +1012,19 @@ input.error {
 }
 
 /* =====================================================
+   LONG FORM — extra verticale spacing
+   Alleen modern v2 long form
+   ===================================================== */
+
+#long-form.modern-form-v2 label {
+  margin-bottom: 6px !important;
+}
+
+#long-form.modern-form-v2 input {
+  margin-bottom: 14px !important;
+}
+
+/* =====================================================
    DARK THEME — GENDER SELECT HIGHLIGHT (EXTRA DUIDELIJK)
    ===================================================== */
 
