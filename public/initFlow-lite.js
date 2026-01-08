@@ -123,10 +123,11 @@ function initFlowLite() {
 
       const current = btn.closest(".flow-section, .ivr-section");
       if (!current) return;
-
-      current.style.display = "none";
-
+      
       let next = current.nextElementSibling;
+      if (!next) return;
+      
+      current.style.display = "none";
 
       // skip ivr if online
       while (next && next.classList.contains("ivr-section") && status === "online" || status === "energie") {
@@ -151,9 +152,14 @@ function initFlowLite() {
 
   // Event na shortform
   document.addEventListener("shortFormSubmitted", () => {
-    const form = document.getElementById("lead-form");
-    const current = form.closest(".flow-section");
-    let next = current.nextElementSibling;
+  const form = document.getElementById("lead-form");
+  if (!form) return;
+  
+  const current = form.closest(".flow-section");
+  if (!current) return;
+  
+  let next = current.nextElementSibling;
+  if (!next) return;
 
     // ivr skip
     while (next && next.classList.contains("ivr-section") && status === "online" || status === "energie") {
@@ -175,8 +181,11 @@ function initFlowLite() {
 
   // Event na longform
   document.addEventListener("longFormSubmitted", () => {
-    const current = document.getElementById("long-form-section");
-    let next = current.nextElementSibling;
+  const current = document.getElementById("long-form-section");
+  if (!current) return;
+  
+  let next = current.nextElementSibling;
+  if (!next) return;
 
     while (next && next.classList.contains("ivr-section") && status === "online" || status === "energie") {
       next = next.nextElementSibling;
