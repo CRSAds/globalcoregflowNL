@@ -421,7 +421,7 @@ async function initCoregFlow() {
           const pending =
             JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
         
-          ppending.push({
+          pending.push({
           cid: answerValue.cid || camp.cid,
           sid: answerValue.sid || camp.sid,
           answer_value: answerValue.answer_value
