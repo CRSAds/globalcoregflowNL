@@ -414,25 +414,6 @@ async function initCoregFlow() {
           return;
         }
 
-        // ⛔ HARD BLOCK — long form campagnes mogen NOOIT direct versturen
-        if (camp.requiresLongForm) {
-          sessionStorage.setItem("requiresLongForm", "true");
-        
-          const pending =
-            JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-        
-          if (!pending.some(p => p.cid === answerValue.cid)) {
-            pending.push({
-              cid: answerValue.cid,
-              sid: answerValue.sid
-            });
-          }
-        
-          sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
-          showNextSection(section);
-          return;
-        }
-
         const shortDone =
           sessionStorage.getItem("shortFormCompleted") === "true";
         
@@ -549,12 +530,21 @@ section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
         return;
       }
 
-      // short form al gedaan → direct versturen
+      // ⛔ HARD BLOCK — multi-step campagnes (zoals Trefzeker) NOOIT hier versturen
+      const idx = sections.indexOf(section);
+      const hasMoreSteps = sections.slice(idx + 1)
+        .some(s => s.dataset.cid == camp.cid);
+      
+      if (hasMoreSteps) {
+        showNextSection(section);
+        return;
+      }
+      
+      // short form al gedaan + GEEN vervolgstappen → direct versturen
       const payload = await buildCoregPayload(camp, answerValue);
       window.fetchLead(payload);
       showNextSection(section);
-      return;
-    }
+      return;}
 
     // ============================
     // NEGATIEF ANTWOORD
