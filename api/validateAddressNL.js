@@ -10,15 +10,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const { postcode, huisnummer } = req.body || {};
+    const { postcode, huisnummer, toevoeging } = req.body || {};
 
     if (!postcode || !huisnummer) {
       return res.status(400).json({ valid: false, error: "Missing fields" });
     }
 
-    const url = `https://api.pro6pp.nl/v2/autocomplete/nl?authKey=${process.env.PRO6PP_KEY}&postalCode=${encodeURIComponent(
-      postcode
-    )}&streetNumber=${encodeURIComponent(huisnummer)}`;
+    const url =
+      `https://api.pro6pp.nl/v2/autocomplete/nl?authKey=${process.env.PRO6PP_KEY}` +
+      `&postalCode=${encodeURIComponent(postcode)}` +
+      `&streetNumber=${encodeURIComponent(huisnummer)}` +
+      (toevoeging ? `&streetNumberAddition=${encodeURIComponent(toevoeging)}` : "");
 
     const response = await fetch(url);
     if (!response.ok) {
