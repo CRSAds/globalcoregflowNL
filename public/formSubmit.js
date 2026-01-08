@@ -239,8 +239,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const lookup = async () => {
     const pc = postcode.value.replace(/\s+/g, "");
-    const hn = huisnummer.value.trim();
-    if (pc.length !== 6 || !hn) return;
+    const raw = huisnummer.value.trim();
+    if (pc.length !== 6 || !raw) return;
+    
+    // split: 12A / 12 A / 12-a
+    const match = raw.match(/^(\d+)\s*([a-zA-Z\-]{0,5})$/);
+    if (!match) return;
+    
+    const number = match[1];
+    const addition = match[2] || "";
 
     try {
       const res = await fetch(
@@ -248,7 +255,11 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ postcode: pc, huisnummer: hn })
+          body: JSON.stringify({
+          postcode: pc,
+          huisnummer: number,
+          toevoeging: addition
+        })
         }
       );
 
