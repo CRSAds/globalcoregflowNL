@@ -413,17 +413,43 @@ async function initCoregFlow() {
           return;
         }
 
+        const shortDone =
+          sessionStorage.getItem("shortFormCompleted") === "true";
+        
+        // SHORT FORM COREG — vóór short form → opslaan
+        if (!shortDone) {
+          const pending =
+            JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
+        
+          pending.push({
+            cid: camp.cid,
+            sid: camp.sid,
+            answer_value: answerValue.answer_value
+          });
+        
+          sessionStorage.setItem(
+            "pendingShortCoreg",
+            JSON.stringify(pending)
+          );
+        
+          showNextSection(section);
+          return;
+        }
+        
+        // short form is al gedaan → check multi-step
         const idx = sections.indexOf(section);
         const moreSteps = sections.slice(idx + 1)
           .some(s => s.dataset.cid == camp.cid);
-
+        
         if (moreSteps) {
           showNextSection(section);
-        } else {
-          const payload = await buildCoregPayload(camp, answerValue);
-          window.fetchLead(payload);
-          showNextSection(section);
+          return;
         }
+        
+        // short form gedaan + laatste stap → direct versturen
+        const payload = await buildCoregPayload(camp, answerValue);
+        window.fetchLead(payload);
+        showNextSection(section);
       });
     }
 
