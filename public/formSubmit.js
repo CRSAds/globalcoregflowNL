@@ -383,16 +383,25 @@ document.addEventListener("DOMContentLoaded", () => {
         // =====================================
         (async () => {
           try {
-            const pending = JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
+            const pending = JSON.parse(
+              sessionStorage.getItem("pendingShortCoreg") || "[]"
+            );
             if (!pending.length) return;
         
             for (const ans of pending) {
+              // 🔒 harde guard — nooit zonder cid/sid versturen
+              if (!ans.cid || !ans.sid) {
+                console.warn("⚠️ Skip pending coreg zonder cid/sid:", ans);
+                continue;
+              }
+        
               const payload = await window.buildPayload({
                 cid: ans.cid,
                 sid: ans.sid,
                 is_shortform: true,
                 f_2014_coreg_answer: ans.answer_value
               });
+        
               await window.fetchLead(payload);
             }
         
