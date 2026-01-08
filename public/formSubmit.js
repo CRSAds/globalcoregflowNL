@@ -443,13 +443,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Server-side adrescheck
     const pc = document.getElementById("postcode").value.replace(/\s+/g, "");
-    const hn = document.getElementById("huisnummer").value.trim();
+    const raw = document.getElementById("huisnummer").value.trim();
+    
+    // split: 12 / 12A / 12 A / 12-a
+    const match = raw.match(/^(\d+)\s*([a-zA-Z\-]{0,5})$/);
+    if (!match) return alert("Ongeldig huisnummer.");
+    
+    const number = match[1];
+    const addition = match[2] || "";
+    
     try {
       const r = await fetch("https://globalcoregflow-nl.vercel.app/api/validateAddressNL.js", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postcode: pc, huisnummer: hn })
+        body: JSON.stringify({
+          postcode: pc,
+          huisnummer: number,
+          toevoeging: addition
+        })
       });
+      
       const data = await r.json();
       if (!data.valid) return alert("Adres niet gevonden.");
 
