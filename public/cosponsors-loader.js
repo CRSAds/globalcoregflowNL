@@ -44,74 +44,114 @@
     const list = document.getElementById("cosponsor-list");
 
     // =========================
-    // CSS (geïsoleerd)
-    // =========================
-    const style = document.createElement("style");
-    style.textContent = `
-      .cosponsor-popup {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 2147483647;
-        isolation: isolate;
-      }
-      .cosponsor-overlay {
-        position: absolute;
-        inset: 0;
-        background: rgba(0,0,0,0.6);
-      }
-      .cosponsor-content {
-        position: relative;
-        background: #fff;
-        padding: 32px;
-        max-width: 900px;
-        width: min(94vw, 900px);
-        max-height: 85vh;
-        overflow-y: auto;
-        border-radius: 12px;
-        font-family: Inter, sans-serif;
-        font-size: 14px;
-        line-height: 1.6;
-        z-index: 2147483647;
-      }
-      #close-cosponsor-popup {
-        position: absolute;
-        top: 10px;
-        right: 18px;
-        font-size: 22px;
-        border: none;
-        background: none;
-        cursor: pointer;
-        color: #666;
-      }
-      #close-cosponsor-popup:hover { color: #000; }
+// CSS (geïsoleerd + hard zwart op wit)
+// =========================
+const style = document.createElement("style");
+style.textContent = `
+  /* Overlay + popup container */
+  .cosponsor-popup {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2147483647;
+    isolation: isolate;
+  }
 
-      #cosponsor-list {
-        margin-top: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-      }
-      .cosponsor-item {
-        display: flex;
-        gap: 16px;
-        border-bottom: 1px solid #e5e5e5;
-        padding-bottom: 16px;
-      }
-      .cosponsor-item img {
-        width: 80px;
-        height: auto;
-        flex-shrink: 0;
-      }
-      html.modal-open,
-      body.modal-open {
-        overflow: hidden !important;
-      }
-    `;
-    document.head.appendChild(style);
+  .cosponsor-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+  }
 
+  /* Popup inhoud — ALTIJD wit met zwarte tekst */
+  .cosponsor-content {
+    position: relative;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 32px;
+    max-width: 900px;
+    width: min(94vw, 900px);
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 12px;
+    font-family: Inter, sans-serif !important;
+    font-size: 14px;
+    line-height: 1.6;
+    z-index: 2147483647;
+  }
+
+  /* Forceer tekstkleur voor ALLE elementen */
+  .cosponsor-content,
+  .cosponsor-content * {
+    color: #000000 !important;
+    background: transparent !important;
+  }
+
+  /* Sluitknop */
+  #close-cosponsor-popup {
+    position: absolute;
+    top: 10px;
+    right: 18px;
+    font-size: 22px;
+    border: none;
+    background: none !important;
+    cursor: pointer;
+    color: #000000 !important;
+  }
+
+  #close-cosponsor-popup:hover {
+    opacity: 0.7;
+  }
+
+  /* Titel */
+  .cosponsor-content h1,
+  .cosponsor-content h2,
+  .cosponsor-content h3,
+  .cosponsor-content strong {
+    color: #000000 !important;
+  }
+
+  /* Lijst */
+  #cosponsor-list {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .cosponsor-item {
+    display: flex;
+    gap: 16px;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 16px;
+  }
+
+  .cosponsor-item img {
+    width: 80px;
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  /* Links — zwart, duidelijk klikbaar */
+  .cosponsor-content a,
+  .cosponsor-content a:visited,
+  .cosponsor-content a:hover,
+  .cosponsor-content a:active {
+    color: #000000 !important;
+    text-decoration: underline;
+  }
+
+  /* Scroll lock */
+  html.modal-open,
+  body.modal-open {
+    overflow: hidden !important;
+  }
+`;
+document.head.appendChild(style);
+
+    
     // =========================
     // Sponsors laden (1x)
     // =========================
