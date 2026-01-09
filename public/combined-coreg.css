@@ -1042,12 +1042,17 @@ input.error {
 }
 
 /* =====================================================
-   🔒 COSPONSOR POPUP — HARD COLOR RESET
-   Overschrijft SwipePages selection / theme styles
+   COSPONSOR POPUP — definitieve kleur-fix
    ===================================================== */
 
-#cosponsor-popup,
-#cosponsor-popup * {
+/* Popup zelf altijd wit */
+#cosponsor-popup .cosponsor-content {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Tekst-elementen: geen achtergrond, wel zwart */
+#cosponsor-popup .cosponsor-content * {
   color: #000000 !important;
   background-color: transparent !important;
 }
@@ -1057,13 +1062,12 @@ input.error {
   color: #000000 !important;
   background: transparent !important;
 }
-
 #cosponsor-popup *::-moz-selection {
   color: #000000 !important;
   background: transparent !important;
 }
 
-/* Extra: voorkom mix-blend / color-scheme trucs */
+/* Voorkom blend / dark-mode effecten */
 #cosponsor-popup * {
   mix-blend-mode: normal !important;
   color-scheme: light !important;
