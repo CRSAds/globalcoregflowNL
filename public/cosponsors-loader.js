@@ -43,13 +43,13 @@
     const popup = document.getElementById("cosponsor-popup");
     const list = document.getElementById("cosponsor-list");
 
-    // =========================
+// =========================
 // CSS (geïsoleerd + hard zwart op wit)
 // =========================
 const style = document.createElement("style");
 style.textContent = `
   /* Overlay + popup container */
-  .cosponsor-popup {
+  #cosponsor-popup {
     position: fixed;
     inset: 0;
     display: flex;
@@ -59,14 +59,14 @@ style.textContent = `
     isolation: isolate;
   }
 
-  .cosponsor-overlay {
+  #cosponsor-popup .cosponsor-overlay {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
   }
 
   /* Popup inhoud — ALTIJD wit met zwarte tekst */
-  .cosponsor-content {
+  #cosponsor-popup .cosponsor-content {
     position: relative;
     background: #ffffff !important;
     color: #000000 !important;
@@ -82,10 +82,18 @@ style.textContent = `
     z-index: 2147483647;
   }
 
-  /* Forceer tekstkleur voor ALLE elementen */
-  .cosponsor-content,
-  .cosponsor-content * {
+  /* 🔒 HARD OVERRIDE: ALLE tekst altijd zwart */
+  #cosponsor-popup .cosponsor-content,
+  #cosponsor-popup .cosponsor-content * {
     color: #000000 !important;
+  }
+
+  /* Backgrounds van tekst-elementen neutraliseren */
+  #cosponsor-popup .cosponsor-content p,
+  #cosponsor-popup .cosponsor-content small,
+  #cosponsor-popup .cosponsor-content strong,
+  #cosponsor-popup .cosponsor-content div,
+  #cosponsor-popup .cosponsor-content span {
     background: transparent !important;
   }
 
@@ -106,39 +114,39 @@ style.textContent = `
   }
 
   /* Titel */
-  .cosponsor-content h1,
-  .cosponsor-content h2,
-  .cosponsor-content h3,
-  .cosponsor-content strong {
+  #cosponsor-popup .cosponsor-content h1,
+  #cosponsor-popup .cosponsor-content h2,
+  #cosponsor-popup .cosponsor-content h3,
+  #cosponsor-popup .cosponsor-content strong {
     color: #000000 !important;
   }
 
   /* Lijst */
-  #cosponsor-list {
+  #cosponsor-popup #cosponsor-list {
     margin-top: 20px;
     display: flex;
     flex-direction: column;
     gap: 20px;
   }
 
-  .cosponsor-item {
+  #cosponsor-popup .cosponsor-item {
     display: flex;
     gap: 16px;
     border-bottom: 1px solid #e5e5e5;
     padding-bottom: 16px;
   }
 
-  .cosponsor-item img {
+  #cosponsor-popup .cosponsor-item img {
     width: 80px;
     height: auto;
     flex-shrink: 0;
   }
 
-  /* Links — zwart, duidelijk klikbaar */
-  .cosponsor-content a,
-  .cosponsor-content a:visited,
-  .cosponsor-content a:hover,
-  .cosponsor-content a:active {
+  /* Links — altijd zwart */
+  #cosponsor-popup .cosponsor-content a,
+  #cosponsor-popup .cosponsor-content a:visited,
+  #cosponsor-popup .cosponsor-content a:hover,
+  #cosponsor-popup .cosponsor-content a:active {
     color: #000000 !important;
     text-decoration: underline;
   }
@@ -150,7 +158,6 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
-
     
     // =========================
     // Sponsors laden (1x)
