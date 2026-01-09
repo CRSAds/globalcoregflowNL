@@ -380,6 +380,8 @@ document.addEventListener("DOMContentLoaded", () => {
         
           await window.fetchLead(pingtreePayload);
         }
+          } catch {}
+        })(); // ✅ <-- deze miste bij jou
 
         // Markeer shortform klaar
         sessionStorage.setItem("shortFormCompleted", "true");
