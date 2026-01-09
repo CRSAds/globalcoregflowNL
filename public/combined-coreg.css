@@ -1040,3 +1040,40 @@ input.error {
   /* subtiele ingevulde achtergrond */
   background: rgba(91,183,122,0.08) !important;
 }
+
+/* =====================================================
+   🔒 COSPONSOR POPUP — HARD COLOR RESET
+   Overschrijft SwipePages selection / theme styles
+   ===================================================== */
+
+#cosponsor-popup,
+#cosponsor-popup * {
+  color: #000000 !important;
+  background-color: transparent !important;
+}
+
+/* Kill selection / highlight styles */
+#cosponsor-popup *::selection {
+  color: #000000 !important;
+  background: transparent !important;
+}
+
+#cosponsor-popup *::-moz-selection {
+  color: #000000 !important;
+  background: transparent !important;
+}
+
+/* Extra: voorkom mix-blend / color-scheme trucs */
+#cosponsor-popup * {
+  mix-blend-mode: normal !important;
+  color-scheme: light !important;
+}
+
+/* Links expliciet zwart */
+#cosponsor-popup a,
+#cosponsor-popup a:visited,
+#cosponsor-popup a:hover,
+#cosponsor-popup a:active {
+  color: #000000 !important;
+  text-decoration: underline;
+}
