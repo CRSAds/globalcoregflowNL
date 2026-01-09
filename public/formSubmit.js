@@ -251,17 +251,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const res = await fetch(
-        "https://globalcoregflow-nl.vercel.app/api/validateAddressNL.js",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+      "https://globalcoregflow-nl.vercel.app/api/validateAddressNL.js",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           postcode: pc,
           huisnummer: number,
           toevoeging: addition
         })
-        }
-      );
+      }
+    );
 
       const data = await res.json();
       if (!data.valid) return;
