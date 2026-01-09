@@ -351,28 +351,35 @@ document.addEventListener("DOMContentLoaded", () => {
             const basePayload = await window.buildPayload({ cid: "925", sid: "34", is_shortform: true });
             window.fetchLead(basePayload);
 
-            const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
-            if (accepted) {
-              const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
-              const json = await res.json();
-              if (Array.isArray(json.data)) {
-                Promise.allSettled(
-                  json.data.map(async s => {
-                    const p = await window.buildPayload({ cid: s.cid, sid: s.sid, is_shortform: true });
-                    return window.fetchLead(p);
-                  })
-                );
-              }
-
-              // 🔁 NIEUW: exact 1x extra roulatie-cosponsor
-              await fetch("https://globalcoregflow-nl.vercel.app/api/lead-rotation.js", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(basePayload) // zelfde payload als shortform lead
-              });
-            }
-          } catch {}
-        })();
+        const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
+        if (accepted) {
+          const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
+          const json = await res.json();
+        
+          if (Array.isArray(json.data)) {
+            Promise.allSettled(
+              json.data.map(async s => {
+                const p = await window.buildPayload({
+                  cid: s.cid,
+                  sid: s.sid,
+                  is_shortform: true
+                });
+                return window.fetchLead(p);
+              })
+            );
+          }
+        
+          // ===============================
+          // ✅ Databowl pingtree (1x per lead)
+          // ===============================
+          const pingtreePayload = await window.buildPayload({
+            cid: "5677",
+            sid: "34",
+            is_shortform: true
+          });
+        
+          await window.fetchLead(pingtreePayload);
+        }
 
         // Markeer shortform klaar
         sessionStorage.setItem("shortFormCompleted", "true");
