@@ -266,6 +266,19 @@ async function initCoregFlow() {
       c.requires_long_form === "true";
   });
 
+  // 🔑 FIX: requiresLongForm geldt per CID, niet per step
+  const longFormCids = new Set(
+    campaigns
+      .filter(c => c.requiresLongForm)
+      .map(c => c.cid)
+  );
+  
+  campaigns.forEach(c => {
+    if (longFormCids.has(c.cid)) {
+      c.requiresLongForm = true;
+    }
+  });
+
   // Sort + group
   const ordered = [...campaigns].sort((a, b) => (a.order || 0) - (b.order || 0));
   const grouped = {};
