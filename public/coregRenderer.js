@@ -234,6 +234,11 @@ async function buildCoregPayload(campaign, answerValue) {
   return payload;
 }
 
+function isLastStepOfCampaign(section, cid, sections) {
+  const idx = sections.indexOf(section);
+  return !sections.slice(idx + 1).some(s => s.dataset.cid == cid);
+}
+
 // =============================================================
 // Coreg Flow
 // =============================================================
@@ -417,12 +422,23 @@ async function initCoregFlow() {
         storeCoregAnswerOnly(camp, answerValue);
 
         if (camp.requiresLongForm) {
+          const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
+        
+          // ⛔ nog niet laatste stap → alleen door
+          if (!isFinalStep) {
+            showNextSection(section);
+            return;
+          }
+        
+          // ✅ pas bij laatste stap lead-waardig
           sessionStorage.setItem("requiresLongForm", "true");
+        
           const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-          if (!pending.some(p => p.cid === camp.cid))
+          if (!pending.some(p => p.cid === camp.cid)) {
             pending.push({ cid: camp.cid, sid: camp.sid });
+          }
+        
           sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
-
           showNextSection(section);
           return;
         }
@@ -500,23 +516,32 @@ section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
       storeCoregAnswerOnly(camp, answerValue);
 
       // ----------------------------
-      // LONG FORM COREG
+      // LONG FORM COREG — ALLEEN NA LAATSTE STEP
       // ----------------------------
       if (camp.requiresLongForm) {
+        const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
+      
+        // ⛔ nog niet laatste stap → NOOIT als lead tellen
+        if (!isFinalStep) {
+          showNextSection(section);
+          return;
+        }
+      
+        // ✅ pas HIER is de campagne lead-waardig
         sessionStorage.setItem("requiresLongForm", "true");
-
+      
         const pending =
           JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-
+      
         if (!pending.some(p => p.cid === camp.cid)) {
           pending.push({ cid: camp.cid, sid: camp.sid });
         }
-
+      
         sessionStorage.setItem(
           "longFormCampaigns",
           JSON.stringify(pending)
         );
-
+      
         showNextSection(section);
         return;
       }
