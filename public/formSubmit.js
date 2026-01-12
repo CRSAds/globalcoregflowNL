@@ -31,16 +31,6 @@ if (!window.formSubmitInitialized) {
   window.formSubmitInitialized = true;
   window.submittedCampaigns = window.submittedCampaigns || new Set();
 
-  // 🔧 Debug logging volledig uit in productie
-  const DEBUG = false;
-  
-  // alles wat log() / warn() aanroept wordt een no-op
-  const log   = () => {};
-  const warn  = () => {};
-  
-  // errors blijven zichtbaar
-  const error = (...args) => console.error(...args);
-
   // -----------------------------------------------------------
   // Tracking opslaan bij pageload
   // -----------------------------------------------------------
