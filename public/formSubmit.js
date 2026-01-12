@@ -1,4 +1,29 @@
 // =============================================================
+// 🔇 GLOBAL CONSOLE KILLER — EARLY (via formSubmit.js)
+// =============================================================
+const DEBUG_MODE = false; // 🔁 true = logs aan
+
+if (!DEBUG_MODE && typeof window.console !== "undefined") {
+  const noop = function () {};
+  [
+    "log",
+    "info",
+    "warn",
+    "error",
+    "debug",
+    "trace",
+    "group",
+    "groupCollapsed",
+    "groupEnd",
+    "table"
+  ].forEach(method => {
+    if (typeof console[method] === "function") {
+      console[method] = noop;
+    }
+  });
+}
+
+// =============================================================
 // ✅ formSubmit.js — productieversie (geen console-spam)
 // =============================================================
 
