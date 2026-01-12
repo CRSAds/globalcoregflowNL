@@ -1,6 +1,32 @@
 // ✅ swipe-body.js — loader pas weg na visuals, geen flikker, fonts & dev-elementen geregeld
 (function () {
-  console.log("🧩 swipe-body.js gestart");
+
+  // =============================================================
+  // 🔇 GLOBAL CONSOLE KILLER (productie)
+  // =============================================================
+  const DEBUG_MODE = false; // 🔁 zet op true om logs tijdelijk aan te zetten
+
+  if (!DEBUG_MODE && typeof window.console !== "undefined") {
+    const noop = function () {};
+    [
+      "log",
+      "info",
+      "warn",
+      "error",
+      "debug",
+      "trace",
+      "group",
+      "groupCollapsed",
+      "groupEnd",
+      "table"
+    ].forEach(method => {
+      if (typeof console[method] === "function") {
+        console[method] = noop;
+      }
+    });
+  }
+
+  console.log("🧩 swipe-body.js gestart");;
 
   // =============================================================
   // 📊 Sovendus click / impression tracking (NIEUW – add-only)
