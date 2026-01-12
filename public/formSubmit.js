@@ -1,9 +1,9 @@
 // =============================================================
-// 🔇 GLOBAL CONSOLE KILLER — EARLY (via formSubmit.js)
+// 🔇 GLOBAL CONSOLE KILLER — SAFE (multi-load)
 // =============================================================
-const DEBUG_MODE = false; // 🔁 true = logs aan
+window.DEBUG_MODE = window.DEBUG_MODE ?? false;
 
-if (!DEBUG_MODE && typeof window.console !== "undefined") {
+if (!window.DEBUG_MODE && typeof window.console !== "undefined") {
   const noop = function () {};
   [
     "log",
