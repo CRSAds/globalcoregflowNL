@@ -7,42 +7,6 @@
 const FLOW_DEBUG = false;
 const flowLog  = (...args) => { if (FLOW_DEBUG) console.log(...args); };
 
-// ===== FLOW LOGGING: centraal endpoint =====
-const FLOW_LOG_ENDPOINT =
-  window.FLOW_LOG_ENDPOINT ||
-  "https://globalcoregflow-nl.vercel.app/api/flow-log.js";
-
-function sendFlowLog(event) {
-  try {
-    const payload = {
-      event,
-      ts: Date.now(),
-      url: window.location.href,
-      ua: navigator.userAgent,
-    };
-
-    fetch(FLOW_LOG_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      keepalive: true,
-    }).catch(() => {});
-  } catch (e) {}
-}
-
-// ===== sectie-visible logger via log-* class =====
-function logSectionVisible(section) {
-  if (!section) return;
-
-  const cls = Array.from(section.classList).find(c => c.startsWith("log-"));
-  if (!cls) return; // geen logging gewenst
-
-  const name = cls.replace("log-", "");
-  const eventName = `${name}_visible`;
-
-  sendFlowLog(eventName);
-}
-
 // =============================================================
 // 🟢 Sovendus hook — start pas zodra sectie actief wordt
 // =============================================================
