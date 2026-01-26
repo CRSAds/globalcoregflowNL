@@ -44,6 +44,8 @@ export default async function handler(req, res) {
   // -------------------------------------------------------------
   const url = `${process.env.DIRECTUS_URL}/items/coreg_campaigns`
     + `?filter[is_live][_eq]=true`
+    + `&filter[_or][0][country][_null]=true`
+    + `&filter[_or][1][country][_eq]=NL`
     + `&fields=*,image.id,image.filename_download,coreg_answers.*,coreg_dropdown_options.*,more_info`
     + `&sort=order`;
 
