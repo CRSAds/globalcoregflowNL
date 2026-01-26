@@ -15,7 +15,10 @@ export default async function handler(req, res) {
   );
 
   try {
-    const url = `${process.env.DIRECTUS_URL}/items/footers?fields=name,text,terms_content,privacy_content,actievoorwaarden,logo.id,icon_terms.id,icon_privacy.id`;
+    const url = `${process.env.DIRECTUS_URL}/items/footers`
+      + `?filter[_or][0][country][_null]=true`
+      + `&filter[_or][1][country][_eq]=NL`
+      + `&fields=name,coreg_path,text,terms_content,privacy_content,actievoorwaarden,logo.id,icon_terms.id,icon_privacy.id`;
 
     const json = await fetchWithRetry(url, {
       headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` },
