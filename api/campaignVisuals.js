@@ -20,6 +20,8 @@ export default async function handler(req, res) {
     const url =
       `${process.env.DIRECTUS_URL}/items/campaign_layouts` +
       `?filter[is_live][_eq]=true` +
+      `&filter[_or][0][country][_null]=true` +
+      `&filter[_or][1][country][_eq]=NL` +
       `&fields=slug,title,paragraph,hero_image.id,horizontal_hero_image.id,background_image.id,ivr_image.id`;
 
     const json = await fetchWithRetry(url, {
