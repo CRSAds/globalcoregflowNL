@@ -14,7 +14,12 @@ export default async function handler(req, res) {
   );
 
   try {
-    const url = `${process.env.DIRECTUS_URL}/items/co_sponsors?filter[is_live][_eq]=true&fields=title,description,logo,address,privacy_url,cid,sid&sort=title`;
+    const url = `${process.env.DIRECTUS_URL}/items/co_sponsors`
+      + `?filter[is_live][_eq]=true`
+      + `&filter[_or][0][country][_null]=true`
+      + `&filter[_or][1][country][_eq]=NL`
+      + `&fields=title,description,logo,address,privacy_url,cid,sid`
+      + `&sort=title`;
 
     const json = await fetchWithRetry(url, {
       headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` },
