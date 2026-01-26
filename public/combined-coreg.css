@@ -1081,3 +1081,31 @@ input.error {
   color: #000000 !important;
   text-decoration: underline;
 }
+
+/* =====================================================
+   AANPASSING: GENDER SELECTIE MET VINKJE & VULLING
+   ===================================================== */
+
+/* 1. De geselecteerde staat: Neutrale grijze vulling + zwarte tekst */
+.modern-form-v2 .gender-segment input[type="radio"]:checked + span,
+.modern-form-v2[data-theme="dark"] .gender-segment input[type="radio"]:checked + span {
+  background-color: #e5e7eb !important;  /* Neutraal lichtgrijs */
+  color: #111111 !important;             /* Zwarte tekst voor contrast */
+  border-color: #d1d5db !important;      /* Subtiele grijze rand */
+  box-shadow: none !important;           /* Geen groene gloed meer */
+  font-weight: 700 !important;
+}
+
+/* 2. Het vinkje toevoegen vóór de tekst */
+.modern-form-v2 .gender-segment input[type="radio"]:checked + span::before {
+  content: "✓";
+  display: inline-block;
+  margin-right: 6px;
+  font-weight: 800;
+  color: #111111; /* Zwart vinkje */
+}
+
+/* 3. Hover effect voor de niet-geselecteerde knoppen (optioneel, voor UX) */
+.modern-form-v2 .gender-segment label:hover span {
+  border-color: #999 !important;
+
