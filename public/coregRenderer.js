@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ coregRenderer.js — productieversie met minimale logging
+// ✅ coregRenderer.js — NL Version (Met Agressieve Scroll Fix)
 // =============================================================
 
 if (typeof window.API_COREG === "undefined") {
@@ -8,7 +8,31 @@ if (typeof window.API_COREG === "undefined") {
 const API_COREG = window.API_COREG;
 
 // =============================================================
-// ✅ COREG PAD SELECTIE (via URL) + FILTER HELPER
+// 🛠️ HELPER: FORCE SCROLL TOP (Aggressive)
+// =============================================================
+function forceScrollTop() {
+  // 1. Directe window scroll
+  window.scrollTo(0, 0);
+
+  // 2. Body en HTML
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+
+  // 3. Swipe Pages Specifieke Wrappers
+  const wrappers = document.querySelectorAll('.swipe-page-wrapper, .section-container, .coreg-wrapper-fixed');
+  wrappers.forEach(el => {
+    el.scrollTop = 0;
+  });
+
+  // 4. Fallback met timeout
+  setTimeout(() => {
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+  }, 50);
+}
+
+// =============================================================
+// ✅ COREG PAD SELECTIE & CONFIG
 // =============================================================
 const COREG_PATHS = window.coregPaths || {
   default: { mode: "all" }
@@ -33,10 +57,6 @@ else if (coregParam && COREG_PATHS[coregParam]) {
 }
 
 // Filter campaigns obv pad:
-// - default (mode: all): alles laten staan
-// - keys: alleen campaigns met coreg_key in steps
-//   + belangrijk: als een campaign meerdere stappen heeft (zelfde cid),
-//     dan nemen we ALLE stappen mee zodra 1 stap/campaign binnen de keys valt.
 function applyCoregPathFilter(campaigns, coregPath) {
   // ✅ Alleen standaard pad mag uitsluiten toepassen
   if (activeCoregPathKey === "default") {
@@ -77,7 +97,7 @@ function applyCoregPathFilter(campaigns, coregPath) {
 const DEBUG = false; // Zet op true tijdens testen
 const log   = (...args) => { if (DEBUG) console.log(...args); };
 const warn  = (...args) => { if (DEBUG) console.warn(...args); };
-const error = (...args) => console.error(...args); // errors altijd zichtbaar
+const error = (...args) => console.error(...args); 
 
 // =============================================================
 // Helper
@@ -90,7 +110,7 @@ function getImageUrl(image) {
 }
 
 // =============================================================
-// ✅ MINIMALE FIX: alleen coreg answer opslaan (geen payload/lead/flow)
+// ✅ MINIMALE FIX: alleen coreg answer opslaan
 // =============================================================
 function storeCoregAnswerOnly(campaign, answerValue) {
   if (!campaign) return;
@@ -114,7 +134,7 @@ function storeCoregAnswerOnly(campaign, answerValue) {
 }
 
 // =============================================================
-// Renderer
+// Renderer (NL Teksten)
 // =============================================================
 function renderCampaignBlock(campaign, steps) {
   const answers = campaign.coreg_answers || [];
@@ -294,7 +314,7 @@ async function initCoregFlow() {
     }
   });
 
-  // Render
+  // Render (NL Teksten)
   container.innerHTML = `
     <div class="coreg-inner">
       <div class="coreg-header">
@@ -336,7 +356,7 @@ async function initCoregFlow() {
   const sections = [...sectionsContainer.querySelectorAll(".coreg-section")];
   sections.forEach((s, i) => (s.style.display = i === 0 ? "block" : "none"));
 
-  // Progress bar + next-step logic (ongewijzigd behalve logs)
+  // Progress bar + next-step logic
   function updateProgressBar(idx) {
     const total = sections.length;
     const START = 25;
@@ -376,7 +396,10 @@ async function initCoregFlow() {
       cur.style.display = "none";
       sections[idx + 1].style.display = "block";
       updateProgressBar(idx + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      
+      // ✅ AGGRESSIVE SCROLL FIX
+      forceScrollTop();
+      
     } else {
       handleFinalCoreg();
     }
@@ -396,7 +419,7 @@ async function initCoregFlow() {
     }
   }
 
-  // Event listeners blijven zoals ze waren (met stille logs)
+  // Event listeners
   sections.forEach(section => {
     const dropdown = section.querySelector(".coreg-dropdown");
 
@@ -418,19 +441,17 @@ async function initCoregFlow() {
           sid: opt.dataset.sid
         };
 
-        // ✅ MINIMALE FIX: ook bij dropdowns coreg answer opslaan (zonder payload/lead)
+        // ✅ Opslaan
         storeCoregAnswerOnly(camp, answerValue);
 
         if (camp.requiresLongForm) {
           const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
         
-          // ⛔ nog niet laatste stap → alleen door
           if (!isFinalStep) {
             showNextSection(section);
             return;
           }
         
-          // ✅ pas bij laatste stap lead-waardig
           sessionStorage.setItem("requiresLongForm", "true");
         
           const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
@@ -512,7 +533,7 @@ section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
       const shortDone =
         sessionStorage.getItem("shortFormCompleted") === "true";
 
-      // 🔑 ALTIJD antwoord opslaan (nooit vergeten)
+      // 🔑 ALTIJD antwoord opslaan
       storeCoregAnswerOnly(camp, answerValue);
 
       // ----------------------------
@@ -521,7 +542,7 @@ section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
       if (camp.requiresLongForm) {
         const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
       
-        // ⛔ nog niet laatste stap → NOOIT als lead tellen
+        // ⛔ nog niet laatste stap
         if (!isFinalStep) {
           showNextSection(section);
           return;
@@ -568,7 +589,7 @@ section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
         return;
       }
 
-      // ⛔ HARD BLOCK — multi-step campagnes (zoals Trefzeker) NOOIT hier versturen
+      // ⛔ HARD BLOCK — multi-step
       const idx = sections.indexOf(section);
       const hasMoreSteps = sections.slice(idx + 1)
         .some(s => s.dataset.cid == camp.cid);
@@ -597,6 +618,10 @@ section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
     if (j < sections.length) {
       sections[j].style.display = "block";
       updateProgressBar(j);
+      
+      // ✅ AGGRESSIVE SCROLL FIX
+      forceScrollTop();
+      
     } else {
       handleFinalCoreg();
     }
@@ -607,8 +632,8 @@ section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
 }
   
 // ======================================
-// Start renderer + nette eindmelding
+// Start renderer
 // ======================================
 window.addEventListener("DOMContentLoaded", initCoregFlow);
 
-if (!DEBUG) console.info("🎉 coregRenderer loaded successfully");
+if (!DEBUG) console.info("🎉 coregRenderer (NL) loaded successfully");
