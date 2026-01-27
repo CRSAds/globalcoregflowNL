@@ -1111,12 +1111,12 @@ input.error {
    }
 
 /* =====================================================
-   SPONSOR SLIDE-UP (Smart Submit) — WHITE VERSION
+   SPONSOR SLIDE-UP (Smart Submit) — FINAL STYLING
    ===================================================== */
 
 .modern-form-v2 {
   position: relative;
-  overflow: hidden; /* Zorgt dat de slideup van buiten beeld komt */
+  overflow: hidden;
 }
 
 .sponsor-slideup {
@@ -1126,46 +1126,42 @@ input.error {
   width: 100%;
   height: auto;
   
-  background: #ffffff; /* ✨ Nu wit */
-  border-top: 1px solid #e2e8f0; /* Lichte border */
-  border-radius: 0 0 10px 10px; /* Match form radius */
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 10px 10px;
   
   padding: 24px 20px;
   text-align: center;
   z-index: 100;
   
-  /* Startpositie: verborgen onder de rand */
   transform: translateY(110%);
-  
-  /* Animatie */
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  
-  /* Schaduw om hem los te maken van de achtergrond */
-  box-shadow: 0 -4px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 -4px 30px rgba(0,0,0,0.15); /* Iets meer diepte */
 }
 
 .sponsor-slideup.is-visible {
-  transform: translateY(0); /* Schuif omhoog */
+  transform: translateY(0);
 }
 
+/* --- TITEL & TEKST --- */
 .slideup-title {
-  color: #111111; /* ✨ Donkere tekst */
-  font-size: 17px;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  color: #111;
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
 }
 
 .slideup-text {
-  color: #555555; /* ✨ Donkergrijs */
+  color: #475569;
   font-size: 14px;
   margin-bottom: 24px;
-  line-height: 1.5;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  line-height: 1.6;
 }
 
+/* --- LINKS (GEEN GROEN BIJ HOVER) --- */
 .slideup-partner-link {
-  color: #14B670; /* Of je primaire kleur */
+  color: #64748b;
   background: none;
   border: none;
   padding: 0;
@@ -1173,38 +1169,81 @@ input.error {
   text-decoration: underline;
   cursor: pointer;
   font-weight: 600;
+  transition: color 0.2s;
 }
 
 .slideup-partner-link:hover {
-  color: #0f8e57;
+  color: #1e293b !important; /* Donkergrijs, GEEN groen */
+  text-decoration: none;
 }
 
-.slideup-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* De "JA" knop in de slideup */
-.slideup-actions .cta-primary {
-  width: 100%;
-  padding: 14px;
-  font-size: 16px;
-  margin: 0;
-  box-shadow: 0 4px 12px rgba(20, 182, 112, 0.2); /* Subtiele glow */
-}
-
-/* De "NEE" knop */
 .slideup-deny {
   background: none;
   border: none;
-  color: #888;
+  color: #94a3b8;
   font-size: 13px;
   cursor: pointer;
-  padding: 8px;
+  padding: 10px;
+  margin-top: 5px;
   text-decoration: underline;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  transition: color 0.2s;
 }
+
 .slideup-deny:hover {
-  color: #333;
+  color: #475569 !important; /* Donkergrijs, GEEN groen */
+}
+
+/* --- DE "JA" KNOP (POP-UP STIJL) --- */
+.slideup-actions .cta-primary {
+  width: 100%;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+  
+  /* Gradient voor meer diepte */
+  background: linear-gradient(135deg, #14B670 0%, #0e9f5d 100%);
+  color: #fff;
+  border: none;
+  
+  /* Schaduw en icon alignment */
+  box-shadow: 0 4px 15px rgba(20, 182, 112, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.slideup-actions .cta-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(20, 182, 112, 0.45);
+}
+
+.slideup-actions .cta-primary:active {
+  transform: scale(0.98);
+}
+
+/* --- LOADING SPINNER --- */
+.slideup-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: none; /* Standaard verborgen */
+}
+
+.cta-primary.is-loading .slideup-spinner {
+  display: block;
+}
+
+.cta-primary.is-loading svg {
+  display: none; /* Verberg pijl tijdens laden */
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
