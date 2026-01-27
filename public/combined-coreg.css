@@ -1110,10 +1110,13 @@ input.error {
   border-color: #999 !important;
    }
 
-/* --- Sponsor Slide-up (Smart Submit) --- */
+/* =====================================================
+   SPONSOR SLIDE-UP (Smart Submit) — WHITE VERSION
+   ===================================================== */
+
 .modern-form-v2 {
-  position: relative; /* Nodig voor absolute positionering van de slideup */
-  overflow: hidden;   /* Zorgt dat de slideup netjes van onder komt */
+  position: relative;
+  overflow: hidden; /* Zorgt dat de slideup van buiten beeld komt */
 }
 
 .sponsor-slideup {
@@ -1122,43 +1125,58 @@ input.error {
   left: 0;
   width: 100%;
   height: auto;
-  background: #1e293b; /* Donkere achtergrond, past bij dark theme */
-  border-top: 1px solid #334155;
-  padding: 20px;
-  transform: translateY(110%); /* Standaard verborgen (onder beeld) */
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  z-index: 100;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-  border-radius: 0 0 8px 8px; /* Match form radius indien nodig */
+  
+  background: #ffffff; /* ✨ Nu wit */
+  border-top: 1px solid #e2e8f0; /* Lichte border */
+  border-radius: 0 0 10px 10px; /* Match form radius */
+  
+  padding: 24px 20px;
   text-align: center;
+  z-index: 100;
+  
+  /* Startpositie: verborgen onder de rand */
+  transform: translateY(110%);
+  
+  /* Animatie */
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* Schaduw om hem los te maken van de achtergrond */
+  box-shadow: 0 -4px 25px rgba(0,0,0,0.1);
 }
 
 .sponsor-slideup.is-visible {
-  transform: translateY(0); /* Schuift omhoog */
+  transform: translateY(0); /* Schuif omhoog */
 }
 
 .slideup-title {
-  color: #fff;
-  font-size: 16px;
+  color: #111111; /* ✨ Donkere tekst */
+  font-size: 17px;
   font-weight: 700;
-  margin: 0 0 8px 0;
+  margin: 0 0 10px 0;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 .slideup-text {
-  color: #94a3b8;
-  font-size: 13px;
-  margin-bottom: 20px;
+  color: #555555; /* ✨ Donkergrijs */
+  font-size: 14px;
+  margin-bottom: 24px;
   line-height: 1.5;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 .slideup-partner-link {
-  color: #3b82f6;
+  color: #14B670; /* Of je primaire kleur */
   background: none;
   border: none;
   padding: 0;
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
+  font-weight: 600;
+}
+
+.slideup-partner-link:hover {
+  color: #0f8e57;
 }
 
 .slideup-actions {
@@ -1167,18 +1185,26 @@ input.error {
   gap: 12px;
 }
 
+/* De "JA" knop in de slideup */
 .slideup-actions .cta-primary {
   width: 100%;
   padding: 14px;
   font-size: 16px;
+  margin: 0;
+  box-shadow: 0 4px 12px rgba(20, 182, 112, 0.2); /* Subtiele glow */
 }
 
+/* De "NEE" knop */
 .slideup-deny {
   background: none;
   border: none;
-  color: #64748b;
+  color: #888;
   font-size: 13px;
   cursor: pointer;
   padding: 8px;
+  text-decoration: underline;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
-.slideup-deny:hover { color: #cbd5e1; }
+.slideup-deny:hover {
+  color: #333;
+}
