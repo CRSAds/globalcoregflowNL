@@ -1247,3 +1247,14 @@ input.error {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* FIX: Voorkom groene achtergrond op hover bij tekstlinks */
+.slideup-partner-link:hover,
+.slideup-deny:hover {
+  background: transparent !important; /* Geen vlak */
+  background-color: transparent !important;
+  box-shadow: none !important; /* Geen gloed */
+  
+  /* Zorg dat de tekstkleur wel donkergrijs wordt (zoals eerder besproken) */
+  color: #334155 !important; 
+}
