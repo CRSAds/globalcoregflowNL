@@ -24,7 +24,7 @@ if (!window.DEBUG_MODE && typeof window.console !== "undefined") {
 }
 
 // =============================================================
-// ✅ formSubmit.js — Met "Smart Submit" Slide-up (FULL)
+// ✅ formSubmit.js — FINAL Smart Submit (Full Version)
 // =============================================================
 
 if (!window.formSubmitInitialized) {
@@ -32,7 +32,7 @@ if (!window.formSubmitInitialized) {
   window.submittedCampaigns = window.submittedCampaigns || new Set();
 
   // --- HTML Template voor de Slide-up ---
-  // Let op: De link heeft nu class 'open-sponsor-popup' zodat cosponsors.js hem direct pakt.
+  // Bevat nu het SVG pijltje en de spinner div voor de CSS animaties
   const SLIDEUP_TEMPLATE = `
     <div class="sponsor-slideup" id="sponsor-slideup">
       <h3 class="slideup-title">Nog één klein vraagje...</h3>
@@ -41,14 +41,21 @@ if (!window.formSubmitInitialized) {
         van deze actie jou ook benaderen met aanbiedingen?
       </p>
       <div class="slideup-actions">
-        <button type="button" id="slideup-confirm" class="cta-primary">Ja, prima (ga verder)</button>
+        <button type="button" id="slideup-confirm" class="cta-primary">
+          <span>Ja, prima</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"></path>
+            <path d="M12 5l7 7-7 7"></path>
+          </svg>
+          <div class="slideup-spinner"></div>
+        </button>
         <button type="button" id="slideup-deny" class="slideup-deny">Nee, liever niet</button>
       </div>
     </div>
   `;
 
   // -----------------------------------------------------------
-  // 🔹 Tracking & Slide-up Injectie bij pageload
+  // 🔹 Init: Tracking & Slide-up Injectie
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -61,7 +68,7 @@ if (!window.formSubmitInitialized) {
     const form = document.getElementById("lead-form");
     if (form && form.dataset.sponsorSlideup === "true") {
       form.insertAdjacentHTML('beforeend', SLIDEUP_TEMPLATE);
-      // Geen extra listeners nodig voor de link; cosponsors.js reageert automatisch op .open-sponsor-popup
+      // Link heeft class 'open-sponsor-popup', dus cosponsors.js pakt hem automatisch op.
     }
   });
 
@@ -151,7 +158,6 @@ if (!window.formSubmitInitialized) {
   // -----------------------------------------------------------
   async function fetchLead(payload) {
     if (!payload?.cid || !payload?.sid) {
-      // error("❌ fetchLead: ontbrekende cid/sid:", payload);
       return { success: false };
     }
 
@@ -172,7 +178,6 @@ if (!window.formSubmitInitialized) {
       window.submittedCampaigns.add(key);
       return json;
     } catch (err) {
-      // error("❌ Fout bij lead versturen:", err);
       return { success: false };
     }
   }
@@ -250,7 +255,7 @@ if (!window.formSubmitInitialized) {
   }
 
   // -----------------------------------------------------------
-  // 🔹 Shortform submit (UPDATED: Met Slide-up Support)
+  // 🔹 Shortform Handler (UPDATED: Met Slide-up Support)
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("lead-form");
@@ -302,34 +307,39 @@ if (!window.formSubmitInitialized) {
         if (slideup) {
           slideup.classList.add("is-visible"); // Toon kaart
           
-          // Eenmalig events binden (voorkom dubbele clicks)
           if (!slideup.dataset.bound) {
              slideup.dataset.bound = "true";
              
-             // JA KNOP (Sponsors + Lead)
-             document.getElementById("slideup-confirm").addEventListener("click", async () => {
-               slideup.classList.remove("is-visible");
-               btn.innerHTML = "Even geduld...";
+             // JA KNOP (Loading State + Blijven staan)
+             const confirmBtn = document.getElementById("slideup-confirm");
+             confirmBtn.addEventListener("click", async () => {
+               // VISUEEL: Loading state activeren
+               confirmBtn.classList.add("is-loading");
+               const span = confirmBtn.querySelector("span");
+               if (span) span.innerText = "Even geduld...";
+               
                submitting = true;
                
                sessionStorage.setItem("sponsorsAccepted", "true");
+               
+               // ACTIE: Versturen
                await sendSponsorLeads(); // Vuur sponsors
                await finalizeShortForm(); // Vuur hoofdlead + coregs
                
-               submitting = false;
+               // NB: We verbergen de slide-up NIET. Hij blijft staan met spinner
+               // totdat de pagina navigeert (door finalizeShortForm event).
              });
 
-             // NEE KNOP (Alleen Lead)
+             // NEE KNOP (Slide-up weg + Loading op originele knop)
              document.getElementById("slideup-deny").addEventListener("click", async () => {
                slideup.classList.remove("is-visible");
                btn.innerHTML = "Even geduld...";
                submitting = true;
                
                sessionStorage.setItem("sponsorsAccepted", "false");
-               // GEEN sponsors vuren
-               await finalizeShortForm(); // Alleen hoofdlead
                
-               submitting = false;
+               // ACTIE: Alleen hoofdlead
+               await finalizeShortForm(); 
              });
           }
         } else {
