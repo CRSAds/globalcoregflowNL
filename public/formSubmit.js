@@ -32,11 +32,12 @@ if (!window.formSubmitInitialized) {
   window.submittedCampaigns = window.submittedCampaigns || new Set();
 
   // --- HTML Template voor de Slide-up ---
+  // Let op: De link heeft nu class 'open-sponsor-popup' zodat cosponsors.js hem direct pakt.
   const SLIDEUP_TEMPLATE = `
     <div class="sponsor-slideup" id="sponsor-slideup">
       <h3 class="slideup-title">Nog één klein vraagje...</h3>
       <p class="slideup-text">
-        Mogen de <button type="button" class="slideup-partner-link" id="trigger-sponsor-modal-slideup">partners</button> 
+        Mogen de <button type="button" class="slideup-partner-link open-sponsor-popup">partners</button> 
         van deze actie jou ook benaderen met aanbiedingen?
       </p>
       <div class="slideup-actions">
@@ -60,18 +61,7 @@ if (!window.formSubmitInitialized) {
     const form = document.getElementById("lead-form");
     if (form && form.dataset.sponsorSlideup === "true") {
       form.insertAdjacentHTML('beforeend', SLIDEUP_TEMPLATE);
-
-      // Koppel de partner link aan de bestaande modal logic
-      setTimeout(() => {
-        const link = document.getElementById("trigger-sponsor-modal-slideup");
-        const realTrigger = document.getElementById("open-sponsor-popup");
-        if (link && realTrigger) {
-          link.addEventListener("click", (e) => {
-            e.preventDefault();
-            realTrigger.click();
-          });
-        }
-      }, 500);
+      // Geen extra listeners nodig voor de link; cosponsors.js reageert automatisch op .open-sponsor-popup
     }
   });
 
@@ -571,5 +561,5 @@ if (!window.formSubmitInitialized) {
     btn.addEventListener("click", () => sessionStorage.setItem("sponsorsAccepted", "true"));
   });
 
-  console.info("🎉 formSubmit loaded successfully (v3 full)");
+  console.info("🎉 formSubmit loaded successfully (v3 full slideup)");
 }
