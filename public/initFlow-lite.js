@@ -1,11 +1,36 @@
 // =============================================================
-// ✅ initFlow-lite.js — productieversie (silent mode)
-// GLOBALCOREGFLOW
+// ✅ initFlow-lite.js — NL Version (Met Agressieve Scroll Fix)
 // =============================================================
 
 // Debug toggle (false = productie)
 const FLOW_DEBUG = false;
 const flowLog  = (...args) => { if (FLOW_DEBUG) console.log(...args); };
+
+// =============================================================
+// 🛠️ HELPER: FORCE SCROLL TOP
+// Probeert alle mogelijke containers naar boven te scrollen
+// =============================================================
+function forceScrollTop() {
+  // 1. Directe window scroll (zonder smooth om conflicten te voorkomen)
+  window.scrollTo(0, 0);
+
+  // 2. Body en HTML (voor mobiele browsers / Safari)
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+
+  // 3. Swipe Pages Specifieke Wrappers
+  // Soms zit de scrollbar op een wrapper div
+  const wrappers = document.querySelectorAll('.swipe-page-wrapper, .section-container, .coreg-wrapper-fixed');
+  wrappers.forEach(el => {
+    el.scrollTop = 0;
+  });
+
+  // 4. Fallback met timeout (voor als de browser traag rendert)
+  setTimeout(() => {
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+  }, 50);
+}
 
 // =============================================================
 // 🟢 Sovendus hook — start pas zodra sectie actief wordt
@@ -31,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");
 
+  // NL Logica: check ook op 'energie'
   if (status !== "online" && status !== "live" && status !== "energie") {
     document.querySelectorAll("section, footer, .sp-section, #dynamic-footer")
       .forEach(el => el.style.display = "none");
@@ -75,10 +101,12 @@ function initFlowLite() {
   if (firstVisible) {
     firstVisible.style.display = "block";
     reloadImages(firstVisible);
-    maybeStartSovendus(firstVisible); // ✅ toegevoegd
+    maybeStartSovendus(firstVisible);
   }
 
-  // Navigatieknoppen
+  // -----------------------------------------------------------
+  // 1. Navigation Buttons Click Handler
+  // -----------------------------------------------------------
   const flowButtons = document.querySelectorAll(".flow-next");
   flowButtons.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -110,22 +138,26 @@ function initFlowLite() {
       if (next) {
         next.style.display = "block";
         reloadImages(next);
-        maybeStartSovendus(next); // ✅ toegevoegd
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        maybeStartSovendus(next);
+        
+        // ✅ AGGRESSIVE SCROLL
+        forceScrollTop();
       }
     });
   });
 
-  // Event na shortform
+  // -----------------------------------------------------------
+  // 2. Event: Na shortform submit
+  // -----------------------------------------------------------
   document.addEventListener("shortFormSubmitted", () => {
-  const form = document.getElementById("lead-form");
-  if (!form) return;
-  
-  const current = form.closest(".flow-section");
-  if (!current) return;
-  
-  let next = current.nextElementSibling;
-  if (!next) return;
+    const form = document.getElementById("lead-form");
+    if (!form) return;
+    
+    const current = form.closest(".flow-section");
+    if (!current) return;
+    
+    let next = current.nextElementSibling;
+    if (!next) return;
 
     // ivr skip
     while (
@@ -145,16 +177,21 @@ function initFlowLite() {
     current.style.display = "none";
     next.style.display = "block";
     reloadImages(next);
-    maybeStartSovendus(next); // ✅ toegevoegd
+    maybeStartSovendus(next);
+    
+    // ✅ AGGRESSIVE SCROLL
+    forceScrollTop();
   });
 
-  // Event na longform
+  // -----------------------------------------------------------
+  // 3. Event: Na longform submit
+  // -----------------------------------------------------------
   document.addEventListener("longFormSubmitted", () => {
-  const current = document.getElementById("long-form-section");
-  if (!current) return;
-  
-  let next = current.nextElementSibling;
-  if (!next) return;
+    const current = document.getElementById("long-form-section");
+    if (!current) return;
+    
+    let next = current.nextElementSibling;
+    if (!next) return;
 
     while (
       next &&
@@ -167,7 +204,10 @@ function initFlowLite() {
     current.style.display = "none";
     next.style.display = "block";
     reloadImages(next);
-    maybeStartSovendus(next); // ✅ toegevoegd
+    maybeStartSovendus(next);
+
+    // ✅ AGGRESSIVE SCROLL
+    forceScrollTop();
   });
 }
 
@@ -183,4 +223,4 @@ function reloadImages(section) {
   setTimeout(() => window.scrollBy(0, -1), 150);
 }
 
-console.info("🎉 initFlow-lite (global) loaded");
+console.info("🎉 initFlow-lite (NL) loaded");
