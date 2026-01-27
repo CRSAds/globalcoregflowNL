@@ -24,15 +24,30 @@ if (!window.DEBUG_MODE && typeof window.console !== "undefined") {
 }
 
 // =============================================================
-// ✅ formSubmit.js — productieversie (geen console-spam)
+// ✅ formSubmit.js — Met "Smart Submit" Slide-up (FULL)
 // =============================================================
 
 if (!window.formSubmitInitialized) {
   window.formSubmitInitialized = true;
   window.submittedCampaigns = window.submittedCampaigns || new Set();
 
+  // --- HTML Template voor de Slide-up ---
+  const SLIDEUP_TEMPLATE = `
+    <div class="sponsor-slideup" id="sponsor-slideup">
+      <h3 class="slideup-title">Nog één klein vraagje...</h3>
+      <p class="slideup-text">
+        Mogen de <button type="button" class="slideup-partner-link" id="trigger-sponsor-modal-slideup">partners</button> 
+        van deze actie jou ook benaderen met aanbiedingen?
+      </p>
+      <div class="slideup-actions">
+        <button type="button" id="slideup-confirm" class="cta-primary">Ja, prima (ga verder)</button>
+        <button type="button" id="slideup-deny" class="slideup-deny">Nee, liever niet</button>
+      </div>
+    </div>
+  `;
+
   // -----------------------------------------------------------
-  // Tracking opslaan bij pageload
+  // 🔹 Tracking & Slide-up Injectie bij pageload
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -40,6 +55,24 @@ if (!window.formSubmitInitialized) {
       const val = urlParams.get(key);
       if (val) sessionStorage.setItem(key, val);
     });
+
+    // Check of we de slide-up moeten injecteren (op basis van data-attribuut op form)
+    const form = document.getElementById("lead-form");
+    if (form && form.dataset.sponsorSlideup === "true") {
+      form.insertAdjacentHTML('beforeend', SLIDEUP_TEMPLATE);
+
+      // Koppel de partner link aan de bestaande modal logic
+      setTimeout(() => {
+        const link = document.getElementById("trigger-sponsor-modal-slideup");
+        const realTrigger = document.getElementById("open-sponsor-popup");
+        if (link && realTrigger) {
+          link.addEventListener("click", (e) => {
+            e.preventDefault();
+            realTrigger.click();
+          });
+        }
+      }, 500);
+    }
   });
 
   // -----------------------------------------------------------
@@ -128,7 +161,7 @@ if (!window.formSubmitInitialized) {
   // -----------------------------------------------------------
   async function fetchLead(payload) {
     if (!payload?.cid || !payload?.sid) {
-      error("❌ fetchLead: ontbrekende cid/sid:", payload);
+      // error("❌ fetchLead: ontbrekende cid/sid:", payload);
       return { success: false };
     }
 
@@ -149,166 +182,85 @@ if (!window.formSubmitInitialized) {
       window.submittedCampaigns.add(key);
       return json;
     } catch (err) {
-      error("❌ Fout bij lead versturen:", err);
+      // error("❌ Fout bij lead versturen:", err);
       return { success: false };
     }
   }
   window.fetchLead = fetchLead;
 
-// -----------------------------------------------------------
-// 🔹 DOB input — masked, auto-advance, persistent placeholders
-// -----------------------------------------------------------
-document.addEventListener("DOMContentLoaded", () => {
-  const input = document.getElementById("dob");
-  if (!input) return;
-
-  const TEMPLATE = "dd / mm / jjjj";
-
-  // init
-  input.value = TEMPLATE;
-  input.inputMode = "numeric";
-
-  const setCursor = pos =>
-    requestAnimationFrame(() => input.setSelectionRange(pos, pos));
-
-  const getDigits = () => input.value.replace(/\D/g, "").split("");
-
-  const render = digits => {
-    const d = [...digits, "", "", "", "", "", "", "", ""];
-    return (
-      `${d[0] || "d"}${d[1] || "d"} / ` +
-      `${d[2] || "m"}${d[3] || "m"} / ` +
-      `${d[4] || "j"}${d[5] || "j"}${d[6] || "j"}${d[7] || "j"}`
-    );
-  };
-
-  input.addEventListener("focus", () => {
-    if (input.value === "") input.value = TEMPLATE;
-    setCursor(0);
-  });
-
-  input.addEventListener("keydown", e => {
-    const key = e.key;
-    const digits = getDigits();
-
-    // allow navigation
-    if (["ArrowLeft", "ArrowRight", "Tab"].includes(key)) return;
-
-    e.preventDefault();
-
-    // BACKSPACE
-    if (key === "Backspace") {
-      digits.pop();
-    }
-
-    // DIGIT
-    if (/^\d$/.test(key) && digits.length < 8) {
-      // dag
-      if (digits.length === 0 && key >= "4") {
-        digits.push("0", key);
-      }
-      // maand
-      else if (digits.length === 2 && key >= "2") {
-        digits.push("0", key);
-      }
-      else {
-        digits.push(key);
-      }
-    }
-
-    const value = render(digits);
-    input.value = value;
-
-    // cursor positions per segment
-    const cursorMap = [0, 1, 5, 6, 10, 11, 12, 13];
-    setCursor(cursorMap[digits.length] ?? 14);
-
-    if (digits.length === 8) {
-      sessionStorage.setItem("dob", value.replace(/\s/g, ""));
-    }
-  });
-});
-
-// -----------------------------------------------------------
-// 🔹 Postcode lookup — alleen modern-form-v2 long forms
-// -----------------------------------------------------------
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("long-form");
-
-  // Alleen nieuwe modern v2 long forms
-  if (!form || !form.classList.contains("modern-form-v2")) return;
-
-  const postcode   = document.getElementById("postcode");
-  const huisnummer = document.getElementById("huisnummer");
-  const straat     = document.getElementById("straat");
-  const woonplaats = document.getElementById("woonplaats");
-
-  if (!postcode || !huisnummer || !straat || !woonplaats) return;
-
-  // Postcode formatteren
-  postcode.addEventListener("input", () => {
-    let v = postcode.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
-    if (v.length > 4) v = v.slice(0, 4) + " " + v.slice(4);
-    postcode.value = v;
-  });
-
-  const lookup = async () => {
-    const pc = postcode.value.replace(/\s+/g, "");
-    const raw = huisnummer.value.trim();
-    if (pc.length !== 6 || !raw) return;
-    
-    // split: 12A / 12 A / 12-a
-    const match = raw.match(/^(\d+)\s*([a-zA-Z\-]{0,5})$/);
-    if (!match) return;
-    
-    const number = match[1];
-    const addition = match[2] || "";
-
+  // -----------------------------------------------------------
+  // 🔹 HELPER: Verstuur Sponsor Leads (Cosponsors & Pingtree)
+  // -----------------------------------------------------------
+  async function sendSponsorLeads() {
     try {
-      const res = await fetch(
-      "https://globalcoregflow-nl.vercel.app/api/validateAddressNL.js",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          postcode: pc,
-          huisnummer: number,
-          toevoeging: addition
-        })
+      const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
+      const json = await res.json();
+      
+      if (Array.isArray(json.data)) {
+        Promise.allSettled(
+          json.data.map(async s => {
+            const p = await window.buildPayload({
+              cid: s.cid,
+              sid: s.sid,
+              is_shortform: true
+            });
+            return window.fetchLead(p);
+          })
+        );
       }
-    );
-
-      const data = await res.json();
-      if (!data.valid) return;
-
-      straat.value     = data.street || "";
-      woonplaats.value = data.city   || "";
+      
+      // Databowl Pingtree (1x per lead)
+      const pingtreePayload = await window.buildPayload({
+        cid: "5677",
+        sid: "34",
+        is_shortform: true
+      });
+      await window.fetchLead(pingtreePayload);
     } catch {}
-  };
-
-  postcode.addEventListener("input", lookup);
-  huisnummer.addEventListener("input", lookup);
-});
+  }
 
   // -----------------------------------------------------------
-  // 🔹 Telefoon input — alleen cijfers, max 10 (long form)
+  // 🔹 HELPER: Afronden Shortform (Hoofdlead + Events)
   // -----------------------------------------------------------
-  document.addEventListener("DOMContentLoaded", () => {
-    const phoneInput = document.getElementById("telefoon");
-    if (!phoneInput) return;
-  
-    phoneInput.inputMode = "numeric";
-    phoneInput.maxLength = 10;
-  
-    phoneInput.addEventListener("input", () => {
-      phoneInput.value = phoneInput.value
-        .replace(/\D/g, "")   // alleen cijfers
-        .slice(0, 10);        // max 10
-    });
-  });
-  
+  async function finalizeShortForm() {
+    try {
+      // Hoofdlead versturen
+      const basePayload = await window.buildPayload({ cid: "925", sid: "34", is_shortform: true });
+      window.fetchLead(basePayload);
+    } catch {}
+
+    // Markeer shortform klaar
+    sessionStorage.setItem("shortFormCompleted", "true");
+    document.dispatchEvent(new Event("shortFormSubmitted"));
+
+    // Flush pending SHORTFORM coregs
+    (async () => {
+      try {
+        const pending = JSON.parse(
+          sessionStorage.getItem("pendingShortCoreg") || "[]"
+        );
+        if (!pending.length) return;
+    
+        for (const ans of pending) {
+          if (!ans.cid || !ans.sid) continue;
+    
+          const payload = await window.buildPayload({
+            cid: ans.cid,
+            sid: ans.sid,
+            is_shortform: true,
+            f_2014_coreg_answer: ans.answer_value
+          });
+    
+          await window.fetchLead(payload);
+        }
+    
+        sessionStorage.removeItem("pendingShortCoreg");
+      } catch {}
+    })();
+  }
+
   // -----------------------------------------------------------
-  // 🔹 Shortform submit
+  // 🔹 Shortform submit (UPDATED: Met Slide-up Support)
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("lead-form");
@@ -325,119 +277,87 @@ document.addEventListener("DOMContentLoaded", () => {
       e.stopImmediatePropagation();
 
       if (submitting) return;
-      submitting = true;
-      btn.disabled = true;
       
+      // 1. Validatie
       if (!form.checkValidity()) {
         form.reportValidity();
-        submitting = false;
-        btn.disabled = false;
         return;
       }
 
-      // 🔒 DOB verplicht + volledig
+      // DOB Check
       const dobRaw = sessionStorage.getItem("dob") || "";
-      const dobDigits = dobRaw.replace(/\D/g, "");
-      
-      if (dobDigits.length !== 8) {
+      if (dobRaw.replace(/\D/g, "").length !== 8) {
         alert("Vul je volledige geboortedatum in.");
         document.getElementById("dob")?.focus();
-        submitting = false;
-        btn.disabled = false;
         return;
       }
 
-      try {
-        // Velden opslaan
-        const genderEl = form.querySelector("input[name='gender']:checked");
-        if (genderEl) sessionStorage.setItem("gender", genderEl.value);
+      // 2. Data opslaan
+      const genderEl = form.querySelector("input[name='gender']:checked");
+      if (genderEl) sessionStorage.setItem("gender", genderEl.value);
 
-        ["firstname", "lastname", "email"].forEach(id => {
-          const el = document.getElementById(id);
-          if (!el) return;
-          sessionStorage.setItem(id, el.value.trim().replace(/\s/g, ""));
-        });
+      ["firstname", "lastname", "email"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) sessionStorage.setItem(id, el.value.trim().replace(/\s/g, ""));
+      });
 
-        if (typeof getIpOnce === "function") getIpOnce();
+      if (typeof getIpOnce === "function") getIpOnce();
 
-        // Async verzending zonder logs
-        (async () => {
-          try {
-            const basePayload = await window.buildPayload({ cid: "925", sid: "34", is_shortform: true });
-            window.fetchLead(basePayload);
+      // 3. CHECK: Slide-up Modus?
+      const useSlideUp = form.dataset.sponsorSlideup === "true";
+
+      if (useSlideUp) {
+        // --- NIEUWE SLIDE-UP FLOW ---
+        const slideup = document.getElementById("sponsor-slideup");
+        if (slideup) {
+          slideup.classList.add("is-visible"); // Toon kaart
+          
+          // Eenmalig events binden (voorkom dubbele clicks)
+          if (!slideup.dataset.bound) {
+             slideup.dataset.bound = "true";
+             
+             // JA KNOP (Sponsors + Lead)
+             document.getElementById("slideup-confirm").addEventListener("click", async () => {
+               slideup.classList.remove("is-visible");
+               btn.innerHTML = "Even geduld...";
+               submitting = true;
+               
+               sessionStorage.setItem("sponsorsAccepted", "true");
+               await sendSponsorLeads(); // Vuur sponsors
+               await finalizeShortForm(); // Vuur hoofdlead + coregs
+               
+               submitting = false;
+             });
+
+             // NEE KNOP (Alleen Lead)
+             document.getElementById("slideup-deny").addEventListener("click", async () => {
+               slideup.classList.remove("is-visible");
+               btn.innerHTML = "Even geduld...";
+               submitting = true;
+               
+               sessionStorage.setItem("sponsorsAccepted", "false");
+               // GEEN sponsors vuren
+               await finalizeShortForm(); // Alleen hoofdlead
+               
+               submitting = false;
+             });
+          }
+        } else {
+          // Fallback als HTML mist
+          await finalizeShortForm();
+        }
+
+      } else {
+        // --- OUDE FLOW (Checkbox / Bestaande pagina's) ---
+        submitting = true;
+        btn.disabled = true;
 
         const accepted = sessionStorage.getItem("sponsorsAccepted") === "true";
         if (accepted) {
-          const res = await fetch("https://globalcoregflow-nl.vercel.app/api/cosponsors.js");
-          const json = await res.json();
-        
-          if (Array.isArray(json.data)) {
-            Promise.allSettled(
-              json.data.map(async s => {
-                const p = await window.buildPayload({
-                  cid: s.cid,
-                  sid: s.sid,
-                  is_shortform: true
-                });
-                return window.fetchLead(p);
-              })
-            );
-          }
-        
-          // ===============================
-          // ✅ Databowl pingtree (1x per lead)
-          // ===============================
-          const pingtreePayload = await window.buildPayload({
-            cid: "5677",
-            sid: "34",
-            is_shortform: true
-          });
-        
-          await window.fetchLead(pingtreePayload);
+          await sendSponsorLeads();
         }
-          } catch {}
-        })(); // ✅ <-- deze miste bij jou
+        await finalizeShortForm();
 
-        // Markeer shortform klaar
-        sessionStorage.setItem("shortFormCompleted", "true");
-        document.dispatchEvent(new Event("shortFormSubmitted"));
-
-        // =====================================
-        // 🔹 Flush pending SHORTFORM coregs
-        // =====================================
-        (async () => {
-          try {
-            const pending = JSON.parse(
-              sessionStorage.getItem("pendingShortCoreg") || "[]"
-            );
-            if (!pending.length) return;
-        
-            for (const ans of pending) {
-              // 🔒 harde guard — nooit zonder cid/sid versturen
-              if (!ans.cid || !ans.sid) {
-                console.warn("⚠️ Skip pending coreg zonder cid/sid:", ans);
-                continue;
-              }
-        
-              const payload = await window.buildPayload({
-                cid: ans.cid,
-                sid: ans.sid,
-                is_shortform: true,
-                f_2014_coreg_answer: ans.answer_value
-              });
-        
-              await window.fetchLead(payload);
-            }
-        
-            sessionStorage.removeItem("pendingShortCoreg");
-          } catch (e) {
-            console.error("❌ Pending shortform coreg flush failed:", e);
-          }
-        })();
-
-      } catch (err) {
-        error("❌ Shortform fout:", err);
-      } finally {
         submitting = false;
         btn.disabled = false;
       }
@@ -450,16 +370,125 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // -----------------------------------------------------------
-  // 🔹 Longform submit
+  // 🔹 DOB input (ORIGINEEL)
+  // -----------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const input = document.getElementById("dob");
+    if (!input) return;
+
+    const TEMPLATE = "dd / mm / jjjj";
+    input.value = TEMPLATE;
+    input.inputMode = "numeric";
+
+    const setCursor = pos =>
+      requestAnimationFrame(() => input.setSelectionRange(pos, pos));
+
+    const getDigits = () => input.value.replace(/\D/g, "").split("");
+
+    const render = digits => {
+      const d = [...digits, "", "", "", "", "", "", "", ""];
+      return (
+        `${d[0] || "d"}${d[1] || "d"} / ` +
+        `${d[2] || "m"}${d[3] || "m"} / ` +
+        `${d[4] || "j"}${d[5] || "j"}${d[6] || "j"}${d[7] || "j"}`
+      );
+    };
+
+    input.addEventListener("focus", () => {
+      if (input.value === "") input.value = TEMPLATE;
+      setCursor(0);
+    });
+
+    input.addEventListener("keydown", e => {
+      const key = e.key;
+      const digits = getDigits();
+      if (["ArrowLeft", "ArrowRight", "Tab"].includes(key)) return;
+      e.preventDefault();
+      if (key === "Backspace") digits.pop();
+      if (/^\d$/.test(key) && digits.length < 8) {
+        if (digits.length === 0 && key >= "4") digits.push("0", key);
+        else if (digits.length === 2 && key >= "2") digits.push("0", key);
+        else digits.push(key);
+      }
+      input.value = render(digits);
+      const cursorMap = [0, 1, 5, 6, 10, 11, 12, 13];
+      setCursor(cursorMap[digits.length] ?? 14);
+      if (digits.length === 8) sessionStorage.setItem("dob", input.value.replace(/\s/g, ""));
+    });
+  });
+
+  // -----------------------------------------------------------
+  // 🔹 Postcode lookup (ORIGINEEL)
+  // -----------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("long-form");
+    if (!form || !form.classList.contains("modern-form-v2")) return;
+
+    const postcode   = document.getElementById("postcode");
+    const huisnummer = document.getElementById("huisnummer");
+    const straat     = document.getElementById("straat");
+    const woonplaats = document.getElementById("woonplaats");
+
+    if (!postcode || !huisnummer || !straat || !woonplaats) return;
+
+    postcode.addEventListener("input", () => {
+      let v = postcode.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+      if (v.length > 4) v = v.slice(0, 4) + " " + v.slice(4);
+      postcode.value = v;
+    });
+
+    const lookup = async () => {
+      const pc = postcode.value.replace(/\s+/g, "");
+      const raw = huisnummer.value.trim();
+      if (pc.length !== 6 || !raw) return;
+      
+      const match = raw.match(/^(\d+)\s*([a-zA-Z\-]{0,5})$/);
+      if (!match) return;
+      
+      const number = match[1];
+      const addition = match[2] || "";
+
+      try {
+        const res = await fetch(
+        "https://globalcoregflow-nl.vercel.app/api/validateAddressNL.js",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            postcode: pc,
+            huisnummer: number,
+            toevoeging: addition
+          })
+        });
+        const data = await res.json();
+        if (!data.valid) return;
+        straat.value     = data.street || "";
+        woonplaats.value = data.city   || "";
+      } catch {}
+    };
+
+    postcode.addEventListener("input", lookup);
+    huisnummer.addEventListener("input", lookup);
+  });
+
+  // -----------------------------------------------------------
+  // 🔹 Telefoon input (ORIGINEEL)
+  // -----------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    const phoneInput = document.getElementById("telefoon");
+    if (!phoneInput) return;
+    phoneInput.inputMode = "numeric";
+    phoneInput.maxLength = 10;
+    phoneInput.addEventListener("input", () => {
+      phoneInput.value = phoneInput.value.replace(/\D/g, "").slice(0, 10);
+    });
+  });
+
+  // -----------------------------------------------------------
+  // 🔹 Longform submit (ORIGINEEL)
   // -----------------------------------------------------------
   document.addEventListener("click", async e => {
-  const isLongFormSubmit =
-    e.target?.matches("#submit-long-form") ||
-    (
-      e.target?.matches(".flow-next") &&
-      e.target.closest("#long-form")
-    );
-  
+    const isLongFormSubmit = e.target?.matches("#submit-long-form") || (e.target?.matches(".flow-next") && e.target.closest("#long-form"));
     if (!isLongFormSubmit) return;
     
     e.preventDefault();
@@ -472,21 +501,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const invalid = fields.filter(id => !document.getElementById(id)?.value.trim());
     if (invalid.length) return alert("Vul alle verplichte velden in.");
 
-    // 🔒 Telefoonnummer validatie — exact 10 cijfers
     const phoneRaw = document.getElementById("telefoon").value;
     const phone = phoneRaw.replace(/\D/g, "");
-    
     if (phone.length !== 10) {
       alert("Vul een geldig telefoonnummer in (10 cijfers).");
       document.getElementById("telefoon").focus();
       return;
     }
 
-    // Server-side adrescheck
     const pc = document.getElementById("postcode").value.replace(/\s+/g, "");
     const raw = document.getElementById("huisnummer").value.trim();
-    
-    // split: 12 / 12A / 12 A / 12-a
     const match = raw.match(/^(\d+)\s*([a-zA-Z\-]{0,5})$/);
     if (!match) return alert("Ongeldig huisnummer.");
     
@@ -497,26 +521,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const r = await fetch("https://globalcoregflow-nl.vercel.app/api/validateAddressNL.js", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          postcode: pc,
-          huisnummer: number,
-          toevoeging: addition
-        })
+        body: JSON.stringify({ postcode: pc, huisnummer: number, toevoeging: addition })
       });
-      
       const data = await r.json();
       if (!data.valid) return alert("Adres niet gevonden.");
+      if (data.street && !document.getElementById("straat").value) document.getElementById("straat").value = data.street;
+      if (data.city && !document.getElementById("woonplaats").value) document.getElementById("woonplaats").value = data.city;
+    } catch { return alert("Adresvalidatie niet mogelijk."); }
 
-      if (data.street && !document.getElementById("straat").value)
-        document.getElementById("straat").value = data.street;
-
-      if (data.city && !document.getElementById("woonplaats").value)
-        document.getElementById("woonplaats").value = data.city;
-    } catch {
-      return alert("Adresvalidatie niet mogelijk.");
-    }
-
-    // Opslaan
     fields.forEach(id => sessionStorage.setItem(id, document.getElementById(id).value.trim()));
 
     const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
@@ -536,7 +548,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const payload = await buildPayload({
               cid: camp.cid,
               sid: camp.sid,
-              is_shortform: false, // 🔑 CRUCIAAL
+              is_shortform: false,
               f_2014_coreg_answer: ans || undefined,
               f_2575_coreg_answer_dropdown: drop || undefined
             });
@@ -551,7 +563,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // -----------------------------------------------------------
-  // 🔹 Sponsor akkoord
+  // 🔹 Sponsor akkoord (ORIGINEEL - Voor oude flow fallback)
   // -----------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("accept-sponsors-btn");
@@ -559,8 +571,5 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => sessionStorage.setItem("sponsorsAccepted", "true"));
   });
 
-  // -----------------------------------------------------------
-  // 🔹 Eén nette loaded melding
-  // -----------------------------------------------------------
-  console.info("🎉 formSubmit loaded successfully");
+  console.info("🎉 formSubmit loaded successfully (v3 full)");
 }
