@@ -1108,4 +1108,77 @@ input.error {
 /* 3. Hover effect voor de niet-geselecteerde knoppen (optioneel, voor UX) */
 .modern-form-v2 .gender-segment label:hover span {
   border-color: #999 !important;
+   }
 
+/* --- Sponsor Slide-up (Smart Submit) --- */
+.modern-form-v2 {
+  position: relative; /* Nodig voor absolute positionering van de slideup */
+  overflow: hidden;   /* Zorgt dat de slideup netjes van onder komt */
+}
+
+.sponsor-slideup {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+  background: #1e293b; /* Donkere achtergrond, past bij dark theme */
+  border-top: 1px solid #334155;
+  padding: 20px;
+  transform: translateY(110%); /* Standaard verborgen (onder beeld) */
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 100;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+  border-radius: 0 0 8px 8px; /* Match form radius indien nodig */
+  text-align: center;
+}
+
+.sponsor-slideup.is-visible {
+  transform: translateY(0); /* Schuift omhoog */
+}
+
+.slideup-title {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.slideup-text {
+  color: #94a3b8;
+  font-size: 13px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.slideup-partner-link {
+  color: #3b82f6;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.slideup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.slideup-actions .cta-primary {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+}
+
+.slideup-deny {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px;
+}
+.slideup-deny:hover { color: #cbd5e1; }
