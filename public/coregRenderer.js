@@ -48,7 +48,7 @@ let activeCoregPathKey = "default";
 // 🔑 STATUS-OVERRIDE
 if (status === "energie" && COREG_PATHS.energie_direct) {
   activeCoregPath = COREG_PATHS.energie_direct;
-  activeCoregPathKey = "energie_direct";
+  window.activeCoregPathKey = "energie_direct";
 }
 // 🔁 BACKWARD COMPATIBLE: ?coreg= blijft werken
 else if (coregParam && COREG_PATHS[coregParam]) {
