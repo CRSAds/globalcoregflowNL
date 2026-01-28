@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ coregRenderer.js — NL Version (Met Agressieve Scroll Fix)
+// ✅ coregRenderer.js — NL Version (Global Sync Fix)
 // =============================================================
 
 if (typeof window.API_COREG === "undefined") {
@@ -42,24 +42,25 @@ const urlParams = new URLSearchParams(window.location.search);
 const status = urlParams.get("status");
 const coregParam = urlParams.get("coreg");
 
+// 1. Zet standaard waarden globaal
 let activeCoregPath = COREG_PATHS.default;
-let activeCoregPathKey = "default";
+window.activeCoregPathKey = "default"; // <--- GLOBALE DEFAULT
 
-// 🔑 STATUS-OVERRIDE
+// 2. STATUS-OVERRIDE (Energie Direct)
 if (status === "energie" && COREG_PATHS.energie_direct) {
   activeCoregPath = COREG_PATHS.energie_direct;
-  window.activeCoregPathKey = "energie_direct";
+  window.activeCoregPathKey = "energie_direct"; // <--- GLOBALE UPDATE
 }
-// 🔁 BACKWARD COMPATIBLE: ?coreg= blijft werken
+// 3. BACKWARD COMPATIBLE (?coreg=...)
 else if (coregParam && COREG_PATHS[coregParam]) {
   activeCoregPath = COREG_PATHS[coregParam];
-  activeCoregPathKey = coregParam;
+  window.activeCoregPathKey = coregParam; // <--- GLOBALE UPDATE
 }
 
 // Filter campaigns obv pad:
 function applyCoregPathFilter(campaigns, coregPath) {
-  // ✅ Alleen standaard pad mag uitsluiten toepassen
-  if (activeCoregPathKey === "default") {
+  // ✅ Check nu ALTIJD de globale variabele
+  if (window.activeCoregPathKey === "default") {
     return campaigns.filter(c => !c.uitsluiten_standaardpad);
   }
 
@@ -87,7 +88,7 @@ function applyCoregPathFilter(campaigns, coregPath) {
     return filtered;
   }
 
-  // fallback: als iemand een onbekend pad meegeeft, toon alles (zonder uitsluiten)
+  // fallback: als iemand een onbekend pad meegeeft, toon alles
   return campaigns;
 }
 
@@ -273,12 +274,14 @@ async function initCoregFlow() {
   if (!container) return;
 
   let campaigns = await fetchCampaigns();
+  
+  // ✅ Gebruik de actieve pad filter
   campaigns = applyCoregPathFilter(campaigns, activeCoregPath);
   
   window.allCampaigns = campaigns;
   
   if (DEBUG) {
-    log("🧭 Actief coregpad:", activeCoregPathKey);
+    log("🧭 Actief coregpad:", window.activeCoregPathKey); // Check globaal
     log("📌 Campaigns na filter:", campaigns.length);
   }
 
