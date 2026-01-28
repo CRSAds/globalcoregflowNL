@@ -35,14 +35,14 @@ if (!window.formSubmitInitialized) {
   // Bevat nu het SVG pijltje en de spinner div voor de CSS animaties
   const SLIDEUP_TEMPLATE = `
     <div class="sponsor-slideup" id="sponsor-slideup">
-      <h3 class="slideup-title">Nog één klein vraagje...</h3>
+      <h3 class="slideup-title">Bijna klaar!</h3>
       <p class="slideup-text">
-        Mogen de <button type="button" class="slideup-partner-link open-sponsor-popup">partners</button> 
-        van deze actie jou ook benaderen met aanbiedingen?
+        Vind je het goed dat onze <button type="button" class="slideup-partner-link open-sponsor-popup">partners</button> 
+        je vrijblijvend informeren over hun acties?
       </p>
       <div class="slideup-actions">
         <button type="button" id="slideup-confirm" class="cta-primary">
-          <span>Ja, prima</span>
+          <span>Ja, ga verder</span>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14"></path>
             <path d="M12 5l7 7-7 7"></path>
