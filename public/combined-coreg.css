@@ -1258,3 +1258,17 @@ input.error {
   /* Zorg dat de tekstkleur wel donkergrijs wordt (zoals eerder besproken) */
   color: #334155 !important; 
 }
+
+.modern-form-v2[data-theme="dark"] {
+  /* 50% transparant zwart */
+  background-color: rgba(0, 0, 0, 0.5) !important; 
+  
+  /* Optioneel: vervaagt de achtergrond iets voor betere leesbaarheid */
+  backdrop-filter: blur(5px); 
+  -webkit-backdrop-filter: blur(5px);
+  
+  /* Beetje padding nodig omdat er nu een kader is */
+  padding: 24px !important; 
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.1); /* Subtiel randje */
+}
