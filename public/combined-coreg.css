@@ -1272,3 +1272,39 @@ input.error {
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.1); /* Subtiel randje */
 }
+
+/* =====================================================
+   GLASSMORPHISM — LIGHT THEME
+   ===================================================== */
+
+/* Geldt voor expliciet 'light' OF als er geen theme is ingesteld */
+.modern-form-v2[data-theme="light"],
+.modern-form-v2:not([data-theme]),
+.modern-form-v2:not([data-theme="dark"]) {
+  
+  /* 1. Witte, grotendeels dekkende laag (85%) voor maximale leesbaarheid */
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  
+  /* 2. Een zachte witte rand */
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  
+  /* 3. Afronding en ruimte (gelijk aan dark theme) */
+  border-radius: 12px;
+  padding: 24px !important;
+  
+  /* 4. Zachte schaduw */
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+  
+  /* 5. Het 'frosted glass' effect (vervaagt de achtergrond erachter) */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Mobiele padding correctie */
+@media (max-width: 480px) {
+  .modern-form-v2[data-theme="light"],
+  .modern-form-v2:not([data-theme]),
+  .modern-form-v2:not([data-theme="dark"]) {
+    padding: 16px !important;
+  }
+}
