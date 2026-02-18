@@ -1,17 +1,5 @@
 // =============================================================
 // ⚡ /api/coreg.js — Ultra-fast versie met Edge Cache + Retry + Fallback
-//
-// Wat dit doet:
-// 1. Directus wordt MAX 1× per uur bevraagd
-// 2. Vercel Edge levert cached data in ±10ms aan bezoekers
-// 3. Jouw bestaande normalizeCampaigns blijft werken
-// 4. Jouw fallback (LAST_KNOWN_GOOD) blijft intact bij Directus errors
-// 5. Geen breaking changes voor coregRenderer
-//
-// Resultaat:
-// 👉 LAADT 10–50× SNELLER OP MOBIEL
-// 👉 DIRECTUS WORDT ONTLAST
-// 👉 GEEN VERTRAGING MEER IN COREGPAD
 // =============================================================
 
 import { fetchWithRetry } from "./utils/fetchDirectus.js";
@@ -28,20 +16,13 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  // -------------------------------------------------------------
-  // NEW: Edge Cache headers (1 uur cache)
-  // -------------------------------------------------------------
-  // s-maxage → Vercel CDN cache
-  // stale-while-revalidate → bezoekers krijgen snel antwoord
-  // zelfs wanneer de cache op de achtergrond vernieuwd wordt
+  // Edge Cache headers (1 uur cache)
   res.setHeader(
     "Cache-Control",
     "s-maxage=3600, stale-while-revalidate"
   );
 
-  // -------------------------------------------------------------
   // Directus URL
-  // -------------------------------------------------------------
   const url = `${process.env.DIRECTUS_URL}/items/coreg_campaigns`
     + `?filter[is_live][_eq]=true`
     + `&filter[_or][0][country][_null]=true`
@@ -50,26 +31,18 @@ export default async function handler(req, res) {
     + `&sort=order`;
 
   try {
-    // =============================================================
-    // 1️⃣ Haal Directus data op met retry
-    // =============================================================
     const json = await fetchWithRetry(url, {
       headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` },
     });
 
-    // 2️⃣ Update fallback memory cache
     LAST_KNOWN_GOOD = json;
 
-    // 3️⃣ Normalize campaigns
     const campaigns = normalizeCampaigns(json.data || []);
 
     console.log(`✅ ${campaigns.length} coreg campagnes geladen (EDGE cached)`);
     return res.status(200).json({ data: campaigns });
 
   } catch (err) {
-    // =============================================================
-    // Directus faalt → fallback gebruiken
-    // =============================================================
     console.error("❌ Directus fout:", err.message);
 
     if (LAST_KNOWN_GOOD) {
@@ -78,13 +51,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ data: campaigns });
     }
 
-    // Geen fallback → error
     return res.status(500).json({ error: "Coreg kon niet geladen worden" });
   }
 }
 
 // =============================================================
-// Normalisatie (ongewijzigd — exact zoals jouw originele code)
+// Normalisatie
 // =============================================================
 function normalizeCampaigns(list) {
   return list.map((camp) => {
@@ -95,6 +67,9 @@ function normalizeCampaigns(list) {
       id: ans.id,
       label: ans.label || "",
       answer_value: ans.value || ans.answer_value || "",
+      // ✅ NIEUW: skip_next doorgeven
+      skip_next: !!ans.skip_next,
+      
       has_own_campaign: !!ans.has_own_campaign,
       cid: ans.has_own_campaign
         ? ans.cid || ans.campaign_id || normalizedCid
@@ -108,6 +83,9 @@ function normalizeCampaigns(list) {
       id: opt.id,
       label: opt.label || "",
       value: opt.value || "",
+      // ✅ NIEUW: skip_next doorgeven voor dropdowns
+      skip_next: !!opt.skip_next,
+
       cid: opt.has_own_campaign
         ? opt.cid || opt.campaign_id || normalizedCid
         : normalizedCid,
