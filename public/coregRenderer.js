@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ coregRenderer.js — NL Version (Global Sync Fix + Skip Next)
+// ✅ coregRenderer.js — NL Version (Global Sync Fix + Skip Next + No Send on Skip)
 // =============================================================
 
 if (typeof window.API_COREG === "undefined") {
@@ -463,35 +463,23 @@ async function initCoregFlow() {
 
         storeCoregAnswerOnly(camp, answerValue);
 
-        // 🟢 SKIP LOGICA: Als skipNext true is, negeer LongForm en skip
+        // 🟢 SKIP LOGICA: skipNext=true (Huur) -> Geen fetch, alleen skippen.
         if (skipNext) {
-          // Check shortform status
-          const shortDone = sessionStorage.getItem("shortFormCompleted") === "true";
-          if (!shortDone) {
-            const pending = JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
-            pending.push({
-               cid: answerValue.cid || camp.cid,
-               sid: answerValue.sid || camp.sid,
-               answer_value: answerValue.answer_value
-            });
-            sessionStorage.setItem("pendingShortCoreg", JSON.stringify(pending));
-          } else {
-            // Direct versturen
-            const payload = await buildCoregPayload(camp, answerValue);
-            window.fetchLead(payload);
-          }
-          // Altijd skippen (en geen LF triggeren)
           skipToNextCampaign(section, camp.cid);
           return;
         }
 
-        // ... Normale Flow (Long Form wel checken) ...
+        // 🟢 NORMALE FLOW: skipNext=false (Koop)
         if (camp.requiresLongForm) {
           const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
+          
           if (!isFinalStep) {
+            // Nog niet klaar met multi-step -> Volgende vraag
             showNextSection(section);
             return;
           }
+          
+          // Klaar met vragen -> Activeer Long Form
           sessionStorage.setItem("requiresLongForm", "true");
           const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
           if (!pending.some(p => p.cid === camp.cid)) {
@@ -555,32 +543,23 @@ async function initCoregFlow() {
           const shortDone = sessionStorage.getItem("shortFormCompleted") === "true";
           storeCoregAnswerOnly(camp, answerValue);
 
-          // 🟢 SKIP LOGICA: Als skipNext true is, negeer LongForm en skip
+          // 🟢 SKIP LOGICA: skipNext=true (Huur) -> Geen fetch, alleen skippen.
           if (skipNext) {
-            if (!shortDone) {
-              const pending = JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
-              pending.push({
-                 cid: answerValue.cid || camp.cid,
-                 sid: answerValue.sid || camp.sid,
-                 answer_value: answerValue.answer_value
-              });
-              sessionStorage.setItem("pendingShortCoreg", JSON.stringify(pending));
-            } else {
-              // Direct versturen
-              const payload = await buildCoregPayload(camp, answerValue);
-              window.fetchLead(payload);
-            }
             skipToNextCampaign(section, camp.cid);
             return;
           }
 
-          // ... Normale Flow (Long Form wel checken) ...
+          // 🟢 NORMALE FLOW: skipNext=false (Koop)
           if (camp.requiresLongForm) {
             const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
+            
             if (!isFinalStep) {
+              // Nog niet klaar met multi-step -> Volgende vraag
               showNextSection(section);
               return;
             }
+            
+            // Klaar met vragen -> Activeer Long Form
             sessionStorage.setItem("requiresLongForm", "true");
             const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
             if (!pending.some(p => p.cid === camp.cid)) {
