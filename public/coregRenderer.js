@@ -1,5 +1,5 @@
 // =============================================================
-// ✅ coregRenderer.js — NL Version (Global Sync Fix)
+// ✅ coregRenderer.js — NL Version (Global Sync Fix + Skip Next)
 // =============================================================
 
 if (typeof window.API_COREG === "undefined") {
@@ -157,7 +157,8 @@ function renderCampaignBlock(campaign, steps) {
           ${answers.map(opt => `
             <option value="${opt.answer_value}"
                     data-cid="${opt.has_own_campaign ? opt.cid : campaign.cid}"
-                    data-sid="${opt.has_own_campaign ? opt.sid : campaign.sid}">
+                    data-sid="${opt.has_own_campaign ? opt.sid : campaign.sid}"
+                    data-skip-next="${opt.skip_next || false}">
               ${opt.label}
             </option>`).join("")}
         </select>
@@ -181,7 +182,8 @@ function renderCampaignBlock(campaign, steps) {
                   data-answer="${opt.answer_value || "yes"}"
                   data-campaign="${campaign.id}"
                   data-cid="${opt.has_own_campaign ? opt.cid : campaign.cid}"
-                  data-sid="${opt.has_own_campaign ? opt.sid : campaign.sid}">
+                  data-sid="${opt.has_own_campaign ? opt.sid : campaign.sid}"
+                  data-skip-next="${opt.skip_next || false}">
             ${opt.label}
           </button>`
         ).join("")}
@@ -408,6 +410,24 @@ async function initCoregFlow() {
     }
   }
 
+  // ✅ NIEUWE HELPER: Skip alle volgende vragen van dezelfde CID
+  function skipToNextCampaign(currentSection, cid) {
+    const idx = sections.indexOf(currentSection);
+    let j = idx + 1;
+    // Skip zolang CID hetzelfde is
+    while (j < sections.length && sections[j].dataset.cid == cid) j++;
+
+    currentSection.style.display = "none";
+
+    if (j < sections.length) {
+      sections[j].style.display = "block";
+      updateProgressBar(j);
+      forceScrollTop();
+    } else {
+      handleFinalCoreg();
+    }
+  }
+
   function handleFinalCoreg() {
     const needLF = sessionStorage.getItem("requiresLongForm") === "true";
     const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
@@ -424,14 +444,17 @@ async function initCoregFlow() {
 
   // Event listeners
   sections.forEach(section => {
+    // ======================================
+    // 1. DROPDOWN HANDLER
+    // ======================================
     const dropdown = section.querySelector(".coreg-dropdown");
-
     if (dropdown) {
       dropdown.addEventListener("change", async e => {
         const opt = e.target.selectedOptions[0];
         if (!opt.value) return;
 
         const camp = campaigns.find(c => c.id == dropdown.dataset.campaign);
+        const skipNext = opt.dataset.skipNext === "true"; // ✅ CHECK SKIP
 
         sessionStorage.setItem(
           `f_2575_coreg_answer_dropdown_${camp.cid}`,
@@ -447,6 +470,40 @@ async function initCoregFlow() {
         // ✅ Opslaan
         storeCoregAnswerOnly(camp, answerValue);
 
+        // 🟢 SKIP LOGICA EERST
+        if (skipNext) {
+          if (camp.requiresLongForm) {
+            sessionStorage.setItem("requiresLongForm", "true");
+            const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+            if (!pending.some(p => p.cid === camp.cid)) {
+              pending.push({ cid: camp.cid, sid: camp.sid });
+            }
+            sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
+            skipToNextCampaign(section, camp.cid);
+            return;
+          }
+
+          const shortDone = sessionStorage.getItem("shortFormCompleted") === "true";
+          if (!shortDone) {
+            const pending = JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
+            pending.push({
+               cid: answerValue.cid || camp.cid,
+               sid: answerValue.sid || camp.sid,
+               answer_value: answerValue.answer_value
+            });
+            sessionStorage.setItem("pendingShortCoreg", JSON.stringify(pending));
+            skipToNextCampaign(section, camp.cid);
+            return;
+          }
+
+          // Direct versturen
+          const payload = await buildCoregPayload(camp, answerValue);
+          window.fetchLead(payload);
+          skipToNextCampaign(section, camp.cid);
+          return;
+        }
+
+        // ... NORMALE FLOW (Geen skip) ...
         if (camp.requiresLongForm) {
           const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
         
@@ -470,7 +527,6 @@ async function initCoregFlow() {
         const shortDone =
           sessionStorage.getItem("shortFormCompleted") === "true";
         
-        // SHORT FORM COREG — vóór short form → opslaan
         if (!shortDone) {
           const pending =
             JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
@@ -490,7 +546,6 @@ async function initCoregFlow() {
           return;
         }
         
-        // short form is al gedaan → check multi-step
         const idx = sections.indexOf(section);
         const moreSteps = sections.slice(idx + 1)
           .some(s => s.dataset.cid == camp.cid);
@@ -500,7 +555,6 @@ async function initCoregFlow() {
           return;
         }
         
-        // short form gedaan + laatste stap → direct versturen
         const payload = await buildCoregPayload(camp, answerValue);
         window.fetchLead(payload);
         showNextSection(section);
@@ -515,123 +569,134 @@ async function initCoregFlow() {
       });
     }
 
-section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
-  btn.addEventListener("click", async () => {
-    const camp = campaigns.find(c => c.id == btn.dataset.campaign);
-    const answer = btn.dataset.answer;
-    const isNegative =
-      btn.classList.contains("btn-skip") ||
-      answer === "no";
+    // ======================================
+    // 2. BUTTONS HANDLER
+    // ======================================
+    section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const camp = campaigns.find(c => c.id == btn.dataset.campaign);
+        const answer = btn.dataset.answer;
+        const isNegative =
+          btn.classList.contains("btn-skip") ||
+          answer === "no";
+        const skipNext = btn.dataset.skipNext === "true"; // ✅ CHECK SKIP
 
-    const answerValue = {
-      answer_value: answer,
-      cid: btn.dataset.cid,
-      sid: btn.dataset.sid
-    };
+        const answerValue = {
+          answer_value: answer,
+          cid: btn.dataset.cid,
+          sid: btn.dataset.sid
+        };
 
-    // ============================
-    // POSITIEF ANTWOORD
-    // ============================
-    if (!isNegative) {
-      const shortDone =
-        sessionStorage.getItem("shortFormCompleted") === "true";
+        // ============================
+        // POSITIEF ANTWOORD
+        // ============================
+        if (!isNegative) {
+          const shortDone =
+            sessionStorage.getItem("shortFormCompleted") === "true";
 
-      // 🔑 ALTIJD antwoord opslaan
-      storeCoregAnswerOnly(camp, answerValue);
+          // 🔑 ALTIJD antwoord opslaan
+          storeCoregAnswerOnly(camp, answerValue);
 
-      // ----------------------------
-      // LONG FORM COREG — ALLEEN NA LAATSTE STEP
-      // ----------------------------
-      if (camp.requiresLongForm) {
-        const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
-      
-        // ⛔ nog niet laatste stap
-        if (!isFinalStep) {
+          // 🟢 SKIP LOGICA EERST
+          if (skipNext) {
+            if (camp.requiresLongForm) {
+              sessionStorage.setItem("requiresLongForm", "true");
+              const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+              if (!pending.some(p => p.cid === camp.cid)) {
+                pending.push({ cid: camp.cid, sid: camp.sid });
+              }
+              sessionStorage.setItem("longFormCampaigns", JSON.stringify(pending));
+              skipToNextCampaign(section, camp.cid);
+              return;
+            }
+
+            if (!shortDone) {
+              const pending = JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
+              pending.push({
+                 cid: answerValue.cid || camp.cid,
+                 sid: answerValue.sid || camp.sid,
+                 answer_value: answerValue.answer_value
+              });
+              sessionStorage.setItem("pendingShortCoreg", JSON.stringify(pending));
+              skipToNextCampaign(section, camp.cid);
+              return;
+            }
+
+            // Direct versturen
+            const payload = await buildCoregPayload(camp, answerValue);
+            window.fetchLead(payload);
+            skipToNextCampaign(section, camp.cid);
+            return;
+          }
+
+          // ... NORMALE FLOW ...
+          if (camp.requiresLongForm) {
+            const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
+          
+            if (!isFinalStep) {
+              showNextSection(section);
+              return;
+            }
+          
+            sessionStorage.setItem("requiresLongForm", "true");
+          
+            const pending =
+              JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
+          
+            if (!pending.some(p => p.cid === camp.cid)) {
+              pending.push({ cid: camp.cid, sid: camp.sid });
+            }
+          
+            sessionStorage.setItem(
+              "longFormCampaigns",
+              JSON.stringify(pending)
+            );
+          
+            showNextSection(section);
+            return;
+          }
+
+          if (!shortDone) {
+            const pending =
+              JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
+
+            pending.push({
+              cid: answerValue.cid || camp.cid,
+              sid: answerValue.sid || camp.sid,
+              answer_value: answerValue.answer_value
+            });
+
+            sessionStorage.setItem(
+              "pendingShortCoreg",
+              JSON.stringify(pending)
+            );
+
+            showNextSection(section);
+            return;
+          }
+
+          const idx = sections.indexOf(section);
+          const hasMoreSteps = sections.slice(idx + 1)
+            .some(s => s.dataset.cid == camp.cid);
+          
+          if (hasMoreSteps) {
+            showNextSection(section);
+            return;
+          }
+          
+          const payload = await buildCoregPayload(camp, answerValue);
+          window.fetchLead(payload);
           showNextSection(section);
           return;
         }
-      
-        // ✅ pas HIER is de campagne lead-waardig
-        sessionStorage.setItem("requiresLongForm", "true");
-      
-        const pending =
-          JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
-      
-        if (!pending.some(p => p.cid === camp.cid)) {
-          pending.push({ cid: camp.cid, sid: camp.sid });
-        }
-      
-        sessionStorage.setItem(
-          "longFormCampaigns",
-          JSON.stringify(pending)
-        );
-      
-        showNextSection(section);
-        return;
-      }
 
-      // ----------------------------
-      // SHORT FORM COREG (DEFAULT)
-      // ----------------------------
-      if (!shortDone) {
-        const pending =
-          JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
-
-      pending.push({
-        cid: answerValue.cid || camp.cid,
-        sid: answerValue.sid || camp.sid,
-        answer_value: answerValue.answer_value
+        // ============================
+        // NEGATIEF ANTWOORD -> Skip zelfde CID
+        // ============================
+        skipToNextCampaign(section, camp.cid);
       });
-
-        sessionStorage.setItem(
-          "pendingShortCoreg",
-          JSON.stringify(pending)
-        );
-
-        showNextSection(section);
-        return;
-      }
-
-      // ⛔ HARD BLOCK — multi-step
-      const idx = sections.indexOf(section);
-      const hasMoreSteps = sections.slice(idx + 1)
-        .some(s => s.dataset.cid == camp.cid);
-      
-      if (hasMoreSteps) {
-        showNextSection(section);
-        return;
-      }
-      
-      // short form al gedaan + GEEN vervolgstappen → direct versturen
-      const payload = await buildCoregPayload(camp, answerValue);
-      window.fetchLead(payload);
-      showNextSection(section);
-      return;}
-
-    // ============================
-    // NEGATIEF ANTWOORD
-    // ============================
-    const idx = sections.indexOf(section);
-    let j = idx + 1;
-
-    while (j < sections.length && sections[j].dataset.cid == camp.cid) j++;
-
-    section.style.display = "none";
-
-    if (j < sections.length) {
-      sections[j].style.display = "block";
-      updateProgressBar(j);
-      
-      // ✅ AGGRESSIVE SCROLL FIX
-      forceScrollTop();
-      
-    } else {
-      handleFinalCoreg();
-    }
     });
   });
-});
-
 }
   
 // ======================================
