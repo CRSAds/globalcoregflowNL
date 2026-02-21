@@ -56,25 +56,23 @@ if (!window.formSubmitInitialized) {
 
       <div id="slideup-step-2" class="slideup-step" style="display: none;">
         <h3 id="slideup-step-2-title" class="slideup-title" style="margin-top:0; font-size:20px; color:#111;">Nog één dingetje...</h3>
-        <p class="slideup-text" style="font-size:14px; color:#555; line-height:1.5;">
-          Om deze actie mogelijk te maken werken we samen met partners.
+        <p class="slideup-text" style="font-size:14px; color:#555; line-height:1.5; margin-bottom: 24px;">
+          Vind je het goed dat onze <button type="button" class="open-sponsor-popup" style="background:none; border:none; padding:0; color:#14B670; text-decoration:underline; font-weight:bold; cursor:pointer; font-family:inherit; font-size:inherit;">partners</button> 
+          je vrijblijvend informeren over hun acties?
         </p>
         
-        <label style="display:flex; align-items:flex-start; gap:12px; margin: 24px 0; cursor:pointer; text-align:left;">
-          <input type="checkbox" id="partner-optin-checkbox" style="width:22px; height:22px; margin-top:2px; flex-shrink:0;">
-          <span style="font-size:14px; color:#333; line-height:1.4;">
-            Ja, ik vind het goed dat de <button type="button" class="open-sponsor-popup" style="background:none; border:none; padding:0; color:#14B670; text-decoration:underline; font-weight:bold; cursor:pointer; font-family:inherit; font-size:inherit;">partners</button> mij benaderen met aanbiedingen.
-          </span>
-        </label>
-
         <div class="slideup-actions">
-          <button type="button" id="slideup-confirm" class="cta-primary" style="width:100%;">
-            <span>Afronden</span>
+          <button type="button" id="slideup-confirm" class="cta-primary" style="width:100%; margin-bottom:12px; position:relative; display:flex; justify-content:center; align-items:center; gap:8px;">
+            <span>Ja, ga verder</span>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M5 12h14"></path>
               <path d="M12 5l7 7-7 7"></path>
             </svg>
             <div class="slideup-spinner"></div>
+          </button>
+          
+          <button type="button" id="slideup-deny" class="slideup-deny" style="width:100%; background:none; border:none; color:#999; text-decoration:underline; cursor:pointer; font-size:14px; padding:8px 0;">
+            Nee, liever niet
           </button>
         </div>
       </div>
@@ -354,7 +352,7 @@ if (!window.formSubmitInitialized) {
              
              const btnAgree = document.getElementById("slideup-agree-terms");
              const confirmBtn = document.getElementById("slideup-confirm");
-             const partnerCheckbox = document.getElementById("partner-optin-checkbox");
+             const denyBtn = document.getElementById("slideup-deny");
              
              // STAP 1 -> STAP 2
              btnAgree.addEventListener("click", () => {
@@ -362,24 +360,28 @@ if (!window.formSubmitInitialized) {
                step2.style.display = "block";
              });
 
-             // JA/AFRONDEN KNOP (Loading State + Blijven staan)
+             // JA KNOP
              confirmBtn.addEventListener("click", async () => {
-               // VISUEEL: Loading state activeren
                confirmBtn.classList.add("is-loading");
                const span = confirmBtn.querySelector("span");
                if (span) span.innerText = "Even geduld...";
                
                submitting = true;
+               sessionStorage.setItem("sponsorsAccepted", "true");
                
-               const isAccepted = partnerCheckbox.checked;
-               sessionStorage.setItem("sponsorsAccepted", isAccepted ? "true" : "false");
-               
-               // ACTIE: Versturen
-               if (isAccepted) await sendSponsorLeads(); // Vuur sponsors
+               await sendSponsorLeads(); // Vuur sponsors
                await finalizeShortForm(); // Vuur hoofdlead + coregs
+             });
+
+             // NEE KNOP
+             denyBtn.addEventListener("click", async () => {
+               slideup.classList.remove("is-visible");
+               btn.innerHTML = "Even geduld...";
                
-               // NB: We verbergen de slide-up NIET. Hij blijft staan met spinner
-               // totdat de pagina navigeert (door finalizeShortForm event).
+               submitting = true;
+               sessionStorage.setItem("sponsorsAccepted", "false");
+               
+               await finalizeShortForm(); // Alleen hoofdlead
              });
           }
         } else {
@@ -611,5 +613,5 @@ if (!window.formSubmitInitialized) {
     btn.addEventListener("click", () => sessionStorage.setItem("sponsorsAccepted", "true"));
   });
 
-  console.info("🎉 formSubmit loaded successfully (v3 full slideup auto-detect)");
+  console.info("🎉 formSubmit loaded successfully (v3 full slideup auto-detect with buttons)");
 }
