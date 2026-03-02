@@ -518,55 +518,50 @@
   }
 })();
 
-  // ✅ Fase 2: Facebook Browser Sticky Banner
-(function injectFBBanner() {
-  const isFB = /FBAN|FBAV/.test(navigator.userAgent);
-  
-  if (isFB) {
-    console.log("📱 Facebook Browser gedetecteerd - Banner wordt getoond");
-
-    // Banner Element aanmaken
-    const banner = document.createElement("div");
-    banner.id = "fb-browser-alert";
+// ✅ Fase 2: Facebook Browser Sticky Banner (Witte variant voor meer opvallen)
+  (function injectFBBanner() {
+    const isFB = /FBAN|FBAV/.test(navigator.userAgent);
     
-    // Styling direct toepassen (consistent met combined-coreg.css variabelen)
-    Object.assign(banner.style, {
-      position: "fixed",
-      top: "0",
-      left: "0",
-      width: "100%",
-      backgroundColor: "#003c43", // Jouw --ld-text-dark kleur
-      color: "#ffffff",
-      padding: "12px 15px",
-      textAlign: "center",
-      zIndex: "9999999",
-      fontSize: "13px",
-      fontWeight: "600",
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-      boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "8px"
-    });
+    if (isFB) {
+      console.log("📱 Facebook Browser gedetecteerd - Witte banner wordt getoond");
 
-    banner.innerHTML = `
-      <span style="font-size:16px;">⚠️</span>
-      <span>Voor de beste ervaring: klik rechtsboven op <strong>⋮</strong> en kies <strong>'Openen in browser'</strong>.</span>
-    `;
+      const banner = document.createElement("div");
+      banner.id = "fb-browser-alert";
+      
+      Object.assign(banner.style, {
+        position: "fixed",
+        top: "0",
+        left: "0",
+        width: "100%",
+        backgroundColor: "#ffffff", 
+        color: "#003c43",           
+        padding: "12px 15px",
+        textAlign: "center",
+        zIndex: "9999999",
+        fontSize: "13px",
+        fontWeight: "700",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        borderBottom: "2px solid #14B670", 
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "8px"
+      });
 
-    // Banner toevoegen aan de body
-    document.body.prepend(banner);
+      banner.innerHTML = `
+        <span style="font-size:18px;">🎁</span>
+        <span>Let op: Om kans te maken op de prijs, klik rechtsboven op <strong>⋮</strong> en kies <strong>'Openen in browser'</strong>.</span>
+      `;
 
-    // Padding toevoegen aan de body zodat de banner de content niet overlapt
-    document.body.style.paddingTop = "55px";
-    
-    // Zorg dat de loader (indien aanwezig) ook rekening houdt met de banner
-    const loader = document.getElementById("page-loader");
-    if (loader) {
-      loader.style.top = "55px";
+      document.body.prepend(banner);
+      document.body.style.paddingTop = "55px";
+      
+      const loader = document.getElementById("page-loader");
+      if (loader) {
+        loader.style.top = "55px";
+      }
     }
-  }
-})();
+  })(); // Sluit injectFBBanner
 
-})();
+})(); // Sluit de hoofd-IIFE (swipe-body.js)
