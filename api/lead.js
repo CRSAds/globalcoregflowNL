@@ -1,7 +1,24 @@
 // =============================================================
-// ✅ /api/lead.js — automatische cap-detectie & tijdelijke pauze (werkende PATCH)
+// ✅ /api/lead.js — automatische cap-detectie & OMG Server-to-Server
 // =============================================================
 import querystring from "querystring";
+
+/**
+ * Helper functie voor de OMG Server-to-Server postback.
+ * Wordt aangeroepen bij specifieke combinaties van Offer ID en Partner ID.
+ */
+async function fireOMGPostback(omgRequestId, transactionId) {
+  // o=22165 (Offer), e=877 (Event), f=pb (Format)
+  const url = `https://secureomg.nl/p.ashx?o=22165&e=877&f=pb&r=${omgRequestId}&t=${transactionId}`;
+  
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    console.log(`🎯 OMG Postback resultaat voor ${transactionId}: ${text}`);
+  } catch (err) {
+    console.error(`❌ OMG Postback fout: ${err.message}`);
+  }
+}
 
 export default async function handler(req, res) {
   // ✅ Universele CORS headers
@@ -18,7 +35,7 @@ export default async function handler(req, res) {
       cid, sid, firstname, lastname, email, gender, dob,
       postcode, straat, huisnummer, woonplaats, telefoon,
       is_shortform, f_2014_coreg_answer, f_2575_coreg_answer_dropdown,
-      f_1453_campagne_url, t_id, offer_id, aff_id, sub_id
+      f_1453_campagne_url, t_id, offer_id, aff_id, sub_id, sub2
     } = body;
 
     // ===== Detecteer shortform lead
@@ -80,12 +97,10 @@ export default async function handler(req, res) {
     if (json?.error?.msg === "TOTAL_CAP_REACHED") {
       console.warn(`⚠️ CAP REACHED for campaign cid=${cid}, sid=${sid}`);
 
-      // 🕐 Pauzeer tot volgende dag 00:00 UTC
       const tomorrow = new Date();
       tomorrow.setUTCHours(0, 0, 0, 0);
       tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
 
-      // 🔍 Functie om één collectie bij te werken
       async function pauseInCollection(collection) {
         try {
           const findRes = await fetch(
@@ -97,13 +112,9 @@ export default async function handler(req, res) {
           const findJson = await findRes.json();
           const item = findJson.data?.[0];
 
-          if (!item) {
-            console.warn(`⚠️ Geen item gevonden in ${collection} voor cid=${cid}`);
-            return;
-          }
+          if (!item) return;
 
-          // 🧩 PATCH met specifiek ID
-          const patchRes = await fetch(`${process.env.DIRECTUS_URL}/items/${collection}/${item.id}`, {
+          await fetch(`${process.env.DIRECTUS_URL}/items/${collection}/${item.id}`, {
             method: "PATCH",
             headers: {
               "Authorization": `Bearer ${process.env.DIRECTUS_TOKEN}`,
@@ -114,19 +125,11 @@ export default async function handler(req, res) {
               paused_until: tomorrow.toISOString()
             })
           });
-
-          if (!patchRes.ok) {
-            const errText = await patchRes.text();
-            console.error(`❌ PATCH-fout in ${collection}:`, errText);
-          } else {
-            console.log(`🚫 ${collection} ${item.id} gepauzeerd tot ${tomorrow.toISOString()}`);
-          }
         } catch (err) {
           console.error(`❌ Pauzeren mislukt voor ${collection}:`, err);
         }
       }
 
-      // 🔁 Beide collecties bijwerken
       await pauseInCollection("coreg_campaigns");
       await pauseInCollection("co_sponsors");
 
@@ -136,14 +139,29 @@ export default async function handler(req, res) {
       });
     }
 
-    // ===== Normale foutafhandeling
+    // ===== Normale succes-afhandeling Databowl
     if (!resp.ok) {
       console.error("❌ Databowl error:", text);
       return res.status(resp.status).json({ success: false, error: text });
     }
 
+    // ✅ EXTRA: OMG Server-to-Server Tracking
+    // Check specifiek voor Offer ID 1104 en Partner ID 71
+    if (cid === "1104" && aff_id === "71") {
+      // sub2 bevat het OMG {subid} uit de tracking link
+      const omgId = sub2; 
+      
+      if (omgId && omgId !== "unknown") {
+        // Vuur postback af. We gebruiken t_id als TRANSACTION_ID voor OMG.
+        await fireOMGPostback(omgId, t_id);
+      } else {
+        console.warn("⚠️ OMG Postback overgeslagen: sub2 (omgId) ontbreekt in payload.");
+      }
+    }
+
     console.log("✅ Lead succesvol naar Databowl:", text);
     res.status(200).json({ success: true, response: text });
+
   } catch (err) {
     console.error("💥 Lead API fout:", err);
     res.status(500).json({ success: false, error: err.message });
