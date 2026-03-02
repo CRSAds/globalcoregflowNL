@@ -551,7 +551,7 @@
 
       banner.innerHTML = `
         <span style="font-size:18px;">🎁</span>
-        <span>Let op: Om kans te maken op de prijs, klik rechtsboven op <strong>⋮</strong> en kies <strong>'Openen in browser'</strong>.</span>
+        <span>Let op: Om kans te maken op de prijs, klik rechtsboven op de 3 puntjes <strong>⋮</strong> en kies <strong>'Openen in (externe) browser'</strong>.</span>
       `;
 
       document.body.prepend(banner);
