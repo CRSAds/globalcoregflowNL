@@ -147,7 +147,7 @@ export default async function handler(req, res) {
 
     // ✅ EXTRA: OMG Server-to-Server Tracking
     // Check specifiek voor Offer ID 1104 en Partner ID 71
-    if (cid === "1104" && aff_id === "71") {
+    if (cid === "1104" && sub_id === "71") {
       // sub2 bevat het OMG {subid} uit de tracking link
       const omgId = sub2; 
       
