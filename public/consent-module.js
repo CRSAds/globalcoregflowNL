@@ -83,10 +83,10 @@
   }
 
   async function openVoorwaardenModal() {
-    const content = await waitForElement("actievoorwaarden-wrapper");
+    const content = await waitForElement("actievoorwaarden");
 
     if (!content) {
-      console.warn("❌ Actievoorwaarden-wrapper niet gevonden (timeout)");
+      console.warn("❌ Actievoorwaarden niet gevonden (timeout)");
       return;
     }
 
