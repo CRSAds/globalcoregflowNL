@@ -104,44 +104,77 @@ function initFlowLite() {
     maybeStartSovendus(firstVisible);
   }
 
-  // -----------------------------------------------------------
-  // 1. Navigation Buttons Click Handler
+// -----------------------------------------------------------
+  // 1. Navigation Buttons Click Handler (Met IVR Vertraging)
   // -----------------------------------------------------------
   const flowButtons = document.querySelectorAll(".flow-next");
   flowButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
       if (btn.closest("#lead-form")) return; // shortform apart
 
       const current = btn.closest(".flow-section, .ivr-section");
       if (!current) return;
-      
-      let next = current.nextElementSibling;
-      if (!next) return;
-      
-      current.style.display = "none";
 
-      // skip ivr if online
-      while (
-        next &&
-        next.classList.contains("ivr-section") &&
-        (status === "online" || status === "energie")
-      ) {
-        next = next.nextElementSibling;
-      }
-
-      // longform skip
-      if (next && next.id === "long-form-section") {
-        const needsLF = sessionStorage.getItem("requiresLongForm") === "true";
-        if (!needsLF) next = next.nextElementSibling;
-      }
-
-      if (next) {
-        next.style.display = "block";
-        reloadImages(next);
-        maybeStartSovendus(next);
+      // Hulpfunctie om de daadwerkelijke navigatie uit te voeren
+      const performNavigation = () => {
+        let next = current.nextElementSibling;
+        if (!next) return;
         
-        // ✅ AGGRESSIVE SCROLL
-        forceScrollTop();
+        current.style.display = "none";
+
+        // skip ivr if online
+        while (
+          next &&
+          next.classList.contains("ivr-section") &&
+          (status === "online" || status === "energie")
+        ) {
+          next = next.nextElementSibling;
+        }
+
+        // longform skip
+        if (next && next.id === "long-form-section") {
+          const needsLF = sessionStorage.getItem("requiresLongForm") === "true";
+          if (!needsLF) next = next.nextElementSibling;
+        }
+
+        if (next) {
+          next.style.display = "block";
+          reloadImages(next);
+          maybeStartSovendus(next);
+          
+          // ✅ AGGRESSIVE SCROLL
+          forceScrollTop();
+        }
+      };
+
+      // --- CHECK VOOR IVR DELAY ---
+      if (btn.classList.contains("ivr-call-btn")) {
+        // Voorkom dat de pagina direct verspringt
+        e.preventDefault();
+        
+        // Voeg eventueel een loading class toe voor visuele feedback
+        btn.classList.add("is-loading"); 
+        
+        const delayMs = 8000; // 8 seconden wachttijd
+        console.log(`[Flow] IVR knop klik gedetecteerd. Navigatie over ${delayMs/1000}s...`);
+
+        setTimeout(() => {
+          // Check of we in een popup zitten
+          const popup = document.querySelector(".call-pop-up-desktop, .tatsu-popup-container");
+          const isPopup = popup && (popup.offsetWidth > 0 || popup.offsetHeight > 0);
+
+          if (isPopup) {
+            // Als het een popup is, triggeren we de sluitknop (zoals in swipe-body.js)
+            const closeBtn = document.querySelector(".close-icon");
+            if (closeBtn) closeBtn.click();
+          } else {
+            // Reguliere sectie: voer navigatie uit
+            performNavigation();
+          }
+        }, delayMs);
+      } else {
+        // Geen IVR knop? Dan direct navigeren
+        performNavigation();
       }
     });
   });
