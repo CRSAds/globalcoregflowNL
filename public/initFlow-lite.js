@@ -120,7 +120,13 @@ function initFlowLite() {
         let next = current.nextElementSibling;
         if (!next) return;
         
-        current.style.display = "none";
+        current.style.opacity = "0";
+        setTimeout(() => {
+          current.style.display = "none";
+          next.style.display = "block";
+          setTimeout(() => { next.style.opacity = "1"; }, 50);
+          forceScrollTop();
+        }, 400); // match de CSS tijd
 
         // skip ivr if online
         while (
@@ -207,8 +213,14 @@ function initFlowLite() {
       if (!showLong) next = next.nextElementSibling;
     }
 
-    current.style.display = "none";
-    next.style.display = "block";
+        current.style.opacity = "0";
+        setTimeout(() => {
+          current.style.display = "none";
+          next.style.display = "block";
+          setTimeout(() => { next.style.opacity = "1"; }, 50);
+          forceScrollTop();
+        }, 400); // match de CSS tijd
+    
     reloadImages(next);
     maybeStartSovendus(next);
     
@@ -234,8 +246,14 @@ function initFlowLite() {
       next = next.nextElementSibling;
     }
 
-    current.style.display = "none";
-    next.style.display = "block";
+        current.style.opacity = "0";
+        setTimeout(() => {
+          current.style.display = "none";
+          next.style.display = "block";
+          setTimeout(() => { next.style.opacity = "1"; }, 50);
+          forceScrollTop();
+        }, 400); // match de CSS tijd
+    
     reloadImages(next);
     maybeStartSovendus(next);
 
