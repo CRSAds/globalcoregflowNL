@@ -1,5 +1,5 @@
 // =============================================================
-// /api/sovendus-impression.js
+// ✅ /api/sovendus-impression.js
 // CORS-safe endpoint voor Sovendus impressions + clicks
 // =============================================================
 
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       t_id,
       offer_id,
       sub_id,
-      source = "flow",        // verwacht: flow | exit
+      source = "flow",        // verwacht: flow | exit | sovendus_exit_direct
       event = "impression",   // impression | click
     } = req.body || {};
 
@@ -42,9 +42,15 @@ export default async function handler(req, res) {
     }
 
     // =============================================================
-    // Normaliseer source (DB accepteert alleen flow | exit)
+    // ⚙️ Normaliseer source
+    // Staat nu "flow", "exit" en de nieuwe "sovendus_exit_direct" toe.
     // =============================================================
-    const normalizedSource = source === "exit" ? "exit" : "flow";
+    let normalizedSource = "flow";
+    if (source === "exit") {
+      normalizedSource = "exit";
+    } else if (source === "sovendus_exit_direct") {
+      normalizedSource = "sovendus_exit_direct";
+    }
 
     // =============================================================
     // Bepaal doel-tabel
@@ -73,7 +79,7 @@ export default async function handler(req, res) {
         apikey: KEY,
         Authorization: `Bearer ${KEY}`,
         "Content-Type": "application/json",
-        Prefer: "resolution=ignore-duplicates",
+        Prefer: "resolution=ignore-duplicates", // Voorkomt dubbele logs bij spam-clicks
       },
       body: JSON.stringify(payload),
     });
