@@ -196,29 +196,27 @@
 // 💰 Sovendus Exit Button Tracking (€0,30)
 // =============================================================
 document.addEventListener("click", (e) => {
-  // We zoeken naar de button via het ID of de specifieke URL
   const btn = e.target.closest("#sovendus-exit-button") || 
               e.target.closest('a[href*="sovendus.com/directlink/ad4558b5-bd79-4645-a01e-c1a4dd85b424"]');
 
   if (btn) {
     const t_id = sessionStorage.getItem("t_id") || "unknown";
-    const offer_id = sessionStorage.getItem("offer_id") || "unknown";
+    const offer_id = sessionStorage.getItem("offer_id") || "unknown"; // Gebruik het echte offer_id
     const sub_id = sessionStorage.getItem("sub_id") || sessionStorage.getItem("aff_id") || "unknown";
 
     console.log("💰 Sovendus Exit Click gedetecteerd, loggen naar Supabase...");
 
-    // Gebruik de bestaande sovendus-impression API
     fetch("https://globalcoregflow-nl.vercel.app/api/sovendus-impression.js", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         t_id: t_id,
-        offer_id: "sovendus_exit_direct", // Dit wordt je unieke sleutel in Looker Studio
+        offer_id: offer_id,            // Echte offer_id voor koppeling aan campagne
         sub_id: sub_id,
         event: "click",
-        source: "exit"
+        source: "sovendus_exit_direct" // Specificatie verplaatst naar source
       }),
-      keepalive: true // Cruciaal: zorgt dat het request wordt voltooid, ook als de gebruiker weg navigeert
+      keepalive: true 
     }).catch(err => console.error("❌ Tracking fout:", err));
   }
 });
