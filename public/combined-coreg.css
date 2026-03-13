@@ -1308,12 +1308,3 @@ input.error {
     padding: 16px !important;
   }
 }
-
-.flow-section, .ivr-section, .coreg-section {
-  transition: opacity 0.4s ease-in-out;
-  opacity: 0;
-}
-.flow-section[style*="display: block"], 
-.coreg-section[style*="display: block"] {
-  opacity: 1;
-}
