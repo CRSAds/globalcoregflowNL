@@ -191,35 +191,6 @@
       sec.style.backgroundRepeat = "no-repeat";
     });
   });
-
-// =============================================================
-// 💰 Sovendus Exit Button Tracking (€0,30)
-// =============================================================
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest("#sovendus-exit-button") || 
-              e.target.closest('a[href*="sovendus.com/directlink/ad4558b5-bd79-4645-a01e-c1a4dd85b424"]');
-
-  if (btn) {
-    const t_id = sessionStorage.getItem("t_id") || "unknown";
-    const offer_id = sessionStorage.getItem("offer_id") || "unknown"; // Gebruik het echte offer_id
-    const sub_id = sessionStorage.getItem("sub_id") || sessionStorage.getItem("aff_id") || "unknown";
-
-    console.log("💰 Sovendus Exit Click gedetecteerd, loggen naar Supabase...");
-
-    fetch("https://globalcoregflow-nl.vercel.app/api/sovendus-impression.js", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        t_id: t_id,
-        offer_id: offer_id,            // Echte offer_id voor koppeling aan campagne
-        sub_id: sub_id,
-        event: "click",
-        source: "sovendus_exit_direct" // Specificatie verplaatst naar source
-      }),
-      keepalive: true 
-    }).catch(err => console.error("❌ Tracking fout:", err));
-  }
-});
   
 // ============================================================
 // 📊 Visit tracking — 1x per sessie (Supabase)
