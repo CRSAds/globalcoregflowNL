@@ -1,5 +1,3 @@
-// ✅ visuals-loader.js — stabiele versie met preload + gegarandeerde klaar-melding
-
 (function () {
   console.log("🎨 visuals-loader.js gestart");
 
@@ -16,59 +14,35 @@
         return;
       }
 
-      // 🏷️ Titel
+      // 🏷️ Tekst aanpassen
       const titleEl = document.getElementById("campaign-title");
-      if (titleEl && visual.title) {
-        titleEl.innerHTML = visual.title;
-        titleEl.style.margin = "";
-        titleEl.style.padding = "";
-      }
+      if (titleEl && visual.title) titleEl.innerHTML = visual.title;
 
-      // 📄 Paragraaf
       const paragraphEl = document.getElementById("campaign-paragraph");
-      if (paragraphEl && visual.paragraph) {
-        paragraphEl.innerHTML = visual.paragraph;
-        paragraphEl.style.margin = "";
-        paragraphEl.style.padding = "";
+      if (paragraphEl && visual.paragraph) paragraphEl.innerHTML = visual.paragraph;
+
+      // 🖼️ Afbeeldingen instellen (zonder src direct te tonen)
+      const setImage = (selector, url) => {
+        const els = document.querySelectorAll(`[id="${selector}"]`);
+        els.forEach(el => {
+          el.style.opacity = "0";
+          el.style.transition = "opacity 0.6s ease";
+          el.onload = () => (el.style.opacity = "1");
+          if (url) el.src = url;
+        });
+      };
+
+      setImage("campaign-hero-image", visual.hero_image);
+      setImage("campaign-horizontal-hero-image", visual.horizontal_hero_image);
+      setImage("campaign-ivr-image", visual.ivr_image);
+
+      if (visual.background_image) {
+        document.body.style.backgroundImage = `url('${visual.background_image}')`;
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundAttachment = "fixed";
       }
 
-      // 🖼️ Hero afbeelding — alle secties
-      const heroEls = document.querySelectorAll('[id="campaign-hero-image"]');
-      heroEls.forEach(el => {
-        el.style.opacity = "0";
-        el.style.transition = "opacity 0.6s ease";
-        el.onload = () => (el.style.opacity = "1");
-        if (visual.hero_image) el.src = visual.hero_image;
-      });
-
-      // 🖼️ Horizontale hero afbeelding
-      const horizontalHeroEls = document.querySelectorAll('[id="campaign-horizontal-hero-image"]');
-      horizontalHeroEls.forEach(el => {
-        el.style.opacity = "0";
-        el.style.transition = "opacity 0.6s ease";
-        el.onload = () => (el.style.opacity = "1");
-        if (visual.horizontal_hero_image) el.src = visual.horizontal_hero_image;
-      });
-
-      // ☎️ IVR afbeelding
-      const ivrEls = document.querySelectorAll('[id="campaign-ivr-image"]');
-      ivrEls.forEach(el => {
-        el.style.opacity = "0";
-        el.style.transition = "opacity 0.6s ease";
-        el.onload = () => (el.style.opacity = "1");
-        if (visual.ivr_image) el.src = visual.ivr_image;
-      });
-
-       // 🌄 Achtergrond
-      if (visual.background_image) {
-      document.body.style.backgroundImage = `url('${visual.background_image}')`;
-      document.body.style.backgroundSize = "cover";
-      document.body.style.backgroundPosition = "center";
-      document.body.style.backgroundRepeat = "no-repeat";
-      document.body.style.backgroundAttachment = "fixed"; // optioneel: laat hem meescrollen
-    }
-
-      // === Preload & klaar-signaal ===
+      // === Preload Logica ===
       function preload(url) {
         return new Promise(resolve => {
           if (!url) return resolve();
@@ -84,20 +58,24 @@
         preload(visual.ivr_image),
         preload(visual.background_image)
       ];
+
+      // Wacht maximaal 1.5 seconden op de plaatjes, daarna loader weg
       const timeout = new Promise(resolve => setTimeout(resolve, 1500));
 
       Promise.race([Promise.allSettled(waits), timeout]).then(() => {
+        console.log("✅ Visuals assets klaar of timeout bereikt");
         window.dispatchEvent(new Event("visuals:assets-ready"));
       });
 
-      console.log("✅ Visuals geladen voor:", slug);
-      window.dispatchEvent(new Event("visuals:assets-ready")); // altijd signaal sturen
     } catch (err) {
       console.error("❌ Fout bij visuals-loader:", err);
-      // stuur altijd event ook bij fout
       window.dispatchEvent(new Event("visuals:assets-ready"));
     }
   }
 
-  document.addEventListener("DOMContentLoaded", loadVisuals);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", loadVisuals);
+  } else {
+    loadVisuals();
+  }
 })();
