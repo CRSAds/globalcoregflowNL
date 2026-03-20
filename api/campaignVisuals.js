@@ -3,7 +3,7 @@ import { fetchWithRetry } from "./utils/fetchDirectus.js";
 export const config = { runtime: "nodejs" };
 
 export default async function handler(req, res) {
-  // --- CORS ---
+  // --- CORS Headers ---
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -11,18 +11,21 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   // ✅ Edge caching (1 uur)
-  res.setHeader(
-    "Cache-Control",
-    "s-maxage=3600, stale-while-revalidate"
-  );
+  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate");
 
   try {
-    const url =
-      `${process.env.DIRECTUS_URL}/items/campaign_layouts` +
-      `?filter[is_live][_eq]=true` +
-      `&filter[_or][0][country][_null]=true` +
-      `&filter[_or][1][country][_eq]=NL` +
-      `&fields=slug,title,paragraph,hero_image.id,horizontal_hero_image.id,background_image.id,ivr_image.id`;
+    // 🔍 Gebruik URLSearchParams voor een foutloze opbouw van de query
+    const params = new URLSearchParams({
+      "filter[is_live][_eq]": "true",
+      "fields": "slug,title,paragraph,hero_image.id,horizontal_hero_image.id,background_image.id,ivr_image.id"
+    });
+
+    // Voeg de OR-filter voor land (NL of leeg) toe
+    // De syntax moet exact zijn voor Directus om 400-fouten te voorkomen
+    const url = `${process.env.DIRECTUS_URL}/items/campaign_layouts?${params.toString()}&filter[_or][0][country][_null]=true&filter[_or][1][country][_eq]=NL`;
+
+    // Debugging: log de volledige URL in je Vercel console
+    console.log("🚀 Aanroep Directus:", url);
 
     const json = await fetchWithRetry(url, {
       headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` },
@@ -46,11 +49,16 @@ export default async function handler(req, res) {
         : null,
     }));
 
-    console.log(`✅ ${visuals.length} visuals geladen`);
+    console.log(`✅ ${visuals.length} visuals succesvol geladen`);
     return res.status(200).json({ data: visuals });
 
   } catch (err) {
-    console.error("❌ Fout bij ophalen visuals:", err);
-    return res.status(500).json({ error: err.message });
+    console.error("❌ Fout bij ophalen visuals:", err.message);
+    
+    // Geef meer details terug in de response om te debuggen
+    return res.status(500).json({ 
+      error: "Kon visuals niet laden", 
+      message: err.message 
+    });
   }
 }
