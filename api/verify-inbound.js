@@ -9,9 +9,7 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const { code, t_id, aff_id, offer_id, sub_id, internalVisitId } = body;
 
-    console.log(`🚀 Verificatie start voor t_id: ${t_id} met code: ${code}`);
-
-    // 1. Check Directus (Altijd eerst checken of de code bestaat)
+    // 1. Eerst Directus checken (zoals we gewend zijn)
     const directusUrl = `${process.env.DIRECTUS_URL}/items/calls?filter[pincode][_eq]=${code}&sort=-date_created&limit=1`;
     const dRes = await fetch(directusUrl, {
       headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` },
@@ -20,17 +18,17 @@ export default async function handler(req, res) {
     const dJson = await dRes.json();
 
     if (!dJson.data || dJson.data.length === 0) {
-      return res.status(200).json({ success: false, message: "Code niet gevonden in database." });
+      return res.status(200).json({ success: false, message: `Code ${code} niet gevonden in Directus.` });
     }
 
-    // 2. Directus match! Nu 909Support informeren zodat de beller feedback krijgt op de lijn
+    // 2. Directus is OK! Nu 909 informeren.
+    // We gebruiken exact de parameters die 909 verwacht.
     const formData = new URLSearchParams();
     formData.append("pin", code);
-    formData.append("clickId", t_id); // De unieke t_id van de beller
+    formData.append("clickId", t_id);
     formData.append("internalVisitId", internalVisitId);
     formData.append("affId", aff_id || "");
     formData.append("offerId", offer_id || "");
-    formData.append("subId", sub_id || "");
     formData.append("gameName", "memory"); 
 
     const nineres = await fetch("https://cdn.909support.com/NL/4.1/stage/assets/php/SubmitPin.php", {
@@ -39,24 +37,29 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
-    const nineData = await nineres.json();
+    const nineText = await nineres.text(); // We pakken eerst tekst voor het geval het geen JSON is
+    let nineData = {};
+    try { nineData = JSON.parse(nineText); } catch(e) { nineData = { raw: nineText }; }
 
-    // 3. Alleen succes als 909 de code accepteert (zodat beller en site synchroon lopen)
-    if (nineData && nineData.callId) {
+    console.log("909 Raw Response:", nineText);
+
+    // Als 909 een callId geeft, is het 100% succes.
+    if (nineData.callId) {
       return res.status(200).json({ 
         success: true, 
         callId: nineData.callId,
-        message: "Code geaccepteerd door Directus & 909!" 
+        message: "Geverifieerd bij Directus & 909!" 
       });
-    } else {
-      return res.status(200).json({ 
-        success: false, 
-        message: "De telefoonlijn herkent deze code nog niet. Probeer het over een paar seconden opnieuw." 
-      });
-    }
+    } 
+
+    // Als 909 geen callId geeft, sturen we hun specifieke fout door
+    return res.status(200).json({ 
+      success: false, 
+      message: `909 weigert: ${nineData.error || nineData.message || "Onbekende fout"}`,
+      debug: nineData 
+    });
 
   } catch (err) {
-    console.error("Fout:", err);
-    return res.status(500).json({ success: false, message: "Serverfout" });
+    return res.status(500).json({ success: false, message: "Serverfout: " + err.message });
   }
 }
