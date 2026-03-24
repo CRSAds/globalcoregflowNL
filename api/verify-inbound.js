@@ -1,6 +1,4 @@
-// /api/verify-inbound.js
 export default async function handler(req, res) {
-  // CORS Headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -8,34 +6,48 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
-    const { code } = req.body ? JSON.parse(req.body) : req.query;
+    const { code, t_id, aff_id, offer_id, sub_id } = JSON.parse(req.body);
 
-    if (!code) {
-      return res.status(400).json({ success: false, message: "Geen code ingevuld" });
+    // 1. Check eerst Directus (jouw eigen database)
+    const directusUrl = `${process.env.DIRECTUS_URL}/items/calls?filter[pincode][_eq]=${code}&sort=-date_created&limit=1`;
+    const dRes = await fetch(directusUrl, {
+      headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` }
+    });
+    const dJson = await dRes.json();
+
+    if (!dJson.data || dJson.data.length === 0) {
+      return res.status(200).json({ success: false, message: "Code onbekend" });
     }
 
-    // Zoek in Directus of deze 'pincode' (of 'ivr_value' afhankelijk van 909support) 
-    // de afgelopen 15 minuten is aangemaakt en de status 'calling' of 'answered' heeft.
-    // Voor nu zoeken we op 'pincode' net als in de outbound versie.
-    const directusUrl = `${process.env.DIRECTUS_URL}/items/calls?filter[pincode][_eq]=${code}&sort=-date_created&limit=1&fields=id,status`;
+    // 2. Directus match gevonden! Nu 909Support op de hoogte stellen
+    // We gebruiken de gegevens die uit de frontend komen
+    const formData = new URLSearchParams();
+    formData.append("pin", code);
+    formData.append("clickId", t_id);
+    formData.append("affId", aff_id || "unknown");
+    formData.append("offerId", offer_id || "unknown");
+    formData.append("subId", sub_id || "unknown");
+    formData.append("gameName", "memory"); 
 
-    const response = await fetch(directusUrl, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` },
-      cache: "no-store"
+    const nineres = await fetch("https://cdn.909support.com/NL/4.1/stage/assets/php/SubmitPin.php", {
+      method: "POST",
+      body: formData,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
-    const json = await response.json();
+    const nineData = await nineres.json();
 
-    if (!json.data || json.data.length === 0) {
-      return res.status(200).json({ success: false, message: "Code onbekend of verlopen" });
+    if (nineData && nineData.callId) {
+      return res.status(200).json({ 
+        success: true, 
+        callId: nineData.callId,
+        message: "Geverifieerd bij Directus & 909!" 
+      });
+    } else {
+      return res.status(200).json({ success: false, message: "909 keurde de code af." });
     }
 
-    // Code bestaat! Je kunt hier eventueel nog checken of status === 'calling'
-    return res.status(200).json({ success: true, message: "Code geverifieerd!" });
-
   } catch (err) {
-    console.error("❌ Fout bij verify-inbound:", err);
     return res.status(500).json({ success: false, message: "Serverfout" });
   }
 }
