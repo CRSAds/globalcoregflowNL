@@ -6,24 +6,32 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
-    const { code, t_id, aff_id, offer_id, sub_id } = JSON.parse(req.body);
+    // Vercel parseert de body soms al automatisch, we vangen beide gevallen op:
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const { code, t_id, aff_id, offer_id, sub_id, internalVisitId } = body;
 
-    // 1. Check eerst Directus (jouw eigen database)
+    console.log("🔍 Check voor code:", code, "bij t_id:", t_id);
+
+    // 1. Check Directus (Source of Truth)
     const directusUrl = `${process.env.DIRECTUS_URL}/items/calls?filter[pincode][_eq]=${code}&sort=-date_created&limit=1`;
     const dRes = await fetch(directusUrl, {
-      headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` }
+      headers: { Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}` },
+      cache: 'no-store'
     });
     const dJson = await dRes.json();
 
     if (!dJson.data || dJson.data.length === 0) {
-      return res.status(200).json({ success: false, message: "Code onbekend" });
+      console.log("❌ Geen match in Directus voor code:", code);
+      return res.status(200).json({ success: false, message: "Code niet gevonden in Directus" });
     }
 
-    // 2. Directus match gevonden! Nu 909Support op de hoogte stellen
-    // We gebruiken de gegevens die uit de frontend komen
+    console.log("✅ Match in Directus! Nu 909 informeren...");
+
+    // 2. Directus match gevonden! Nu 909Support informeren
     const formData = new URLSearchParams();
     formData.append("pin", code);
-    formData.append("clickId", t_id);
+    formData.append("clickId", t_id || "");
+    formData.append("internalVisitId", internalVisitId || "");
     formData.append("affId", aff_id || "unknown");
     formData.append("offerId", offer_id || "unknown");
     formData.append("subId", sub_id || "unknown");
@@ -35,19 +43,18 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
+    // We loggen wat 909 zegt, maar we laten de bezoeker alvast door als Directus groen licht gaf
     const nineData = await nineres.json();
+    console.log("📞 909 Response:", nineData);
 
-    if (nineData && nineData.callId) {
-      return res.status(200).json({ 
-        success: true, 
-        callId: nineData.callId,
-        message: "Geverifieerd bij Directus & 909!" 
-      });
-    } else {
-      return res.status(200).json({ success: false, message: "909 keurde de code af." });
-    }
+    return res.status(200).json({ 
+      success: true, 
+      callId: nineData?.callId || null,
+      message: "Geverifieerd!" 
+    });
 
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Serverfout" });
+    console.error("🔥 Server Error:", err);
+    return res.status(500).json({ success: false, message: "Serverfout bij verificatie" });
   }
 }
