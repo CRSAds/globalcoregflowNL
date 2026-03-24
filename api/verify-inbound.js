@@ -13,8 +13,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: false, message: "Vul een 3-cijferige code in." });
     }
 
-    const maxRetries = 5; // Maximaal 5 keer proberen
-    const delayMs = 1000; // 1 seconde wachten per poging
+    const maxRetries = 5;
+    const delayMs = 1000;
     let lastCallRecord = null;
 
     for (let i = 0; i < maxRetries; i++) {
@@ -29,11 +29,11 @@ export default async function handler(req, res) {
       if (dJson.data && dJson.data.length > 0) {
         lastCallRecord = dJson.data[0];
         
-        // Check of de status nu wél goed is (accepteer ook 'ringing' of 'answered' voor de zekerheid)
+        // FIX: Maak de status altijd kleine letters voor de check!
+        const currentStatus = lastCallRecord.status ? lastCallRecord.status.toLowerCase() : '';
         const activeStatuses = ['calling', 'answered', 'ringing'];
         
-        if (activeStatuses.includes(lastCallRecord.status)) {
-          console.log(`✅ Toegang na ${i} retries voor code ${code} (Status: ${lastCallRecord.status})`);
+        if (activeStatuses.includes(currentStatus)) {
           return res.status(200).json({ 
             success: true, 
             message: "Code geverifieerd!" 
@@ -41,14 +41,11 @@ export default async function handler(req, res) {
         }
       }
 
-      // Niet gevonden of status is nog niet 'calling'? Wacht 1 seconde en probeer opnieuw (behalve bij de laatste poging)
       if (i < maxRetries - 1) {
-        console.log(`⏳ Poging ${i + 1} mislukt, wacht op webhook...`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
 
-    // Als we na 5 seconden nog steeds geen succes hebben:
     if (!lastCallRecord) {
       return res.status(200).json({ success: false, message: "Deze code is onbekend." });
     } else {
