@@ -47,8 +47,8 @@ export default async function handler(req, res) {
       
       // Directus geeft bij images alleen een ID terug (bijv: 'abc-123-def').
       // Wij bouwen hier direct de volledige afbeeldings-URL voor Lovable.
-      const getImageUrl = (imageId) => imageId ? `${directusUrl}/assets/${imageId}` : null;
-
+      const getImageUrl = (imageId) => imageId ? `https://globalcoregflow-nl.vercel.app/api/proxy-image.js?id=${imageId}` : null;
+      
       return res.status(200).json({
         success: true,
         title: campaign.title || "",
