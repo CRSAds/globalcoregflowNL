@@ -9,14 +9,16 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
-    const { pin } = req.query;
+    // 1. Haal de pin én de nieuwe tracking params uit de URL
+    const { pin, t_id, offer_id, sub_id, aff_id } = req.query;
 
     if (!pin) {
       return res.status(400).json({ status: "error", message: "Geen PIN opgegeven" });
     }
 
-    // 🎯 HIER ZIT DE FIX: We zoeken nu in het veld 'pincode' i.p.v. 'ivr_value'!
-    const directusUrl = `${process.env.DIRECTUS_URL}/items/calls?filter[pincode][_eq]=${pin}&sort=-date_created&limit=1&fields=id,status,pincode`;
+    // 2. We vragen nu ook het veld 'click_id' op, zodat we weten of de tracking al is opgeslagen.
+    // (Check even of dit veld in jouw Directus 'click_id', 't_id' of 'transaction_id' heet!)
+    const directusUrl = `${process.env.DIRECTUS_URL}/items/calls?filter[pincode][_eq]=${pin}&sort=-date_created&limit=1&fields=id,status,pincode,click_id`;
 
     const response = await fetch(directusUrl, {
       method: "GET",
@@ -37,8 +39,33 @@ export default async function handler(req, res) {
       return res.status(200).json({ status: "not_found" });
     }
 
-    // Succes! Stuur de status terug.
-    return res.status(200).json({ status: json.data[0].status });
+    const callRecord = json.data[0];
+
+    // =========================================================
+    // 3. ✨ DE SLIMME TRACKING PATCH ✨
+    // Als de call bestaat, we t_id hebben ontvangen, én click_id nog leeg is in Directus:
+    // =========================================================
+    if (t_id && t_id !== "undefined" && !callRecord.click_id) {
+      console.log(`[Tracking] Call gevonden voor pin ${pin}. Tracking data toevoegen...`);
+      
+      // Update het record asynchroon op de achtergrond
+      fetch(`${process.env.DIRECTUS_URL}/items/calls/${callRecord.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.DIRECTUS_TOKEN}`
+        },
+        body: JSON.stringify({
+          click_id: t_id,      // Zorg dat de veldnamen (links) exact matchen met Directus!
+          offer_id: offer_id,
+          sub_id: sub_id,
+          aff_id: aff_id
+        })
+      }).catch(err => console.error("Fout bij updaten Directus tracking:", err));
+    }
+
+    // 4. Succes! Stuur de actuele bel-status terug
+    return res.status(200).json({ status: callRecord.status });
 
   } catch (err) {
     console.error("❌ Fout bij check-call:", err);
