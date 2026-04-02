@@ -442,7 +442,7 @@ async function initCoregFlow() {
     }
   }
 
-  // Event listeners
+ // Event listeners
   sections.forEach(section => {
     // 1. DROPDOWN HANDLER
     const dropdown = section.querySelector(".coreg-dropdown");
@@ -463,23 +463,22 @@ async function initCoregFlow() {
 
         storeCoregAnswerOnly(camp, answerValue);
 
-        // 🟢 SKIP LOGICA: skipNext=true (Huur) -> Geen fetch, alleen skippen.
+        // 🟢 FIX: SKIP LOGICA PRIORITEIT (Huur/Overslaan) -> Geen verdere flow uitvoeren
         if (skipNext) {
+          console.log("Skip-next geactiveerd via dropdown voor CID:", camp.cid);
           skipToNextCampaign(section, camp.cid);
           return;
         }
 
-        // 🟢 NORMALE FLOW: skipNext=false (Koop)
+        // 🟢 NORMALE FLOW: Alleen uitvoeren als skipNext false is
         if (camp.requiresLongForm) {
           const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
           
           if (!isFinalStep) {
-            // Nog niet klaar met multi-step -> Volgende vraag
             showNextSection(section);
             return;
           }
           
-          // Klaar met vragen -> Activeer Long Form
           sessionStorage.setItem("requiresLongForm", "true");
           const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
           if (!pending.some(p => p.cid === camp.cid)) {
@@ -538,28 +537,27 @@ async function initCoregFlow() {
           sid: btn.dataset.sid
         };
 
-        // POSITIEF
+        // POSITIEF ANTWOORD
         if (!isNegative) {
           const shortDone = sessionStorage.getItem("shortFormCompleted") === "true";
           storeCoregAnswerOnly(camp, answerValue);
 
-          // 🟢 SKIP LOGICA: skipNext=true (Huur) -> Geen fetch, alleen skippen.
+          // 🟢 FIX: SKIP LOGICA PRIORITEIT -> Direct return om normale flow te stoppen
           if (skipNext) {
+            console.log("Skip-next geactiveerd via button voor CID:", camp.cid);
             skipToNextCampaign(section, camp.cid);
             return;
           }
 
-          // 🟢 NORMALE FLOW: skipNext=false (Koop)
+          // 🟢 NORMALE FLOW
           if (camp.requiresLongForm) {
             const isFinalStep = isLastStepOfCampaign(section, camp.cid, sections);
             
             if (!isFinalStep) {
-              // Nog niet klaar met multi-step -> Volgende vraag
               showNextSection(section);
               return;
             }
             
-            // Klaar met vragen -> Activeer Long Form
             sessionStorage.setItem("requiresLongForm", "true");
             const pending = JSON.parse(sessionStorage.getItem("longFormCampaigns") || "[]");
             if (!pending.some(p => p.cid === camp.cid)) {
@@ -595,16 +593,16 @@ async function initCoregFlow() {
           return;
         }
 
-        // NEGATIEF
+        // NEGATIEF ANTWOORD (Btn-skip)
         skipToNextCampaign(section, camp.cid);
       });
     });
-  });
-}
-  
+  }); // Sluiting van sections.forEach
+} // Sluiting van initCoregFlow
+
 // ======================================
 // Start renderer
 // ======================================
-window.addEventListener("DOMContentLoaded", initCoregFlow);
+window.addEventListener("DOMContentLoaded", initCoregFlow); //
 
-if (!DEBUG) console.info("🎉 coregRenderer (NL) loaded successfully");
+if (!DEBUG) console.info("🎉 coregRenderer (NL) loaded successfully"); //
