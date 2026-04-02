@@ -442,8 +442,8 @@ async function initCoregFlow() {
     }
   }
 
- // =============================================================
-  // ✅ VERBETERDE EVENT LISTENERS (Skip-Next Fix)
+// =============================================================
+  // ✅ VERBETERDE EVENT LISTENERS (Skip-Next & Skip-Link Fix)
   // =============================================================
   sections.forEach(section => {
     
@@ -455,7 +455,7 @@ async function initCoregFlow() {
         if (!opt || !opt.value) return;
 
         const camp = campaigns.find(c => c.id == dropdown.dataset.campaign);
-        // Check expliciet op beide varianten voor robuustheid
+        // Robuuste check op skip-next vlag uit Directus
         const shouldSkip = opt.getAttribute('data-skip-next') === "true" || opt.dataset.skipNext === "true"; 
 
         sessionStorage.setItem(`f_2575_coreg_answer_dropdown_${camp.cid}`, opt.value);
@@ -467,11 +467,11 @@ async function initCoregFlow() {
 
         storeCoregAnswerOnly(camp, answerValue);
 
-        // 🟢 PRIORITEIT 1: Harde Skip (Huur-logica)
+        // 🟢 PRIORITEIT 1: Harde Skip (volgende vragen van deze campagne overslaan)
         if (shouldSkip) {
-          console.log(`[Coreg] Skip-next gedetecteerd voor CID: ${camp.cid}. Overslaan...`);
+          console.log(`[Coreg] Skip-next geactiveerd voor CID: ${camp.cid}`);
           skipToNextCampaign(section, camp.cid);
-          return; // STOP HIER
+          return; 
         }
 
         // 🟢 PRIORITEIT 2: Long Form logica
@@ -517,13 +517,29 @@ async function initCoregFlow() {
       });
     }
 
+    // 1.5 DROPDOWN SKIP LINK HANDLER (De tekstlink onder de dropdown)
+    const skipLink = section.querySelector(".skip-link");
+    if (skipLink) {
+      skipLink.addEventListener("click", e => {
+        e.preventDefault();
+        const campId = skipLink.dataset.campaign;
+        const camp = campaigns.find(c => c.id == campId);
+        
+        if (camp) {
+          console.log(`[Coreg] Skip-link gebruikt voor CID: ${camp.cid}`);
+          skipToNextCampaign(section, camp.cid);
+        } else {
+          showNextSection(section);
+        }
+      });
+    }
+
     // 2. BUTTONS HANDLER (JA / NEE)
     section.querySelectorAll(".btn-answer, .btn-skip").forEach(btn => {
       btn.addEventListener("click", async () => {
         const camp = campaigns.find(c => c.id == btn.dataset.campaign);
         const answer = btn.dataset.answer;
         const isNegative = btn.classList.contains("btn-skip") || answer === "no";
-        // Check expliciet op attribuut
         const shouldSkip = btn.getAttribute('data-skip-next') === "true" || btn.dataset.skipNext === "true";
 
         const answerValue = {
@@ -532,9 +548,8 @@ async function initCoregFlow() {
           sid: btn.dataset.sid || camp.sid
         };
 
-        // Bij een negatief antwoord (Nee) altijd de hele campagne overslaan
+        // Bij een negatief antwoord (Nee) altijd de campagne overslaan
         if (isNegative) {
-          console.log(`[Coreg] Negatief antwoord. Skip campagne CID: ${camp.cid}`);
           skipToNextCampaign(section, camp.cid);
           return;
         }
@@ -542,9 +557,8 @@ async function initCoregFlow() {
         // POSITIEF ANTWOORD
         storeCoregAnswerOnly(camp, answerValue);
 
-        // 🟢 PRIORITEIT 1: Harde Skip (bijv. Huur geselecteerd via button)
+        // 🟢 PRIORITEIT 1: Harde Skip via button
         if (shouldSkip) {
-          console.log(`[Coreg] Skip-next via button voor CID: ${camp.cid}`);
           skipToNextCampaign(section, camp.cid);
           return;
         }
@@ -566,7 +580,7 @@ async function initCoregFlow() {
           return;
         }
 
-        // 🟢 PRIORITEIT 3: Short Form afgehandeld?
+        // 🟢 PRIORITEIT 3: Short Form
         const shortDone = sessionStorage.getItem("shortFormCompleted") === "true";
         if (!shortDone) {
           const pending = JSON.parse(sessionStorage.getItem("pendingShortCoreg") || "[]");
@@ -592,8 +606,7 @@ async function initCoregFlow() {
       });
     });
   });
+} // Einde initCoregFlow
 
-  // Vergeet niet de functies af te sluiten
-}
-
+// Start renderer
 window.addEventListener("DOMContentLoaded", initCoregFlow);
