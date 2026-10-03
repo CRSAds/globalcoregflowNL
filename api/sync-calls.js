@@ -42,6 +42,8 @@ const url =
       offer_id: c.offer_id,
       ivr_value: c.ivr_value,
       status: c.status,
+      // Click-id van de funnel (t_id), zodat IVR-omzet per klik en per A/B-variant telt.
+      click_id: c.click_id && String(c.click_id).trim() ? String(c.click_id).trim() : null,
     }));
 
     // 3️⃣ Upsert naar Supabase
